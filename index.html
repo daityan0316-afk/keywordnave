@@ -1715,17 +1715,35 @@ function renderNiche(items, keyword) {
   const pct = Math.round((score - 2) / 8 * 100);
   const badge = document.getElementById("nicheScoreBadge");
   if (badge) badge.innerHTML = `<span style="font-size:0.78rem;font-weight:700;color:${color};background:${color}18;padding:2px 8px;border-radius:10px">${label} ${score}/10</span>`;
+  const ma = window._marketAnalysis || {};
   document.getElementById("nicheBar").innerHTML = `
-    <div class="summary-card" style="border-left:3px solid ${color};flex-direction:column;align-items:flex-start;gap:4px">
-      <div style="display:flex;align-items:baseline;gap:4px">
-        <span class="card-value" style="color:${color}">${label}</span>
-        <span style="font-size:1.1rem;font-weight:800;color:${color}">${score}</span><span style="font-size:0.72rem;color:#aaa">/10</span>
-      </div>
-      <div style="height:6px;background:#e0e0e8;border-radius:3px;overflow:hidden;width:100%">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.8s ease"></div>
-      </div>
-      <span style="font-size:0.76rem;color:#555;font-weight:500;line-height:1.5">${desc}</span>
-      <button onclick="openMarketPopup()" style="margin-top:6px;width:100%;padding:7px 0;font-size:0.78rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 市場分析レポート</button>
+    <div class="summary-card" style="border-left:3px solid ${color};flex-direction:column;align-items:flex-start;gap:6px">
+      ${ma.entryJudge ? (() => {
+        const sharePct = ma.entrantShare ? (ma.entrantShare * 100).toFixed(1) : '0.7';
+        const monthly = ma.yearlyEstimate ? ma.yearlyEstimate / 12 : 0;
+        const monthlyLabel = monthly >= 1e8 ? `約${(monthly/1e8).toFixed(1)}億円`
+                           : monthly >= 1e4 ? `約${Math.round(monthly/1e4)}万円`
+                           : `約${Math.round(monthly).toLocaleString()}円`;
+        return `
+      <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
+        <div style="padding:10px 12px;border-bottom:1px solid #e0e4ef">
+          <div style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:4px">● 結論（参入すべきか）</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};white-space:nowrap">${ma.entryJudge}</span>
+          </div>
+          <div style="margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${{'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4}[ma.entryJudge]||5}/10</span></div>
+            <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${({'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40}[ma.entryJudge]||50)}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
+          </div>
+          <div style="font-size:0.73rem;color:#555;line-height:1.55">${ma.entryAdvice}</div>
+        </div>
+        <div style="padding:10px 12px">
+          <div style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:4px">● 月商予測（シェア約${sharePct}%想定）</div>
+          <div style="font-size:1.25rem;font-weight:800;color:${ma.entryColor};letter-spacing:0.02em">${monthlyLabel}</div>
+        </div>
+      </div>`;
+      })() : ''}
+      <button onclick="openMarketPopup()" style="width:100%;padding:9px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 市場分析レポート</button>
     </div>`;
 }
 
@@ -1798,15 +1816,7 @@ function renderSummary(items) {
     keyword: document.getElementById("keyword").value.trim()
   };
 
-  document.getElementById("summaryGrid").innerHTML = `
-    <div style="background:${entryBg};border-left:3px solid ${entryColor};border-radius:10px;padding:10px 12px;margin-bottom:6px">
-      <div style="font-size:0.82rem;font-weight:800;color:${entryColor};margin-bottom:4px">${entryJudge}</div>
-      <div style="font-size:0.76rem;color:#444;margin-bottom:6px">${entryAdvice}</div>
-      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;border-top:1px solid ${entryColor}30;padding-top:6px">
-        <span>市場規模<br><b style="color:${entryColor}">${marketLabel}</b></span>
-        <span>参入後年収予測<br><b style="color:${entryColor}">${yearlyLabel}</b></span>
-      </div>
-    </div>`;
+  document.getElementById("summaryGrid").innerHTML = "";
 
   const priceMin = Math.min(...prices), priceMax = Math.max(...prices);
   document.getElementById("priceRangeCard").innerHTML = "";
@@ -2298,67 +2308,17 @@ function openMarketPopup() {
   document.getElementById("marketPopupTitle").textContent = `📊 市場分析レポート`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
-      <button class="mp-tab active" onclick="mpTab(this,0)">① サマリー</button>
-      <button class="mp-tab" onclick="mpTab(this,1)">② 市場概要</button>
-      <button class="mp-tab" onclick="mpTab(this,2)">③ 需要</button>
-      <button class="mp-tab" onclick="mpTab(this,3)">④ ターゲット</button>
-      <button class="mp-tab" onclick="mpTab(this,4)">⑤ 競合</button>
-      <button class="mp-tab" onclick="mpTab(this,5)">⑥ 商品分析</button>
-      <button class="mp-tab" onclick="mpTab(this,6)">⑦ リスク</button>
+      <button class="mp-tab active" onclick="mpTab(this,0)">① 市場概要</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">② 需要</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">③ ターゲット</button>
+      <button class="mp-tab" onclick="mpTab(this,3)">④ 競合</button>
+      <button class="mp-tab" onclick="mpTab(this,4)">⑤ 商品分析</button>
+      <button class="mp-tab" onclick="mpTab(this,5)">⑥ リスク</button>
     </div>
     <div class="mp-panes">
 
-      <!-- タブ0: ①エグゼクティブサマリー -->
+      <!-- タブ0: ①市場概要 -->
       <div class="mp-pane active">
-        <div style="font-size:0.82rem;color:#888;font-weight:600;letter-spacing:0.04em;margin-bottom:8px">👉 ここだけ読めば判断できます</div>
-
-        <!-- 月商予測 ＋ 結論 横並び -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-
-          <!-- 結論 -->
-          <div class="market-popup-verdict" style="background:${d.entryBg};border-left:5px solid ${d.entryColor}">
-            <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:4px">● 結論（参入すべきか）</div>
-            <div style="font-size:1.15rem;font-weight:800;color:${d.entryColor};margin-bottom:6px">${d.entryJudge}</div>
-            <div style="font-size:0.88rem;color:#444;line-height:1.75">${d.entryAdvice}</div>
-          </div>
-
-          <!-- 月商予測 -->
-          <div style="background:#f0fff5;border:1px solid #b2e5c8;border-radius:12px;padding:16px">
-            <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:8px">● 月商予測（シェア${shareDisp}想定）</div>
-            <div style="font-size:0.84rem;color:#888;margin-bottom:3px">あなたの推計月商</div>
-            <div style="font-size:1.8rem;font-weight:900;color:${d.entryColor};line-height:1;margin-bottom:4px">${fmtYen(d.yearlyEstimate / 12)}</div>
-            <div style="font-size:0.82rem;color:#888;margin-bottom:8px">年間 ${fmtYen(d.yearlyEstimate)}</div>
-            <div style="background:#e0e8f0;border-radius:4px;height:8px;overflow:hidden">
-              <div style="height:100%;background:${d.entryColor};border-radius:4px;width:${Math.min(100,Math.round(d.entrantShare*100*2))}%;transition:width 0.6s"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#888;margin-top:4px">
-              <span>あなた ${shareDisp}</span>
-              <span>市場全体 ${fmtYen(monthRev)}</span>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- 勝ち筋（フル幅） -->
-        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:12px;padding:16px">
-          <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:10px">● 勝ち筋（どこで戦うか）</div>
-          <div style="display:flex;flex-direction:column;gap:9px">
-            ${diffPoints.slice(0,3).map(p => `
-              <div style="display:flex;gap:10px;align-items:flex-start">
-                <span style="font-size:1.2rem;flex-shrink:0">${p.icon}</span>
-                <div>
-                  <div style="font-size:0.9rem;font-weight:700;color:#1a3a5c;margin-bottom:2px">${p.title}</div>
-                  <div style="font-size:0.84rem;color:#555;line-height:1.65">${p.body}</div>
-                </div>
-              </div>`).join("")}
-          </div>
-        </div>
-
-        <div class="market-popup-note">※楽天市場データ（レビュー率3%・新規シェア${shareDisp}想定）の推計値。実際の売上は商品力・広告戦略により変動します。</div>
-      </div>
-
-      <!-- タブ1: ②市場概要 -->
-      <div class="mp-pane">
         <div class="market-popup-grid">
           <div class="market-popup-stat">
             <span class="market-popup-stat-label">🏪 月間市場規模</span>
@@ -2401,7 +2361,7 @@ function openMarketPopup() {
         <div class="market-popup-note">※楽天APIから取得した商品データを元に推計しています。</div>
       </div>
 
-      <!-- タブ2: ③需要分析 -->
+      <!-- タブ1: ②需要分析 -->
       <div class="mp-pane">
         <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px">
           <div style="font-size:0.78rem;font-weight:700;color:#555;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
