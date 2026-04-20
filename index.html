@@ -1752,8 +1752,8 @@ function renderNiche(items, keyword) {
             const hi  = Math.round(ma.priceMedian * 2);
             const row = (label, price, bold) => price > 0 ? `
               <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="color:${bold?'#555':'#999'};font-weight:${bold?600:400}">${label} ¥${price.toLocaleString()}</span>
-                <b style="color:${ma.entryColor}">${Math.ceil(monthly/price)}個／月</b>
+                <span style="color:${bold?'#222':'#444'};font-weight:${bold?700:500}">${label} ¥${price.toLocaleString()}</span>
+                <b style="color:${ma.entryColor};font-size:0.78rem">${Math.ceil(monthly/price)}個／月</b>
               </div>` : '';
             return `<div style="font-size:0.72rem;color:#666;margin-top:6px;border-top:1px solid #eee;padding-top:6px">
               <div style="margin-bottom:4px;font-weight:600;color:#888">月商達成に必要な販売数</div>
