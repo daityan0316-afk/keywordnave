@@ -52,26 +52,30 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
+  padding: 4px 6px;
+  border-radius: 10px;
+  transition: background 0.15s;
 }
-.logo:hover { opacity: 0.85; }
+.logo:hover { background: #f0f4f8; opacity: 1; }
 .logo-icon {
-  font-size: 1.8rem;
+  font-size: 2rem;
   line-height: 1;
   animation: radar-pulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 1px 3px #2563eb33);
 }
 @keyframes radar-pulse {
   0%, 100% { transform: rotate(0deg) scale(1); }
   50%       { transform: rotate(12deg) scale(1.08); }
 }
-.logo-text-wrap { display: flex; flex-direction: column; gap: 1px; line-height: 1; }
+.logo-text-wrap { display: flex; flex-direction: column; gap: 3px; line-height: 1; }
 .logo-title {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 900;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 50%, var(--teal) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -79,12 +83,11 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   white-space: nowrap;
 }
 .logo-sub {
-  font-size: 0.55rem;
+  font-size: 0.62rem;
   font-weight: 600;
   color: var(--text-sub);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
-  text-transform: uppercase;
 }
 
 /* ── 検索ボックス ────────────────────────────────────────────── */

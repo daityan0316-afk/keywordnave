@@ -1745,6 +1745,26 @@ function renderNiche(items, keyword) {
         <div style="padding:10px 12px">
           <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 月商予測（シェア約${sharePct}%想定）</div>
           <div style="font-size:1.5rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.02em;text-shadow:0 0 8px ${ma.entryColor}44">${monthlyLabel}</div>
+          ${(ma.priceMedian > 0 && ma.priceAvg > 0) ? (() => {
+            const bot = ma.priceMin || Math.round(ma.priceMedian * 0.3);
+            const lo  = Math.round(ma.priceMedian * 0.5);
+            const md  = ma.priceMedian;
+            const hi  = Math.round(ma.priceMedian * 2);
+            const row = (label, price, bold) => price > 0 ? `
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:${bold?'#555':'#999'};font-weight:${bold?600:400}">${label} ¥${price.toLocaleString()}</span>
+                <b style="color:${ma.entryColor}">${Math.ceil(monthly/price)}個／月</b>
+              </div>` : '';
+            return `<div style="font-size:0.72rem;color:#666;margin-top:6px;border-top:1px solid #eee;padding-top:6px">
+              <div style="margin-bottom:4px;font-weight:600;color:#888">月商達成に必要な販売数</div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                ${row('底値', bot, false)}
+                ${row('低価格', lo, false)}
+                ${row('中価格', md, true)}
+                ${row('高価格', hi, false)}
+              </div>
+            </div>`;
+          })() : ''}
         </div>
       </div>`;
       })() : ''}
@@ -1816,7 +1836,7 @@ function renderSummary(items) {
     yearlyEstimate, yearlyLabel, totalMarketRevenue, marketLabel,
     uniqueShops, topShopShare, entrantShare,
     entryJudge, entryColor, entryBg, entryAdvice, seasonNote, cv,
-    priceMedian: median, priceAvg: Math.round(avg),
+    priceMedian: median, priceAvg: Math.round(avg), priceMin: prices[0]||0,
     totalCount: _totalCount,
     keyword: document.getElementById("keyword").value.trim()
   };
