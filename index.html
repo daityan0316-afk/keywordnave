@@ -1988,37 +1988,72 @@ function renderTable(items, orderMap) {
 function renderTablePage() {
   const start = (_currentPage - 1) * PAGE_SIZE;
   const page = _tableItems.slice(start, start + PAGE_SIZE);
-  document.querySelector("#itemTable tbody").innerHTML = page.map(it => {
-    const pos = _tableOrderMap?.[it.itemCode];
-    const rankCls = pos === 1 ? "rank-1" : pos === 2 ? "rank-2" : pos === 3 ? "rank-3" : "";
-    const posCell = pos
-      ? `<td style="text-align:center"><span class="rank-num ${rankCls}">${pos}</span></td>`
-      : `<td class="pos-cell miss">-</td>`;
-    const isFav = isFavorite(it.itemCode);
-    const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
-    return `<tr>
-      ${posCell}
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${it.image ? `<img src="${it.image}" class="item-img" loading="lazy" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : ""}
-          <a href="${it.url}" target="_blank" class="item-name-link">${it.name}</a>
-        </div>
-      </td>
-      <td><span class="price-cell">¥${it.price.toLocaleString()}</span></td>
-      <td>
-        <div class="review-cell">
-          <span class="review-count" style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'}">${it.reviewCount.toLocaleString()}件</span>
-          <span class="review-avg">★${it.reviewAvg > 0 ? it.reviewAvg.toFixed(1) : '-'}</span>
-        </div>
-      </td>
-      <td class="shop-name">
-        <span class="shop-link" onclick="openShopModal('${(it.itemCode||'').split(':')[0]}','${(it.shopName||'').replace(/'/g,"\\'")}')">${it.shopName || '-'}</span>
-      </td>
-      <td style="text-align:center">
-        <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
-      </td>
-    </tr>`;
-  }).join("");
+  const isMobile = window.innerWidth <= 640;
+  if (isMobile) {
+    // カード型表示
+    document.querySelector("#itemTable thead").style.display = "none";
+    document.querySelector("#itemTable tbody").innerHTML = page.map(it => {
+      const pos = _tableOrderMap?.[it.itemCode];
+      const rankCls = pos === 1 ? "rank-1" : pos === 2 ? "rank-2" : pos === 3 ? "rank-3" : "";
+      const isFav = isFavorite(it.itemCode);
+      const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
+      const shopId = (it.itemCode||'').split(':')[0];
+      const shopEsc = (it.shopName||'').replace(/'/g,"\\'");
+      return `<tr class="item-card-row">
+        <td colspan="6" style="padding:0;border:none">
+          <div class="item-card-sp">
+            <div class="item-card-sp-top">
+              ${it.image ? `<img src="${it.image}" class="item-card-sp-img" loading="lazy">` : '<div class="item-card-sp-img" style="background:#f0f0f0"></div>'}
+              <div class="item-card-sp-info">
+                ${pos ? `<span class="rank-num ${rankCls}" style="font-size:0.7rem;padding:1px 6px;margin-bottom:4px;display:inline-block">${pos}位</span>` : ''}
+                <a href="${it.url}" target="_blank" class="item-card-sp-name">${it.name}</a>
+              </div>
+              <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" style="flex-shrink:0">★</button>
+            </div>
+            <div class="item-card-sp-bottom">
+              <span class="price-cell" style="font-size:1rem">¥${it.price.toLocaleString()}</span>
+              <span class="review-count" style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'};font-size:0.78rem">${it.reviewCount.toLocaleString()}件</span>
+              <span class="review-avg" style="font-size:0.78rem">★${it.reviewAvg > 0 ? it.reviewAvg.toFixed(1) : '-'}</span>
+              <span class="shop-link" onclick="openShopModal('${shopId}','${shopEsc}')" style="font-size:0.75rem;color:#666;margin-left:auto">${it.shopName || ''}</span>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  } else {
+    document.querySelector("#itemTable thead").style.display = "";
+    document.querySelector("#itemTable tbody").innerHTML = page.map(it => {
+      const pos = _tableOrderMap?.[it.itemCode];
+      const rankCls = pos === 1 ? "rank-1" : pos === 2 ? "rank-2" : pos === 3 ? "rank-3" : "";
+      const posCell = pos
+        ? `<td style="text-align:center"><span class="rank-num ${rankCls}">${pos}</span></td>`
+        : `<td class="pos-cell miss">-</td>`;
+      const isFav = isFavorite(it.itemCode);
+      const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
+      return `<tr>
+        ${posCell}
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${it.image ? `<img src="${it.image}" class="item-img" loading="lazy" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : ""}
+            <a href="${it.url}" target="_blank" class="item-name-link">${it.name}</a>
+          </div>
+        </td>
+        <td><span class="price-cell">¥${it.price.toLocaleString()}</span></td>
+        <td>
+          <div class="review-cell">
+            <span class="review-count" style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'}">${it.reviewCount.toLocaleString()}件</span>
+            <span class="review-avg">★${it.reviewAvg > 0 ? it.reviewAvg.toFixed(1) : '-'}</span>
+          </div>
+        </td>
+        <td class="shop-name">
+          <span class="shop-link" onclick="openShopModal('${(it.itemCode||'').split(':')[0]}','${(it.shopName||'').replace(/'/g,"\\'")}')">${it.shopName || '-'}</span>
+        </td>
+        <td style="text-align:center">
+          <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }
   renderPagination();
 }
 

@@ -781,6 +781,55 @@ td a:hover { text-decoration: underline; }
 .rakuten-search-link { font-size: 0.75rem; color: #bf0000; text-decoration: none; white-space: nowrap; border: 1px solid #bf0000; border-radius: 10px; padding: 2px 8px; transition: background 0.15s, color 0.15s; }
 .rakuten-search-link:hover { background: #bf0000; color: #fff; }
 
+/* ── スマホ商品カード型 ─────────────────────────────── */
+.item-card-sp {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2eaf3;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 10px;
+  margin-bottom: 2px;
+}
+.item-card-sp-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.item-card-sp-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.item-card-sp-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.item-card-sp-name {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #1a3a5c;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 500;
+}
+.item-card-sp-name:hover { text-decoration: underline; }
+.item-card-sp-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid #f0f3f7;
+  padding-top: 6px;
+}
+
 .mercari-link { font-size: 0.7rem; color: #e8424a; text-decoration: none; white-space: nowrap; border: 1px solid #e8424a; border-radius: 10px; padding: 3px 7px; display: inline-block; transition: background 0.15s, color 0.15s; }
 .mercari-link:hover { background: #e8424a; color: #fff; }
 .lens-link { font-size: 0.7rem; color: #4285f4; text-decoration: none; white-space: nowrap; border: 1px solid #4285f4; border-radius: 10px; padding: 3px 7px; display: inline-block; margin-left: 4px; transition: background 0.15s, color 0.15s; }
@@ -2349,45 +2398,7 @@ td a:hover { text-decoration: underline; }
 
   /* 商品テーブル → カード型 */
   .table-wrap { overflow-x: visible; }
-  #itemTable { display: block; }
-  #itemTable thead { display: none; }
-  #itemTable tbody { display: flex; flex-direction: column; gap: 10px; }
-  #itemTable tr {
-    display: grid;
-    grid-template-columns: 52px 1fr auto;
-    grid-template-rows: auto auto;
-    column-gap: 8px;
-    row-gap: 2px;
-    background: #fff;
-    border: 1px solid #e2eaf3;
-    border-radius: 10px;
-    padding: 10px 10px 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  /* ランク列 → 非表示 */
-  #itemTable tr > td:first-child { display: none; }
-  /* 画像+名前 td → col1〜2, row1 */
-  #itemTable tr > td:nth-child(2) {
-    grid-column: 1 / 3; grid-row: 1;
-  }
-  #itemTable tr > td:nth-child(2) > div { align-items: flex-start; }
-  .item-img { width: 48px; height: 48px; border-radius: 6px; flex-shrink: 0; }
-  .item-name-link { font-size: 0.82rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  /* ★お気に入りボタン → col3, row1 */
-  #itemTable tr > td:last-child { grid-column: 3; grid-row: 1; text-align: right; align-self: start; }
-  /* 価格 td → col1, row2 */
-  #itemTable tr > td:nth-child(3) { grid-column: 1 / 2; grid-row: 2; align-self: center; }
-  .price-cell { font-size: 0.9rem; font-weight: 700; color: #c0392b; }
-  /* レビュー td → col2, row2 */
-  #itemTable tr > td:nth-child(4) { grid-column: 2 / 3; grid-row: 2; align-self: center; }
-  .review-cell { flex-direction: row; gap: 6px; align-items: center; }
-  .review-count { font-size: 0.78rem; }
-  .review-avg { font-size: 0.78rem; }
-  /* 店舗 td → col1〜3, row3 */
-  #itemTable tr > td:nth-child(5) {
-    grid-column: 1 / 4; grid-row: 3;
-    font-size: 0.75rem; color: #666; padding-top: 4px; border-top: 1px solid #f0f0f0; margin-top: 4px;
-  }
+  #itemTable { min-width: unset; width: 100%; }
 
   /* 検索結果ヘッダー行 */
   .result-meta-row { flex-direction: column; gap: 6px; align-items: flex-start; }
@@ -2409,15 +2420,16 @@ td a:hover { text-decoration: underline; }
     border-radius: 0 !important;
     margin: 0 !important;
   }
-  .mp-tabs { gap: 0; padding: 0 2px; }
+  .market-popup-header { padding: 10px 12px 8px; }
+  .market-popup-title { font-size: 0.88rem; }
+  .mp-tabs { gap: 0; padding: 0 2px; overflow-x: auto; }
   .mp-tab { font-size: 0.7rem; padding: 8px 8px; white-space: nowrap; }
-  .market-popup-stat-value { font-size: 1.1rem; }
-  .market-popup-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .market-popup-stat { padding: 10px 12px; }
-  .market-popup-stat-label { font-size: 0.78rem; }
-  .market-popup-body { padding: 12px; font-size: 0.88rem; }
-  .market-popup-verdict { font-size: 0.9rem; padding: 10px 12px; line-height: 1.6; }
-  .mp-panes { padding: 12px 12px 16px; font-size: 0.88rem; }
+  .mp-panes { padding: 10px 10px 14px; font-size: 0.85rem; }
+  .market-popup-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .market-popup-stat { padding: 8px 10px; }
+  .market-popup-stat-label { font-size: 0.72rem; }
+  .market-popup-stat-value { font-size: 1rem; }
+  .market-popup-verdict { font-size: 0.85rem; padding: 8px 10px; line-height: 1.55; }
 
   /* 店舗モーダル */
   .shop-modal-overlay { padding: 0; align-items: flex-start; }
