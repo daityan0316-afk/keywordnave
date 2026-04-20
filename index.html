@@ -1732,10 +1732,10 @@ function renderNiche(items, keyword) {
             <span style="font-size:1.05rem;font-weight:900;color:${ma.entryColor};white-space:nowrap;text-shadow:0 0 8px ${ma.entryColor}44">${ma.entryJudge}</span>
           </div>
           <div style="margin-bottom:4px">
-            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${{'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4}[ma.entryJudge]||5}/10</span></div>
-            <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${({'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40}[ma.entryJudge]||50)}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${(function(){var m={'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4};return m[ma.entryJudge]||5;})()}/10</span></div>
+            <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${(function(){var m={'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40};return m[ma.entryJudge]||50;})()}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
           </div>
-          <div style="font-size:0.73rem;color:#555;line-height:1.55">${ma.entryAdvice}</div>
+          <div style="font-size:0.82rem;color:#444;line-height:1.6">${ma.entryAdvice}</div>
         </div>
         <div style="padding:10px 12px">
           <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 月商予測（シェア約${sharePct}%想定）</div>
@@ -2314,6 +2314,7 @@ function openMarketPopup() {
       <button class="mp-tab" onclick="mpTab(this,3)">④ 競合</button>
       <button class="mp-tab" onclick="mpTab(this,4)">⑤ 商品分析</button>
       <button class="mp-tab" onclick="mpTab(this,5)">⑥ リスク</button>
+      <button class="mp-tab" onclick="mpTab(this,6)">⑦ 商品概要</button>
     </div>
     <div class="mp-panes">
 
@@ -2608,6 +2609,94 @@ function openMarketPopup() {
             </div>`).join("")}
         </div>
         <div class="market-popup-note">※リスク評価は楽天市場データから自動算出しています。市場環境の変化により実際のリスクは異なります。</div>
+      </div>
+
+      <!-- タブ6: ⑦商品概要 -->
+      <div class="mp-pane">
+        ${(() => {
+          const items = _allItems || [];
+          const kw = d.keyword || '';
+          const combined = items.slice(0,20).map(i=>i.name||'').join(' ');
+          const prices = items.map(i=>i.price).filter(p=>p>0).sort((a,b)=>a-b);
+          const priceMin = prices[0]||0, priceMax = prices[prices.length-1]||0;
+          const priceQ1 = prices[Math.floor(prices.length*0.25)]||0;
+          const priceQ3 = prices[Math.floor(prices.length*0.75)]||0;
+          const avgRev = (items.reduce((s,i)=>s+i.reviewAvg,0)/items.length).toFixed(1);
+          const topReviewed = [...items].sort((a,b)=>b.reviewCount-a.reviewCount)[0];
+          const topRated = [...items].filter(i=>i.reviewCount>=5).sort((a,b)=>b.reviewAvg-a.reviewAvg)[0];
+
+          // 商品知識を商品名から推定
+          const hasGift    = /ギフト|プレゼント|贈り物|贈答/.test(combined);
+          const _m1 = combined.match(/(?:シルバー|ゴールド|レザー|革|木製|竹|ステンレス|アクリル|シリコン|綿|コットン|リネン|ポリエステル|セラミック|陶器|ガラス|天然石|水晶|クリスタル)/); const hasMaterial = _m1 && _m1[0];
+          const _m2 = combined.match(/(?:\d+mm|\d+cm|Sサイズ|Mサイズ|Lサイズ|大きめ|小さめ|コンパクト|大容量)/); const hasSize = _m2 && _m2[0];
+          const _m3 = combined.match(/(?:防水|撥水|UVカット|抗菌|消臭|保温|保冷|折りたたみ|収納|多機能|充電|ワイヤレス)/); const hasFunction = _m3 && _m3[0];
+          const _m4 = combined.match(/(?:メンズ|レディース|キッズ|ベビー|男性|女性|子供|シニア|ペット)/); const hasTarget = _m4 && _m4[0];
+          const _m5 = combined.match(/(?:アウトドア|キャンプ|オフィス|ビジネス|スポーツ|旅行|結婚式|卒業|入学|お祝い)/); const hasScene = _m5 && _m5[0];
+
+          const productKnowledge = [];
+          if (hasMaterial) productKnowledge.push({ icon:'🔬', label:'主な素材', body:`「${hasMaterial}」素材の商品が多く見られます。素材の特性（耐久性・質感・手入れのしやすさ）を理解した上で仕入れ・出品を検討しましょう。` });
+          if (hasSize)     productKnowledge.push({ icon:'📐', label:'サイズ・規格', body:`「${hasSize}」など規格・サイズ展開がある商品です。サイズ違いをセットで展開することでカート単価アップが期待できます。` });
+          if (hasFunction) productKnowledge.push({ icon:'⚙️', label:'機能的特徴', body:`「${hasFunction}」機能を持つ商品が上位に多く見られます。機能訴求を商品タイトルの先頭に置くことで検索順位・CTRの向上が見込めます。` });
+          if (hasScene)    productKnowledge.push({ icon:'🎯', label:'主な使用シーン', body:`「${hasScene}」シーンでの利用が想定される商品です。シーン訴求の画像・説明文を用意すると購入判断を後押しできます。` });
+          if (hasGift)     productKnowledge.push({ icon:'🎁', label:'ギフト需要', body:`ギフト・プレゼント用途の商品が多く含まれます。ラッピング対応や熨斗対応を打ち出すことで贈り物需要を取り込めます。` });
+          if (!productKnowledge.length) productKnowledge.push({ icon:'📦', label:'商品の特徴', body:`上位商品のタイトルに共通して「${topKws.slice(0,3).join('・')}」が含まれます。これらを押さえた商品ラインナップ・タイトル設計が効果的です。` });
+
+          // 価格帯の主力ゾーン
+          const mainZone = `¥${priceQ1.toLocaleString()}〜¥${priceQ3.toLocaleString()}`;
+
+          return `
+          <div style="display:flex;flex-direction:column;gap:12px">
+
+            <!-- 商品知識 -->
+            <div style="background:#fdf8f0;border:1px solid #e8d8b0;border-radius:10px;padding:14px 16px">
+              <div style="font-size:0.78rem;font-weight:700;color:#7a5c00;margin-bottom:10px">📚 商品知識・参入のポイント</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                ${productKnowledge.map(pk=>`
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <span style="font-size:1rem;flex-shrink:0">${pk.icon}</span>
+                  <div>
+                    <div style="font-size:0.75rem;font-weight:700;color:#7a5c00;margin-bottom:2px">${pk.label}</div>
+                    <div style="font-size:0.82rem;color:#444;line-height:1.65">${pk.body}</div>
+                  </div>
+                </div>`).join('')}
+              </div>
+            </div>
+
+            <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:14px 16px">
+              <div style="font-size:0.78rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 商品カテゴリの特徴</div>
+              <div style="font-size:0.84rem;color:#333;line-height:1.75">
+                「${kw}」カテゴリは、価格帯 <b>¥${priceMin.toLocaleString()}〜¥${priceMax.toLocaleString()}</b> で展開されており、
+                主力価格帯は <b>${mainZone}</b> です。
+                平均評価は <b>★${avgRev}</b> で、
+                ${parseFloat(avgRev)>=4.0 ? '品質満足度が高く、リピート購入が期待できる市場です。' : parseFloat(avgRev)>=3.5 ? '品質に一定の評価がある市場です。差別化で高評価を狙えます。' : '品質面での差別化余地が大きい市場です。'}
+              </div>
+            </div>
+
+            <div style="background:#fafbfc;border:1px solid #e8edf2;border-radius:10px;padding:14px 16px">
+              <div style="font-size:0.78rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">🏷️ 商品に多く含まれる特徴・キーワード</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${topKws.slice(0,8).map(w=>`<span style="background:#e8f4fd;color:#2563eb;border:1px solid #bdd8f5;border-radius:20px;padding:3px 12px;font-size:0.82rem;font-weight:600">${w}</span>`).join('')}
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              ${topReviewed ? `
+              <div style="background:#fafbfc;border:1px solid #e8edf2;border-radius:10px;padding:12px">
+                <div style="font-size:0.72rem;font-weight:700;color:#888;margin-bottom:6px">💬 最多レビュー商品</div>
+                <div style="font-size:0.78rem;color:#1a3a5c;font-weight:600;line-height:1.45;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">${topReviewed.name}</div>
+                <div style="font-size:0.75rem;color:#e74c3c;font-weight:700">¥${(topReviewed.price||0).toLocaleString()}</div>
+                <div style="font-size:0.73rem;color:#888">${topReviewed.reviewCount}件 ★${topReviewed.reviewAvg}</div>
+              </div>` : ''}
+              ${topRated ? `
+              <div style="background:#fafbfc;border:1px solid #e8edf2;border-radius:10px;padding:12px">
+                <div style="font-size:0.72rem;font-weight:700;color:#888;margin-bottom:6px">⭐ 最高評価商品</div>
+                <div style="font-size:0.78rem;color:#1a3a5c;font-weight:600;line-height:1.45;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">${topRated.name}</div>
+                <div style="font-size:0.75rem;color:#e74c3c;font-weight:700">¥${(topRated.price||0).toLocaleString()}</div>
+                <div style="font-size:0.73rem;color:#888">${topRated.reviewCount}件 ★${topRated.reviewAvg}</div>
+              </div>` : ''}
+            </div>
+          </div>`;
+        })()}
       </div>
 
     </div>
