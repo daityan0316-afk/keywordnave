@@ -1,0 +1,3190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <title>キーワードなび</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="container">
+  <div class="header-row">
+    <div class="logo" onclick="showWelcome()">
+      <div class="logo-icon">🧭</div>
+      <div class="logo-text-wrap">
+        <span class="logo-title">キーワードなび</span>
+        <span class="logo-sub">楽天市場 市場・競合分析</span>
+      </div>
+    </div>
+    <div class="search-box">
+      <div class="search-inputs">
+        <div class="suggest-wrap">
+          <input type="text" id="keyword" placeholder="例：フラワーシャワー 造花" maxlength="50" autocomplete="off">
+          <div id="suggestDropdown" class="suggest-dropdown"></div>
+        </div>
+        <div class="exclude-row">
+          <span class="exclude-label">除外</span>
+          <input type="text" id="excludeInput" placeholder="除外キーワードをいれてください" maxlength="200">
+        </div>
+      </div>
+      <button id="searchBtn" onclick="doSearch()">調査する</button>
+      <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">★ 登録</button>
+      <button id="favBtn" onclick="openFavModal()" title="お気に入り一覧">★ <span id="favCount">0</span></button>
+      <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
+    </div>
+  </div>
+  <!-- 検索履歴 -->
+
+  <!-- 登録キーワード（全ページ常時表示） -->
+  <div id="savedKeywords"></div>
+
+  <a id="topBtn" href="#" title="トップへ戻る">▲</a>
+
+  <!-- 株価バナー -->
+  <div id="stockWidget" class="stock-banner"></div>
+
+  <!-- トップコンテンツ（検索前のみ表示） -->
+  <div id="topContent">
+
+    <!-- SNSトレンド -->
+    <section class="top-section sns-trend-section">
+      <div class="top-section-header">
+        <span class="top-section-title"><span class="title-emoji">📱</span> SNSトレンド</span>
+        <div class="sns-platform-nav" id="snsPlatformNav">
+          <button class="sns-pf-btn active" data-pf="instagram" onclick="switchSnsPlatform('instagram')">Instagram</button>
+          <button class="sns-pf-btn" data-pf="tiktok" onclick="switchSnsPlatform('tiktok')">TikTok</button>
+          <button class="sns-pf-btn" data-pf="pinterest" onclick="switchSnsPlatform('pinterest')">Pinterest</button>
+          <button class="sns-pf-btn" data-pf="x" onclick="switchSnsPlatform('x')">X (Twitter)</button>
+          <button class="sns-how-btn" onclick="openSnsHowPopup()" title="各SNSのトレンド取得方法">？ 取得方法</button>
+        </div>
+      </div>
+      <div class="top-section-body">
+        <div class="sns-genre-nav">
+          <button class="sns-genre-btn active" onclick="switchSnsGenre('ladies', this)">👗 レディース</button>
+          <button class="sns-genre-btn" onclick="switchSnsGenre('mens', this)">👔 メンズ</button>
+          <span class="sns-gender-sep"></span>
+          <button class="sns-genre-btn" onclick="switchSnsGenre('gourmet', this)">🍽️ グルメ</button>
+          <button class="sns-genre-btn" onclick="switchSnsGenre('recipe', this)">🍳 レシピ</button>
+        </div>
+        <div id="snsTrendContent" class="sns-trend-grid"></div>
+        <p class="sns-trend-note">※ SNS各社のAPI制限のため、トレンドデータは定期更新のキュレーション情報です。クリックで楽天市場を検索します。</p>
+      </div>
+    </section>
+
+  </div><!-- /#topContent -->
+
+  <!-- 検索ステータス -->
+  <div id="status" class="status hidden"></div>
+
+  <!-- 検索結果（2カラム） -->
+  <div id="result" class="hidden">
+    <div class="result-layout">
+
+      <!-- 左サイドバー -->
+      <aside class="result-sidebar">
+        <div class="sidebar-sticky">
+          <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 市場分析レポート</button>
+          <div id="nicheBar"></div>
+          <div class="sidebar-price-filter hidden" id="priceFilterBox">
+            <span class="price-filter-label">価格帯（最安〜最高）</span>
+            <div class="price-filter-row">
+              <span class="price-filter-yen">¥</span>
+              <input type="number" id="filterMin" placeholder="下限" oninput="applyFilter()">
+              <span class="price-filter-sep">〜</span>
+              <span class="price-filter-yen">¥</span>
+              <input type="number" id="filterMax" placeholder="上限" oninput="applyFilter()">
+            </div>
+          </div>
+          <div id="summaryGrid" class="summary-grid"></div>
+          <div id="priceRangeCard"></div>
+          <div id="shopTagList"></div>
+        </div>
+      </aside>
+
+      <!-- 右メイン -->
+      <div class="result-main">
+        <div id="tableContent" class="hidden">
+          <div class="pg-header-row">
+            <span id="resultTitle" style="font-size:1rem;font-weight:700;color:#1a3a5c"></span>
+            <span id="filterCount" class="filter-count"></span>
+            <div id="pagination"></div>
+          </div>
+          <div class="table-wrap">
+            <table id="itemTable">
+              <thead><tr>
+                <th class="sortable-th" onclick="tableSort('rank')">検索順位 <span class="sort-icon" data-col="rank">↕</span></th>
+                <th class="sortable-th" onclick="tableSort('name')">商品名 <span class="sort-icon" data-col="name">↕</span></th>
+                <th class="sortable-th" onclick="tableSort('price')">価格 <span class="sort-icon" data-col="price">↕</span></th>
+                <th class="sortable-th" onclick="tableSort('review')">評価 <span class="sort-icon" data-col="review">↕</span></th>
+                <th class="sortable-th" onclick="tableSort('shop')">店舗名 <span class="sort-icon" data-col="shop">↕</span></th>
+                <th style="width:40px"></th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /.result-main -->
+
+    </div><!-- /.result-layout -->
+
+    <!-- JS互換用（非表示） -->
+    <div id="welcomeContent" class="hidden"></div>
+    <div id="rankingWidget" class="hidden"></div>
+  </div><!-- /#result -->
+</div><!-- /.container -->
+
+
+
+<!-- バルク検索パネル -->
+<div id="bulkSearchOverlay" onclick="closeBulkSearch(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div onclick="event.stopPropagation()" style="background:#fff;border-radius:16px;width:92vw;max-width:860px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 16px 60px rgba(0,0,0,0.3)">
+    <div style="padding:16px 20px;border-bottom:1px solid #e8edf2;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <span style="font-size:1rem;font-weight:700;color:#1a3a5c">🔍 類似商品バルク検索</span>
+        <span style="font-size:0.75rem;color:#888;margin-left:10px">画像を選んで仕入れ先を一括検索</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="bulkSelectAll(true)" style="font-size:0.72rem;padding:4px 10px;border:1px solid #c0d0e0;border-radius:6px;background:#f5f8fa;color:#555;cursor:pointer;font-family:inherit">全選択</button>
+        <button onclick="bulkSelectAll(false)" style="font-size:0.72rem;padding:4px 10px;border:1px solid #c0d0e0;border-radius:6px;background:#f5f8fa;color:#555;cursor:pointer;font-family:inherit">解除</button>
+        <button onclick="closeBulkSearch()" style="background:none;border:none;font-size:1.3rem;color:#aaa;cursor:pointer;line-height:1">×</button>
+      </div>
+    </div>
+    <div id="bulkImgGrid" style="padding:16px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;flex:1"></div>
+    <div style="padding:14px 20px;border-top:1px solid #e8edf2;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap">
+      <span id="bulkSelectedCount" style="font-size:0.8rem;color:#555;flex:1">0件選択中</span>
+      <button onclick="runBulkSearch('1688')" style="padding:8px 18px;background:#e8401c;color:#fff;border:none;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit">1688で検索</button>
+      <button onclick="runBulkSearch('aliexpress')" style="padding:8px 18px;background:#ff6000;color:#fff;border:none;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit">AliExpressで検索</button>
+      <button onclick="runBulkSearch('taobao')" style="padding:8px 18px;background:#e4393c;color:#fff;border:none;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit">淘宝で検索</button>
+    </div>
+  </div>
+</div>
+
+<!-- 画像拡大ポップアップ -->
+<div id="imgZoomBox" style="display:none;position:absolute;z-index:9999;background:#fff;border-radius:12px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,0.25);pointer-events:none">
+  <img id="imgZoomImg" src="" style="display:block;width:260px;height:260px;object-fit:contain;border-radius:6px">
+</div>
+
+<!-- SNS取得方法ポップアップ -->
+<div id="snsHowPopup" class="sns-how-overlay" onclick="closeSnsHowPopup(event)">
+  <div class="sns-how-box">
+    <div class="sns-how-header">
+      <span class="sns-how-title">📱 各SNS トレンド取得方法</span>
+      <button class="sns-how-close" onclick="closeSnsHowPopup()">✕</button>
+    </div>
+    <div class="sns-how-body">
+
+      <div class="sns-how-platform">
+        <div class="sns-how-pf-head ig">
+          <span class="sns-how-pf-icon">📸</span>
+          <span class="sns-how-pf-name">Instagram</span>
+        </div>
+        <div class="sns-how-steps">
+          <div class="sns-how-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>検索バーでハッシュタグ検索</strong><br>
+              <span>#アクセサリー #ハンドメイドアクセ #プチプラアクセ</span> などで検索 → 「人気」タブを確認
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>リール探索タブ</strong><br>
+              ホーム右上の虫眼鏡 → 「リール」フィルター → いいね・保存数が多い投稿のキャプションからキーワード抽出
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Meta広告ライブラリ</strong><br>
+              <code>facebook.com/ads/library</code> でキーワード検索 → 競合が出稿しているアクセサリー広告の訴求文を確認
+            </div>
+          </div>
+          <div class="sns-how-tip">💡 フォロワー1万以下のマイクロインフルエンサー投稿はエンゲージ率が高くトレンドの先行指標になりやすい</div>
+        </div>
+      </div>
+
+      <div class="sns-how-platform">
+        <div class="sns-how-pf-head tt">
+          <span class="sns-how-pf-icon">🎵</span>
+          <span class="sns-how-pf-name">TikTok</span>
+        </div>
+        <div class="sns-how-steps">
+          <div class="sns-how-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>TikTok Creative Center（無料）</strong><br>
+              <code>ads.tiktok.com/business/creativecenter/</code> → 「トレンド」→「ハッシュタグ」でアクセサリー系を検索
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>発見タブのキーワード検索</strong><br>
+              TikTokアプリ → 検索 → 「アクセ」「ピアス」「ネックレス」など入力 → 急上昇タグを確認
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>#TikTokMadeMeBuyIt タグ監視</strong><br>
+              購買につながりやすいバイラル商品が集まるタグ。再生数・コメントから需要を把握
+            </div>
+          </div>
+          <div class="sns-how-tip">💡 BGMがバズると関連商品も連動して売れる傾向あり。使用楽曲もあわせてチェック</div>
+        </div>
+      </div>
+
+      <div class="sns-how-platform">
+        <div class="sns-how-pf-head pt">
+          <span class="sns-how-pf-icon">📌</span>
+          <span class="sns-how-pf-name">Pinterest</span>
+        </div>
+        <div class="sns-how-steps">
+          <div class="sns-how-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Pinterest Trends（無料）</strong><br>
+              <code>pinterest.com/trends/</code> → キーワード入力で検索量の季節変動・急上昇ワードを確認（日本版あり）
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>検索サジェスト活用</strong><br>
+              検索バーに「ピアス」と入力するだけで自動補完されるキーワードが需要の高いフレーズ
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>ボードの保存数確認</strong><br>
+              ピン保存数が多いアイテム＝購買意欲が高い。ピンのタイトルと説明文からキーワードを抽出
+            </div>
+          </div>
+          <div class="sns-how-tip">💡 Pinterestは購買決定まで時間がかかる「熟成型」。3〜6ヶ月後の需要を先読みできる</div>
+        </div>
+      </div>
+
+      <div class="sns-how-platform">
+        <div class="sns-how-pf-head xw">
+          <span class="sns-how-pf-icon">🐦</span>
+          <span class="sns-how-pf-name">X (Twitter)</span>
+        </div>
+        <div class="sns-how-steps">
+          <div class="sns-how-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>トレンドタブ（リアルタイム）</strong><br>
+              左メニュー「話題を検索」→ 地域を「日本」に設定 → アクセサリー関連ハッシュタグを確認
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>高度な検索で絞り込み</strong><br>
+              <code>x.com/search-advanced</code> → 「ピアス OR ネックレス」＋いいね数フィルターで評判投稿を抽出
+            </div>
+          </div>
+          <div class="sns-how-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>楽天・Amazon購入報告ツイート</strong><br>
+              「楽天 アクセサリー 買った」「届いた かわいい ネックレス」などで検索 → 実購買データとして活用
+            </div>
+          </div>
+          <div class="sns-how-tip">💡 インプレッション数よりリツイート・引用RT数が多い投稿の方が購買行動に近い</div>
+        </div>
+      </div>
+
+    </div><!-- /.sns-how-body -->
+  </div><!-- /.sns-how-box -->
+</div>
+
+<!-- 市場分析ポップアップ -->
+<div id="marketPopup" class="market-popup-overlay" onclick="closeMarketPopup(event)">
+  <div class="market-popup-box">
+    <div class="market-popup-header">
+      <span class="market-popup-title" id="marketPopupTitle"></span>
+      <button class="market-popup-close" onclick="document.getElementById('marketPopup').classList.remove('open')">✕</button>
+    </div>
+    <div class="market-popup-body" id="marketPopupBody"></div>
+  </div>
+</div>
+
+<!-- お気に入りモーダル -->
+<div id="favModal" class="fav-modal-overlay" onclick="closeFavModal(event)">
+  <div class="fav-modal-box">
+    <div class="fav-modal-header">
+      <span class="fav-modal-title">♥ お気に入り商品</span>
+      <button class="fav-modal-close" onclick="document.getElementById('favModal').classList.remove('open')">✕</button>
+    </div>
+    <div id="favModalBody" class="fav-modal-body"></div>
+  </div>
+</div>
+
+<!-- 店舗モーダル -->
+<div id="shopModal" class="shop-modal-overlay" onclick="closeShopModal(event)">
+  <div class="shop-modal-box">
+    <div class="shop-modal-header">
+      <button id="shopModalBack" onclick="document.getElementById('shopModal').classList.remove('open');document.getElementById('marketPopup').classList.add('open')" style="display:none;background:none;border:1px solid #c0d0e0;border-radius:8px;padding:4px 12px;font-size:0.82rem;color:#555;cursor:pointer;font-family:inherit;white-space:nowrap;margin-right:4px">← レポートに戻る</button>
+      <span id="shopModalTitle" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0"></span>
+      <button onclick="document.getElementById('shopModal').classList.remove('open')" class="shop-modal-close">✕</button>
+    </div>
+    <div id="shopModalBody"></div>
+  </div>
+</div>
+
+<script>
+const RAKUTEN_APP_ID = "1078085414692158559";
+let _totalCount = 0;
+let _currentGenreId = null;
+const OTAKARA_SEEDS = [
+  "手作りキット 大人", "北欧 雑貨 木製", "ミニマル 収納 おしゃれ",
+  "アウトドア コンパクト ソロ", "オーガニック スキンケア 敏感肌",
+  "ペット 誕生日 ケーキ", "韓国 文房具 かわいい", "ベビー 木のおもちゃ",
+  "キャンプ メスティン レシピ", "ハンドメイド 材料 レジン",
+  "観葉植物 インテリア おしゃれ鉢", "父の日 実用的 プレゼント",
+  "一人暮らし 調理器具 小さい", "推し活 グッズ 収納",
+  "防災 持ち出し袋 女性", "縄跳び 大人 ダイエット",
+];
+
+// 除外する一般的すぎる語
+const STOP_WORDS = new Set([
+  "の","に","は","を","が","で","と","た","て","い","な","れ","も","や","か","り",
+  "す","お","ご","さ","ら","し","ん","円","個","枚","セット","メール","便","送料",
+  "無料","対応","可能","用","大","小","約","入り","本","cm","mm","kg","g","ml","l",
+  "1","2","3","4","5","6","7","8","9","0","10","20","30","50","100","200","300",
+  "あす","楽","★","◆","【","】","／","・","×","＋","（","）","//",
+]);
+
+window.addEventListener("scroll", () => {
+  document.getElementById("topBtn").classList.toggle("visible", window.scrollY > 300);
+});
+
+// ── 楽天サジェスト ───────────────────────────────────────
+let _suggestTimer = null, _suggestIdx = -1;
+const kwInput = document.getElementById("keyword");
+const suggestDrop = document.getElementById("suggestDropdown");
+
+kwInput.addEventListener("keydown", e => {
+  const items = suggestDrop.querySelectorAll(".suggest-item");
+  if (e.key === "Enter") {
+    if (_suggestIdx >= 0 && items[_suggestIdx]) {
+      kwInput.value = items[_suggestIdx].dataset.kw;
+      closeSuggest();
+    } else { doSearch(); }
+    return;
+  }
+  if (e.key === "ArrowDown") { e.preventDefault(); moveSuggest(items, 1); return; }
+  if (e.key === "ArrowUp")   { e.preventDefault(); moveSuggest(items, -1); return; }
+  if (e.key === "Escape") { closeSuggest(); return; }
+});
+kwInput.addEventListener("input", () => {
+  clearTimeout(_suggestTimer);
+  const q = kwInput.value.trim();
+  if (!q) { closeSuggest(); return; }
+  _suggestTimer = setTimeout(() => fetchSuggest(q), 200);
+});
+kwInput.addEventListener("blur", () => { setTimeout(closeSuggest, 150); });
+
+async function fetchSuggest(q) {
+  // 楽天: 商品名から頻出ワード抽出
+  const rakutenWords = await new Promise(resolve => {
+    const cb = `_sg_${Date.now()}`;
+    const s = document.createElement("script");
+    s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+      new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: q, hits: 30, page: 1, sort: "standard", formatVersion: 2, callback: cb });
+    const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve([]); }, 5000);
+    window[cb] = d => {
+      clearTimeout(timer); delete window[cb]; s.remove();
+      if (d.error || !d.Items?.length) { resolve([]); return; }
+      const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
+      const freq = {};
+      const qTerms = q.split(/\s+/);
+      d.Items.forEach(i => {
+        (i.itemName || "").split(splitter)
+          .filter(w => w.length >= 2 && !STOP_WORDS.has(w) && !qTerms.includes(w) && !/^[\d,]+$/.test(w))
+          .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+      });
+      resolve(Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 6).map(([w]) => `${q} ${w}`));
+    };
+    s.onerror = () => { s.remove(); resolve([]); };
+    document.head.appendChild(s);
+  });
+
+  // Amazon: プロキシ経由サジェスト
+  let amazonWords = [];
+  if (_proxyAvailable) {
+    try {
+      const r = await fetch(`${PROXY_BASE}/api/amazon-suggest?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(3000) });
+      const d = await r.json();
+      amazonWords = (d.words || []).filter(w => w && !rakutenWords.includes(w)).slice(0, 5);
+    } catch {}
+  }
+
+  renderSuggest(rakutenWords, amazonWords);
+}
+
+function renderSuggest(rakutenWords, amazonWords = []) {
+  _suggestIdx = -1;
+  if (!rakutenWords.length && !amazonWords.length) { closeSuggest(); return; }
+  let html = "";
+  const mkItem = w => {
+    const esc = w.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+    return `<div class="suggest-item" data-kw="${esc}"><span class="suggest-icon">🔍</span>${esc}</div>`;
+  };
+  if (rakutenWords.length) {
+    html += `<div class="suggest-header">🛍 楽天市場</div>` + rakutenWords.map(mkItem).join("");
+  }
+  if (amazonWords.length) {
+    html += `<div class="suggest-header" style="margin-top:4px">📦 Amazon</div>` + amazonWords.map(mkItem).join("");
+  }
+  suggestDrop.innerHTML = html;
+  suggestDrop.classList.add("open");
+}
+
+// イベント委譲でサジェスト選択
+suggestDrop.addEventListener("mousedown", e => {
+  const item = e.target.closest(".suggest-item");
+  if (!item) return;
+  e.preventDefault();
+  pickSuggest(item.dataset.kw);
+});
+
+function pickSuggest(kw) {
+  kwInput.value = kw;
+  closeSuggest();
+  doSearch();
+}
+function closeSuggest() {
+  suggestDrop.classList.remove("open");
+  suggestDrop.innerHTML = "";
+  _suggestIdx = -1;
+}
+function moveSuggest(items, dir) {
+  if (!items.length) return;
+  items[_suggestIdx]?.classList.remove("active");
+  _suggestIdx = Math.max(-1, Math.min(items.length - 1, _suggestIdx + dir));
+  if (_suggestIdx >= 0) {
+    items[_suggestIdx].classList.add("active");
+    kwInput.value = items[_suggestIdx].dataset.kw;
+  }
+}
+
+document.getElementById("excludeInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch();
+});
+
+function getExcludeTerms() {
+  return document.getElementById("excludeInput").value.trim().split(/[\s　,、]+/).filter(Boolean);
+}
+
+// ── 登録キーワード（キーワード＋除外セット） ──────────────
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem("savedKeywords")||"[]"); } catch { return []; }
+}
+function saveKeyword() {
+  const kw = document.getElementById("keyword").value.trim();
+  if (!kw) return;
+  const entry = { kw, exclude: getExcludeTerms() };
+  let list = loadSaved().filter(e => (e.kw||e) !== kw);
+  list.unshift(entry);
+  localStorage.setItem("savedKeywords", JSON.stringify(list));
+  renderSavedKeywords();
+  const btn = document.getElementById("saveBtn");
+  btn.textContent = "✓ 登録済";
+  setTimeout(() => { btn.textContent = "★ 登録"; }, 1500);
+}
+function deleteSaved(kw) {
+  const list = loadSaved().filter(e => (e.kw||e) !== kw);
+  localStorage.setItem("savedKeywords", JSON.stringify(list));
+  renderSavedKeywords();
+}
+function renderSavedKeywords() {
+  const el = document.getElementById("savedKeywords");
+  if (!el) return;
+  const list = loadSaved();
+  if (!list.length) { el.innerHTML = ""; return; }
+  window._savedList = list;
+  el.innerHTML = `
+    <div class="saved-kw-box">
+      <div class="saved-kw-items">
+        ${list.map((e, i) => {
+          const kw    = e.kw || e;
+          const kwEsc = kw.replace(/'/g,"\\'");
+          return `<div class="saved-kw-item">
+            <div class="saved-kw-main" onclick="setKeywordByIndex(${i})"><span class="saved-kw-text">${kw}</span></div>
+            <button class="saved-kw-del" onclick="deleteSaved('${kwEsc}')">×</button>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+}
+renderSavedKeywords();
+function setKeywordByIndex(i) {
+  const e = (window._savedList || [])[i];
+  if (!e) return;
+  document.getElementById("keyword").value = e.kw || e;
+  document.getElementById("excludeInput").value = (e.exclude || []).join(" ");
+  doSearch();
+}
+function setKeyword(kw, exclude = []) {
+  document.getElementById("keyword").value = kw;
+  document.getElementById("excludeInput").value = exclude.join(" ");
+  doSearch();
+}
+
+
+// ── プラットフォーム別 売れキーワードグリッド ───────────────────
+const PLATFORM_GENRE_TABS = [
+  { label: "総合", genreId: undefined },
+  { label: "インテリア", genreId: "100804" },
+  { label: "キッチン", genreId: "100533" },
+  { label: "ファッション", genreId: "100371" },
+  { label: "美容", genreId: "215783" },
+];
+let _rakutenPlatformTab = 0;
+
+function _extractKeywords(items) {
+  const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○×＋+]+/;
+  const freq = {};
+  items.forEach(it => {
+    (it.itemName || "").split(splitter)
+      .filter(w => w.length >= 2 && w.length <= 10 && !STOP_WORDS.has(w) && !/^[\d,\.\-]+$/.test(w))
+      .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+  });
+  return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([w]) => w);
+}
+
+function renderPlatformTags(elId, words, onclick) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!words.length) { el.innerHTML = '<div class="top-loading">データなし</div>'; return; }
+  el.innerHTML = words.map((w, i) => {
+    const size = i < 2 ? "ptag-lg" : i < 5 ? "ptag-md" : "ptag-sm";
+    const cb = onclick ? `onclick="${onclick}(${JSON.stringify(w)})"` : `onclick="setKeyword(${JSON.stringify(w)})"`;
+    return `<button class="platform-tag ${size}" ${cb}>${w}</button>`;
+  }).join("");
+}
+
+function loadRakutenPlatform(tabIdx) {
+  if (tabIdx !== undefined) _rakutenPlatformTab = tabIdx;
+  const el = document.getElementById("pt-rakuten");
+  const tabsEl = document.getElementById("pc-rakuten")?.querySelectorAll(".platform-tab");
+  if (tabsEl) tabsEl.forEach((t, i) => t.classList.toggle("active", i === _rakutenPlatformTab));
+  if (!el) return;
+  el.innerHTML = '<div class="top-loading">読み込み中...</div>';
+  const genre = PLATFORM_GENRE_TABS[_rakutenPlatformTab];
+  const cb = `_rp_${Date.now()}`;
+  const s = document.createElement("script");
+  const params = { applicationId: RAKUTEN_APP_ID, hits: 30, page: 1, formatVersion: 2, callback: cb };
+  if (genre.genreId) params.genreId = genre.genreId;
+  s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20170628?` + new URLSearchParams(params);
+  const timer = setTimeout(() => { delete window[cb]; s.remove(); el.innerHTML = '<div class="top-loading">取得できませんでした</div>'; }, 8000);
+  window[cb] = d => {
+    clearTimeout(timer); delete window[cb]; s.remove();
+    if (d.error || !d.Items?.length) { el.innerHTML = '<div class="top-loading">取得できませんでした</div>'; return; }
+    renderPlatformTags("pt-rakuten", _extractKeywords(d.Items));
+  };
+  s.onerror = () => { s.remove(); el.innerHTML = '<div class="top-loading">取得できませんでした</div>'; };
+  document.head.appendChild(s);
+}
+
+// 季節に応じたキュレーションキーワードを返す
+function _seasonalKeywords(platform) {
+  const m = new Date().getMonth() + 1;
+  const season = m <= 2 || m === 12 ? "winter" : m <= 5 ? "spring" : m <= 8 ? "summer" : "autumn";
+  const base = {
+    amazon: {
+      spring: ["花粉症 マスク","新生活 家電","春 レジャーシート","アウトドア チェア","子供 入学 プレゼント","UV 日焼け止め","ガーデニング 手袋","サイクリング グッズ"],
+      summer: ["扇風機 コンパクト","水筒 保冷","日傘 軽量","虫よけ スプレー","BBQ グッズ","水遊び 子供","ポータブル 扇風機","冷感 タオル"],
+      autumn: ["加湿器 おしゃれ","読書灯 LED","秋 キャンプ ギア","運動会 グッズ","ハロウィン 飾り","鍋 土鍋 IH対応","紅葉 登山 靴","防寒 インナー"],
+      winter: ["電気毛布 洗える","加湿器 超音波","クリスマス ギフト","おせち 食材","ホットカーペット","スノーボード グローブ","乾燥 スキンケア","防寒 手袋"],
+    },
+    mercari: {
+      spring: ["古着 春 ワンピース","ブランド バッグ","韓国コスメ","推しグッズ 収納","スポーツ ウェア","ゲーム ソフト","アニメ フィギュア","子供服 90"],
+      summer: ["水着 レディース","フェス ファッション","サングラス ブランド","ビーチサンダル","浴衣 セット","アウトドア 用品","スノーボード 板","ヴィンテージ Tシャツ"],
+      autumn: ["ブーツ レディース","コート ブランド","ハロウィン 仮装","ゲーム 機器","秋 古着","鬼滅 グッズ","スニーカー Nike","マフラー ブランド"],
+      winter: ["ダウンジャケット","クリスマス 限定","福袋 2025","ブランド 財布","コート メンズ","ゲーム 新品","ぬいぐるみ 大型","ポケモン カード"],
+    },
+    creema: {
+      spring: ["桜 アクセサリー","春 リース","刺繍 ブローチ","陶器 マグカップ","レザー 名刺入れ","入学 プレゼント 名入れ","花柄 ポーチ","新生活 インテリア"],
+      summer: ["夏 ピアス シェル","麻 バッグ","ドライフラワー","海 モチーフ アクセ","ガラス 箸置き","キャンドル バニラ","浴衣 帯留め","竹 インテリア"],
+      autumn: ["紅葉 リース","ハロウィン 飾り 木製","ウール ニット 帽","秋色 アクセサリー","木の実 ブローチ","レザー トートバッグ","陶器 箸置き","キャンドル シナモン"],
+      winter: ["クリスマス リース","冬 ニット アクセ","名入れ ギフト","正月 飾り 手作り","ガラス オーナメント","ウール ブローチ","毛糸 帽子","革 手帳カバー"],
+    },
+    minne: {
+      spring: ["布小物 春色","名入れ 出産祝い","花柄 ランチクロス","刺繍 ハンカチ","入園 バッグ 手作り","桜 ヘアアクセ","レジン 春 ピアス","ベビー スタイ"],
+      summer: ["麻 コースター","夏 布小物","シェル ピアス","帆布 トートバッグ","手ぬぐい モダン","ハーバリウム 夏","リネン ポーチ","藍染 小物"],
+      autumn: ["秋 布小物 どんぐり","ウール フェルト 小物","ニット 秋冬 帽子","リネン バッグ 秋色","木の実 リース 小","ハロウィン ガーランド","刺繍 秋 ブローチ","羊毛 フェルト 人形"],
+      winter: ["クリスマス ガーランド","手作り 正月飾り","ニット小物 冬","毛糸 コースター","フェルト オーナメント","名入れ 出産祝い 冬","レザー キーホルダー","ウール ブランケット"],
+    },
+  };
+  return base[platform]?.[season] || [];
+}
+
+const PROXY_BASE = "http://localhost:3737";
+let _proxyAvailable = null; // null=未確認 true/false
+
+async function checkProxy() {
+  if (_proxyAvailable !== null) return _proxyAvailable;
+  const badge = document.getElementById("proxyBadge");
+  try {
+    const r = await fetch(`${PROXY_BASE}/api/health`, { signal: AbortSignal.timeout(2000) });
+    _proxyAvailable = r.ok;
+  } catch { _proxyAvailable = false; }
+  if (badge) {
+    badge.className = `proxy-badge ${_proxyAvailable ? "proxy-on" : "proxy-off"}`;
+    badge.title = _proxyAvailable ? "プロキシ接続中 — Amazonサジェスト有効" : "プロキシ未接続 — 楽天サジェストのみ";
+  }
+  return _proxyAvailable;
+}
+
+function updateProxyBadges(available) {
+  ["amazon","mercari","creema","minne"].forEach(p => {
+    const badge = document.querySelector(`#pc-${p} .platform-badge`);
+    if (badge) {
+      badge.textContent = available ? "LIVE" : "季節";
+      badge.className = `platform-badge ${available ? "live" : "curated"}`;
+    }
+  });
+}
+
+async function loadPlatformByProxy(platform, endpoint) {
+  const elId = `pt-${platform}`;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = '<div class="top-loading">読み込み中...</div>';
+  try {
+    const r = await fetch(`${PROXY_BASE}${endpoint}`, { signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    if (d.ok && d.keywords?.length) {
+      renderPlatformTags(elId, d.keywords.map(k => k.word));
+    } else {
+      renderPlatformTags(elId, _seasonalKeywords(platform));
+    }
+  } catch {
+    renderPlatformTags(elId, _seasonalKeywords(platform));
+  }
+}
+
+function loadCuratedPlatforms() {
+  ["amazon", "mercari", "creema", "minne"].forEach(p => {
+    renderPlatformTags(`pt-${p}`, _seasonalKeywords(p));
+  });
+}
+
+async function loadAllPlatforms() {
+  loadRakutenPlatform(0);
+  const proxyOk = await checkProxy();
+  updateProxyBadges(proxyOk);
+  if (proxyOk) {
+    loadPlatformByProxy("amazon",  "/api/amazon-keywords");
+    loadPlatformByProxy("mercari", "/api/mercari-keywords");
+    loadPlatformByProxy("creema",  "/api/creema-keywords");
+    loadPlatformByProxy("minne",   "/api/minne-keywords");
+  } else {
+    loadCuratedPlatforms();
+  }
+}
+
+// ── SNSトレンド ────────────────────────────────────────────────
+const SNS_TRENDS = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      {
+        name: "ネックレス", icon: "📿",
+        tags: ["#ゴールドネックレス", "#レイヤードネックレス", "#チョーカー", "#パールネックレス"],
+        keywords: ["ゴールドネックレス レディース 細め", "レイヤードネックレス セット", "チョーカー おしゃれ シンプル", "パールネックレス 淡水 本真珠", "ネックレス 重ね付け セット"],
+      },
+      {
+        name: "ピアス・イヤリング", icon: "💎",
+        tags: ["#フープピアス", "#フェザーピアス", "#イヤーカフ", "#ノンホールピアス"],
+        keywords: ["フープピアス ゴールド 大ぶり", "イヤーカフ セット おしゃれ", "ノンホールイヤリング 目立たない", "ゴールドピアス シンプル 毎日", "耳たぶ 厚い ピアス 対応"],
+      },
+      {
+        name: "リング", icon: "💍",
+        tags: ["#重ね付けリング", "#ピンキーリング", "#オープンリング"],
+        keywords: ["重ね付けリング セット シンプル", "ピンキーリング ゴールド 細い", "オープンリング フリーサイズ", "シグネットリング メンズ レディース", "ステンレスリング 錆びない"],
+      },
+      {
+        name: "バッグ・小物", icon: "👜",
+        tags: ["#ミニショルダー", "#メッシュバッグ", "#スマホショルダー"],
+        keywords: ["ミニショルダーバッグ おしゃれ 小さい", "スマホショルダー 斜めがけ", "かごバッグ レディース 夏", "クリアバッグ おしゃれ", "エコバッグ おしゃれ 折りたたみ"],
+      },
+      {
+        name: "ヘアアクセ", icon: "🎀",
+        tags: ["#シュシュ", "#クローバークリップ", "#バレッタ"],
+        keywords: ["シュシュ おしゃれ ベロア", "くるみボタン バレッタ", "スカーフ ヘアアクセ 結び方", "スティックピン ヘア おしゃれ", "リボン バレッタ 大人 上品"],
+      },
+      {
+        name: "ブレスレット", icon: "✨",
+        tags: ["#タイニーブレスレット", "#ビーズブレスレット", "#チャームブレス"],
+        keywords: ["ビーズブレスレット 天然石 レディース", "チェーンブレスレット ゴールド 細い", "チャームブレスレット カスタム", "シリコンブレスレット スポーツ おしゃれ"],
+      },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      {
+        name: "バイラルアイテム", icon: "🔥",
+        tags: ["#TikTokMadeMeBuyIt", "#ジェリーバッグ", "#Y2Kアクセ"],
+        keywords: ["ジェリーバッグ クリア かわいい", "Y2K アクセサリー セット", "スパイスガール ピアス ビジュー", "ハートモチーフ アクセサリー", "バタフライ ピアス かわいい"],
+      },
+      {
+        name: "ネイル・ビューティ系", icon: "💅",
+        tags: ["#ネイルチップ", "#プレスオンネイル", "#ネイルパーツ"],
+        keywords: ["ネイルチップ 量産型 セット", "プレスオンネイル 短い 自然", "ネイルパーツ ラインストーン", "ジェルネイル セルフ キット", "ネイルシール ワンポイント"],
+      },
+      {
+        name: "メンズアクセ", icon: "🧔",
+        tags: ["#シルバーチェーン", "#レザーブレスレット", "#ピアス メンズ"],
+        keywords: ["シルバーチェーンネックレス メンズ 太め", "レザーブレスレット メンズ おしゃれ", "フープピアス メンズ シルバー", "スカルリング メンズ ゴツい", "クロス ネックレス メンズ"],
+      },
+      {
+        name: "ハンドメイド系", icon: "🧵",
+        tags: ["#ビーズアクセ手作り", "#レジンアクセ", "#マクラメ"],
+        keywords: ["ビーズ アクセサリー 手作り キット", "レジン アクセサリー 作り方 キット", "マクラメ ブレスレット キット 初心者", "刺繍 ブローチ キット", "樹脂粘土 アクセサリー セット"],
+      },
+      {
+        name: "推し活グッズ", icon: "🌟",
+        tags: ["#痛バ", "#缶バッジ", "#アクスタ"],
+        keywords: ["痛バッグ 透明 推し活", "缶バッジ 痛バ 量 まとめ買い", "チェキ 収納 アクセサリー", "推し活 ポーチ 透明 かわいい", "アクリルスタンド 立て 収納"],
+      },
+      {
+        name: "サステナブル", icon: "🌿",
+        tags: ["#ヴィンテージアクセ", "#エシカルジュエリー"],
+        keywords: ["ヴィンテージ風 ブローチ アンティーク", "フェアトレード アクセサリー", "リサイクル素材 アクセサリー エコ", "天然石 ブレスレット 意味", "木製 アクセサリー 軽い"],
+      },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      {
+        name: "ボヘミアン", icon: "🌙",
+        tags: ["#ボヘミアンジュエリー", "#フリンジピアス", "#天然石"],
+        keywords: ["ボヘミアン ピアス フリンジ 大ぶり", "天然石 ネックレス パワーストーン", "フェザーピアス 羽 おしゃれ", "ターコイズ アクセサリー シルバー", "アンティーク風 ブレスレット 重ね"],
+      },
+      {
+        name: "ミニマリスト", icon: "○",
+        tags: ["#ミニマルジュエリー", "#細身リング", "#シンプルネックレス"],
+        keywords: ["シンプル ネックレス ゴールド 一粒", "細い リング スタッキング", "ステンレス アクセサリー シンプル", "素材感 アクセサリー マット ゴールド", "ベーシック ピアス 毎日 つけっぱなし"],
+      },
+      {
+        name: "ヴィンテージ", icon: "🕰️",
+        tags: ["#ヴィンテージブローチ", "#アンティークリング", "#カメオ"],
+        keywords: ["カメオ ブローチ おしゃれ", "アンティーク リング 彫金風", "ヴィンテージ イヤリング 大ぶり", "レトロ ブローチ コーデ", "フィリグリー 透かし アクセサリー"],
+      },
+      {
+        name: "ウェディング", icon: "💒",
+        tags: ["#花嫁アクセ", "#ブライダルジュエリー", "#ティアラ"],
+        keywords: ["ブライダル アクセサリー セット パール", "花嫁 ティアラ おしゃれ", "ウェディング ピアス 揺れる", "花嫁 ヘッドドレス 生花風", "結婚式 アクセサリー ゲスト フォーマル"],
+      },
+      {
+        name: "コーデ映え", icon: "📸",
+        tags: ["#コーデ映え", "#大ぶりピアス", "#チャンキーネックレス"],
+        keywords: ["大ぶり ピアス パーティー 存在感", "チャンキー ネックレス ビーズ 太い", "カラーストーン アクセサリー 鮮やか", "ドレスアップ アクセセット フォーマル", "トレンド アクセ 2025 大人女性"],
+      },
+      {
+        name: "プチプラ", icon: "💰",
+        tags: ["#プチプラアクセ", "#300円以下ジュエリー"],
+        keywords: ["プチプラ アクセサリー セット おしゃれ", "コスパ最強 ピアス レディース", "100円 ショップ アクセ アレンジ", "まとめ買い ピアス セット 大量", "格安 アクセサリー 高見え 方法"],
+      },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      {
+        name: "話題のブランド", icon: "🏷️",
+        tags: ["#JINS", "#4℃", "#カラッツ"],
+        keywords: ["4℃ ネックレス ゴールド シンプル", "AHKAH ネックレス 人気 定番", "ete ピアス レディース 細い", "agete リング 重ね付け おしゃれ", "ソナーポケット コラボ アクセ"],
+      },
+      {
+        name: "コラボアクセ", icon: "🎮",
+        tags: ["#アニメコラボ", "#ゲームコラボ", "#キャラアクセ"],
+        keywords: ["サンリオ アクセサリー 大人 おしゃれ", "ジブリ アクセ コラボ リング", "呪術廻戦 アクセサリー コラボ", "キャラクター ネックレス 大人向け", "ゲームキャラ イメージ アクセ"],
+      },
+      {
+        name: "機能性アクセ", icon: "⚡",
+        tags: ["#磁気ブレスレット", "#アレルギー対応", "#錆びないアクセ"],
+        keywords: ["磁気 ブレスレット 肩こり ゴルフ", "アレルギー対応 ピアス チタン", "ステンレス ネックレス 錆びない プール", "つけっぱなし 対応 アクセ 安心", "医療用 ステンレス ピアス 安全"],
+      },
+      {
+        name: "推しカラー", icon: "🎨",
+        tags: ["#推しカラーコーデ", "#ペンカラー", "#イメカラアクセ"],
+        keywords: ["推しカラー アクセサリー カスタム", "カラー リボン ヘアアクセ 推し活", "イメージカラー ネックレス ビーズ手作り", "担当カラー ブレスレット 作り方", "推し活 ヘアピン カラー オーダー"],
+      },
+      {
+        name: "バズり商品", icon: "🔥",
+        tags: ["#Twitterバズ", "#買って良かった", "#楽天市場で見つけた"],
+        keywords: ["楽天 アクセサリー バズ 2025", "買って良かった アクセ コスパ", "高見え アクセサリー 3000円以下", "センスいい アクセ プレゼント 女性", "デパコス風 アクセサリー プチプラ"],
+      },
+      {
+        name: "季節トレンド", icon: "🌸",
+        tags: ["#春アクセ", "#夏フェスアクセ", "#秋冬ジュエリー"],
+        keywords: ["春 アクセサリー 2025 トレンド パステル", "夏フェス アクセ ビビッド 大ぶり", "秋冬 アクセサリー ゴールド 重ね付け", "2025年 トレンドアクセ 予測", "旬 アクセサリー コーデ 今季"],
+      },
+    ],
+  },
+};
+
+const SNS_FASHION = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      {
+        name: "ワンピース・スカート", icon: "👗",
+        tags: ["#ワンピースコーデ", "#フレアスカート", "#サテンスカート"],
+        keywords: ["サテン スカート ミモレ おしゃれ", "フレアスカート ミディ丈 大人", "ワンピース リネン 涼しい 夏", "プリーツスカート ロング シンプル", "花柄 ワンピース レディース 大人かわいい"],
+      },
+      {
+        name: "トップス", icon: "👚",
+        tags: ["#オフショルダー", "#ビスチェ", "#バックオープン"],
+        keywords: ["オフショルダー トップス きれいめ", "ビスチェ セットアップ コーデ", "シアートップス インナー付き おしゃれ", "クロップドニット 夏 薄手", "バックリボン ブラウス レディース"],
+      },
+      {
+        name: "アウター", icon: "🧥",
+        tags: ["#チェスターコート", "#レザージャケット", "#ショートコート"],
+        keywords: ["チェスターコート ゆったり おしゃれ", "レザージャケット レディース 大人", "ニットカーデ ロング シンプル", "ショート丈 コート 秋冬 軽い", "バルーンスリーブ ジャケット"],
+      },
+      {
+        name: "パンツ", icon: "👖",
+        tags: ["#ワイドパンツ", "#テーパードパンツ", "#デニム"],
+        keywords: ["ワイドパンツ ハイウエスト きれいめ", "テーパードパンツ 大人 上品", "カラーパンツ トレンド 2025", "デニム バギー ゆったり コーデ", "サテン ワイドパンツ セットアップ"],
+      },
+      {
+        name: "小物・バッグ", icon: "👜",
+        tags: ["#ミニバッグ", "#メッシュバッグ", "#バケツバッグ"],
+        keywords: ["バケツバッグ レディース おしゃれ", "トートバッグ 軽い 大容量 通勤", "ミニバッグ 斜めがけ かわいい", "スカーフ 巻き方 バッグ アレンジ", "かごバッグ 大人 おしゃれ 夏"],
+      },
+      {
+        name: "シューズ", icon: "👠",
+        tags: ["#ミュール", "#メアリージェーン", "#厚底サンダル"],
+        keywords: ["メアリージェーンシューズ おしゃれ レディース", "厚底サンダル ストラップ 歩きやすい", "ミュール バックストラップ ローヒール", "ローファー 2025 レディーストレンド", "バレエシューズ ぺたんこ 痛くない"],
+      },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      {
+        name: "Y2K・量産型", icon: "🌀",
+        tags: ["#Y2Kファッション", "#量産型コーデ", "#地雷系"],
+        keywords: ["Y2K ファッション コーデ レディース", "量産型 ワンピース フリル", "地雷系 服 かわいい セット", "リボン 大量 コーデ ガーリー", "チェック ミニスカート 量産型"],
+      },
+      {
+        name: "韓国ファッション", icon: "🇰🇷",
+        tags: ["#韓国ファッション", "#オルチャン", "#韓国コーデ"],
+        keywords: ["韓国ファッション レディース 2025", "オルチャン 服 通販 安い", "韓国風 セットアップ おしゃれ", "韓国系 ワイドパンツ コーデ", "韓国 ニット ショート丈 おしゃれ"],
+      },
+      {
+        name: "古着・ヴィンテージ", icon: "🕺",
+        tags: ["#古着コーデ", "#ヴィンテージ", "#古着女子"],
+        keywords: ["古着風 ファッション 通販 安い", "ヴィンテージ デニム 90s コーデ", "古着ミックス コーデ 大人 女性", "チェック フランネルシャツ 古着風", "オーバーサイズ 古着 コーデ 秋"],
+      },
+      {
+        name: "スポーティ・カジュアル", icon: "⚡",
+        tags: ["#スポーティコーデ", "#アスレジャー", "#ストリートファッション"],
+        keywords: ["アスレジャー コーデ レディース おしゃれ", "スポーティ ワンピース テニス", "スウェット セットアップ ゆったり", "ストリート コーデ 女性 かっこいい", "パーカー コーデ 大人 おしゃれ"],
+      },
+      {
+        name: "プチプラコーデ", icon: "💰",
+        tags: ["#プチプラコーデ", "#しまむら", "#GUコーデ"],
+        keywords: ["プチプラ ファッション 高見え 2025", "GU 新作 コーデ レディース", "しまむら コーデ 大人 きれいめ", "3000円以下 コーデ おしゃれ", "ユニクロ コーデ 2025 レディース"],
+      },
+      {
+        name: "ナチュラル・リネン", icon: "🌿",
+        tags: ["#ナチュラルコーデ", "#リネン", "#くすみカラー"],
+        keywords: ["リネン ワンピース 夏 ナチュラル", "くすみカラー コーデ 大人 おしゃれ", "ナチュラル ファッション 30代 40代", "ゆったり 服 おしゃれ シンプル", "麻 綿 素材 夏 涼しい 服"],
+      },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      {
+        name: "フレンチシック", icon: "🇫🇷",
+        tags: ["#フレンチシック", "#パリジェンヌ", "#エフォートレス"],
+        keywords: ["フレンチシック コーデ レディース", "パリジェンヌ スタイル 服 通販", "ストライプ マリンシャツ きれいめ", "バスクシャツ コーデ 大人", "ベレー帽 コーデ フレンチ"],
+      },
+      {
+        name: "モノトーン", icon: "⬛",
+        tags: ["#モノトーンコーデ", "#オールブラック", "#ホワイトコーデ"],
+        keywords: ["モノトーン コーデ レディース 大人", "オールブラック 服 おしゃれ 冬", "ホワイトコーデ 夏 清潔感 レディース", "グレー コーデ ベーシック おしゃれ", "白黒 ボーダー コーデ きれいめ"],
+      },
+      {
+        name: "アーシー・テラコッタ", icon: "🟤",
+        tags: ["#アーシーカラー", "#テラコッタ", "#ベージュコーデ"],
+        keywords: ["ベージュ コーデ 大人 上品 2025", "テラコッタ 服 秋冬 おしゃれ", "ブラウン コーデ レディース 30代", "アーストーン ファッション ナチュラル", "キャメル コーデ 秋冬 きれいめ"],
+      },
+      {
+        name: "ウェディング・フォーマル", icon: "💒",
+        tags: ["#パーティードレス", "#結婚式 服装", "#フォーマルコーデ"],
+        keywords: ["結婚式 ゲスト 服装 30代 レディース", "パーティードレス 大人 上品 膝丈", "フォーマル ワンピース 入学式 卒業式", "二次会 ドレス おしゃれ きれいめ", "セレモニースーツ レディース 40代"],
+      },
+      {
+        name: "ニット・秋冬", icon: "🧶",
+        tags: ["#ニットコーデ", "#秋冬ファッション", "#モコモコ"],
+        keywords: ["ニット ワンピース 秋冬 きれいめ", "ケーブルニット セーター おしゃれ", "ニット スカート セットアップ 冬", "モヘア ニット ふわふわ 可愛い", "タートルネック ニット 大人 シンプル"],
+      },
+      {
+        name: "サステナブル", icon: "🌱",
+        tags: ["#サステナブルファッション", "#エシカルファッション"],
+        keywords: ["サステナブル ファッション ブランド 日本", "オーガニックコットン 服 レディース", "エシカル ファッション 通販", "ヴィンテージ リメイク ファッション", "天然素材 服 おしゃれ 環境"],
+      },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      {
+        name: "バズりコーデ", icon: "🔥",
+        tags: ["#バズりコーデ", "#お洒落さんと繋がりたい"],
+        keywords: ["バズ コーデ 2025 真似したい レディース", "お洒落 服 楽天 買って良かった 女性", "高見え コーデ 安い プチプラ 2025", "映えコーデ インスタ 服 通販 おすすめ", "話題 服 バイラル ファッション 2025"],
+      },
+      {
+        name: "推し活ファッション", icon: "🌟",
+        tags: ["#推し活コーデ", "#ライブコーデ", "#フェスファッション"],
+        keywords: ["ライブ コーデ 動きやすい おしゃれ", "フェス ファッション 夏 レディース", "推し カラー コーデ ファッション", "コンサート 服装 女性 おしゃれ 夏", "推し活 グッズ 収納 ファッションポーチ"],
+      },
+      {
+        name: "仕事服・オフィス", icon: "💼",
+        tags: ["#オフィスコーデ", "#通勤ファッション", "#きれいめコーデ"],
+        keywords: ["オフィスカジュアル レディース 30代 通勤", "きれいめ パンツスーツ 女性 仕事", "テレワーク 服装 おしゃれ 上だけ", "通勤 スカート きれいめ 歩きやすい", "ビジネスカジュアル 女性 2025 春"],
+      },
+      {
+        name: "マタニティ・産後", icon: "🤱",
+        tags: ["#マタニティコーデ", "#産後ファッション", "#授乳服"],
+        keywords: ["マタニティ ワンピース おしゃれ 涼しい", "授乳口付き ワンピース かわいい", "産後 体型カバー ファッション レディース", "マタニティ きれいめ コーデ 職場", "授乳服 おしゃれ ママコーデ"],
+      },
+      {
+        name: "大きいサイズ", icon: "✨",
+        tags: ["#大きいサイズコーデ", "#プラスサイズ", "#ぽっちゃりコーデ"],
+        keywords: ["大きいサイズ レディース おしゃれ 通販", "3L 4L ファッション かわいい", "体型カバー ワンピース 大人 おしゃれ", "ぽっちゃり コーデ 痩せ見え 2025", "Lサイズ 服 高見え おすすめ"],
+      },
+      {
+        name: "ブランドまとめ買い", icon: "🛍️",
+        tags: ["#楽天ファッション", "#楽天マラソン購入品"],
+        keywords: ["楽天 ファッション 購入品 レビュー 2025", "楽天マラソン 服 おすすめ レディース", "楽天 セール 服 買うべき 2025", "楽天ファッション週間 ワンピース 人気", "お気に入り 洋服 楽天 安い おしゃれ"],
+      },
+    ],
+  },
+};
+
+const SNS_MENS_ACCESSORY = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "ネックレス", icon: "📿", tags: ["#メンズネックレス", "#シルバーチェーン", "#ゴールドチェーン"], keywords: ["シルバー チェーン ネックレス メンズ 太め", "ゴールド ネックレス メンズ シンプル", "クロス ネックレス メンズ ステンレス", "レイヤード ネックレス メンズ セット", "ドッグタグ ネックレス メンズ おしゃれ"] },
+      { name: "リング・ブレスレット", icon: "💍", tags: ["#メンズリング", "#シルバーリング", "#レザーブレスレット"], keywords: ["シルバー リング メンズ ゴツい", "スカル リング メンズ ステンレス", "レザー ブレスレット メンズ おしゃれ", "バングル メンズ シルバー 太い", "チェーン ブレスレット メンズ ゴールド"] },
+      { name: "ピアス・イヤリング", icon: "💎", tags: ["#メンズピアス", "#フープピアス メンズ", "#スタッドピアス"], keywords: ["フープ ピアス メンズ シルバー 小さめ", "スタッド ピアス メンズ ブラック", "ノンホール イヤリング メンズ", "ダイヤ風 ピアス メンズ ステンレス", "耳たぶ 小さい ピアス メンズ 軽い"] },
+      { name: "時計・スマートウォッチ", icon: "⌚", tags: ["#メンズ腕時計", "#スマートウォッチ", "#G-SHOCK"], keywords: ["G-SHOCK 人気 モデル 2025", "スマートウォッチ メンズ おしゃれ 安い", "腕時計 メンズ シンプル ブラック", "スケルトン 時計 メンズ おしゃれ", "NATO ベルト 交換 メンズ 時計"] },
+      { name: "財布・小物", icon: "👛", tags: ["#メンズ財布", "#二つ折り財布", "#マネークリップ"], keywords: ["二つ折り 財布 メンズ 薄い カーボン", "マネークリップ メンズ ステンレス", "コインケース メンズ シンプル 革", "カードケース メンズ スリム おしゃれ", "長財布 メンズ ブランド 安い"] },
+      { name: "サングラス・帽子", icon: "🕶️", tags: ["#メンズサングラス", "#キャップ", "#ビーニー"], keywords: ["サングラス メンズ 偏光 UV スクエア", "キャップ メンズ おしゃれ 無地 韓国", "ビーニー メンズ ニット帽 シンプル", "バケットハット メンズ 夏 UV", "ハット メンズ つば広 おしゃれ"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "Y2K・ストリート", icon: "🔥", tags: ["#メンズY2K", "#ストリートアクセ"], keywords: ["Y2K メンズ アクセサリー セット", "ストリート ネックレス メンズ ゴツい", "チェーン ウォレット メンズ ストリート", "シルバー アクセ メンズ 重ね付け", "ヒップホップ アクセサリー メンズ"] },
+      { name: "韓国メンズアクセ", icon: "🇰🇷", tags: ["#韓国メンズ", "#オルチャンメンズ"], keywords: ["韓国 メンズ アクセサリー ピアス", "オルチャン メンズ ネックレス シルバー", "韓国系 メンズ リング 細い おしゃれ", "韓国 メンズ イヤーカフ シルバー", "韓国ファッション メンズ アクセ 安い"] },
+      { name: "アウトドア・機能系", icon: "⛺", tags: ["#アウトドア時計", "#サバイバルブレスレット"], keywords: ["G-SHOCK タフ ソーラー 人気", "サバイバル ブレスレット メンズ アウトドア", "コンパス 時計 メンズ アウトドア", "登山 グローブ おしゃれ メンズ", "キャンプ アクセサリー メンズ おしゃれ"] },
+      { name: "バイク・ロック系", icon: "🏍️", tags: ["#バイカーアクセ", "#ロック系メンズ"], keywords: ["スカル リング シルバー バイカー", "ロック系 ネックレス メンズ チェーン", "スタッズ ベルト メンズ ハード", "クロス モチーフ アクセサリー メンズ", "ビンテージ シルバー リング メンズ"] },
+      { name: "推し活・コラボ", icon: "🎮", tags: ["#アニメコラボメンズ", "#ゲームアクセ"], keywords: ["アニメ コラボ アクセサリー メンズ", "ゲーム キャラ リング メンズ", "スポーツ チーム アクセサリー 応援", "バンド Tシャツ コラボ グッズ メンズ", "フィギュア コレクション アクセ メンズ"] },
+      { name: "プチプラ・高コスパ", icon: "💰", tags: ["#メンズプチプラアクセ", "#コスパ最強"], keywords: ["メンズ アクセサリー セット 安い おしゃれ", "ステンレス ネックレス メンズ 錆びない 安い", "コスパ 時計 メンズ 5000円以下", "まとめ買い ピアス メンズ セット", "高見え メンズ アクセ プチプラ 2025"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "ミニマリスト", icon: "◻️", tags: ["#ミニマルメンズ", "#シンプルアクセ"], keywords: ["ミニマル メンズ アクセサリー シルバー", "細い リング メンズ シンプル ゴールド", "シンプル ネックレス メンズ 一粒", "マット シルバー リング メンズ", "つけっぱなし メンズ アクセ 安心"] },
+      { name: "ヴィンテージ・アンティーク", icon: "🕰️", tags: ["#ヴィンテージメンズ", "#アンティーク時計"], keywords: ["ヴィンテージ 時計 メンズ アンティーク 安い", "アンティーク リング メンズ 彫金", "ビンテージ ブレスレット メンズ 革", "レトロ ウォッチ メンズ おしゃれ", "ビンテージ スカル シルバー リング"] },
+      { name: "和風・侍スタイル", icon: "⛩️", tags: ["#和風アクセサリー", "#侍スタイル"], keywords: ["和風 リング メンズ 家紋 シルバー", "刀 モチーフ アクセサリー メンズ", "和柄 ブレスレット メンズ 数珠風", "龍 シルバー リング メンズ", "武士 イメージ アクセサリー 和風"] },
+      { name: "ビジネス・フォーマル", icon: "💼", tags: ["#ビジネスウォッチ", "#カフスボタン"], keywords: ["カフス ボタン メンズ シルバー おしゃれ", "ビジネス 時計 メンズ 安い 高見え", "ネクタイピン セット メンズ", "スーツ アクセサリー メンズ 結婚式", "フォーマル 腕時計 メンズ 薄型"] },
+      { name: "スポーツ・フィットネス", icon: "💪", tags: ["#スポーツウォッチ", "#フィットネストラッカー"], keywords: ["スポーツ ウォッチ メンズ 防水 安い", "フィットネス トラッカー メンズ おしゃれ", "磁気 ブレスレット メンズ 肩こり", "ランニング 時計 GPS メンズ", "プロテイン シェーカー おしゃれ メンズ"] },
+      { name: "天然石・パワーストーン", icon: "🔮", tags: ["#メンズパワーストーン", "#天然石ブレスレット"], keywords: ["天然石 ブレスレット メンズ 意味 人気", "オニキス ブレスレット メンズ", "タイガーアイ ブレスレット メンズ 金運", "ラピスラズリ ブレスレット メンズ", "数珠 ブレスレット メンズ おしゃれ"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "バズり購買", icon: "🔥", tags: ["#メンズ買ってよかった", "#楽天メンズ"], keywords: ["楽天 メンズ アクセ 買って良かった 2025", "コスパ 最強 メンズ 時計 レビュー", "G-SHOCK 人気 おすすめ モデル 比較", "メンズ ネックレス 高見え 安い レビュー", "男性 アクセサリー プレゼント 彼女 選び方"] },
+      { name: "ブランド比較", icon: "🏷️", tags: ["#メンズブランドアクセ", "#コスパ時計"], keywords: ["SEIKO メンズ 時計 人気 おすすめ 2025", "CASIO G-SHOCK 比較 どっち おすすめ", "シルバーアクセ ブランド メンズ 国産", "メンズ ネックレス ブランド 5000円以下", "ステンレス アクセ ブランド メンズ 比較"] },
+      { name: "コーデ合わせ", icon: "👔", tags: ["#メンズコーデ", "#アクセコーデ メンズ"], keywords: ["メンズ アクセ コーデ 合わせ方 シルバー", "ネックレス コーデ メンズ カジュアル", "リング 重ね付け メンズ おしゃれ 方法", "ブレスレット 時計 合わせ方 メンズ", "アクセサリー 数 メンズ バランス"] },
+      { name: "機能性重視", icon: "⚡", tags: ["#磁気ブレスレット", "#アレルギー対応 メンズ"], keywords: ["磁気 ブレスレット メンズ 効果 肩こり ゴルフ", "チタン ピアス メンズ アレルギー対応", "ステンレス リング メンズ 錆びない 温泉 OK", "サージカルステンレス メンズ 安全", "防水 アクセサリー メンズ プール 海"] },
+      { name: "ギフト・プレゼント", icon: "🎁", tags: ["#彼氏へのプレゼント", "#メンズギフト"], keywords: ["彼氏 プレゼント アクセサリー 20代 楽天", "男性 誕生日 ギフト アクセ 5000円", "父 プレゼント 時計 実用的 安い", "夫 アクセサリー プレゼント 記念日", "男友達 プレゼント アクセ おしゃれ"] },
+      { name: "季節トレンド", icon: "🌸", tags: ["#メンズ春アクセ", "#メンズ夏アクセ"], keywords: ["春 メンズ アクセサリー 2025 トレンド", "夏 メンズ アクセ コーデ 日焼け対策", "秋冬 メンズ アクセサリー レザー ゴールド", "2025 メンズアクセ トレンド予測", "今季 メンズ 旬 アクセサリー おすすめ"] },
+    ],
+  },
+};
+
+const SNS_MENS_FASHION = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "トップス", icon: "👕", tags: ["#メンズトップス", "#オーバーサイズ", "#ヘビーウェイト"], keywords: ["オーバーサイズ Tシャツ メンズ 無地 ヘビー", "ヘンリーネック シャツ メンズ おしゃれ", "ボーダー カットソー メンズ 細身", "ポロシャツ メンズ きれいめ 大人", "ニット ポロ メンズ 秋 おしゃれ"] },
+      { name: "ボトムス", icon: "👖", tags: ["#メンズパンツ", "#ワイドパンツ メンズ", "#テーパード"], keywords: ["ワイドパンツ メンズ きれいめ センタープレス", "テーパード パンツ メンズ 大人 細身", "カーゴパンツ メンズ おしゃれ ゆったり", "チノパン メンズ スリム 通勤 カジュアル", "デニム バギー メンズ 韓国系 ゆったり"] },
+      { name: "アウター", icon: "🧥", tags: ["#メンズアウター", "#レザージャケット メンズ", "#ミリタリー"], keywords: ["レザー ジャケット メンズ 安い 本革風", "ミリタリー ジャケット メンズ MA-1", "ステンカラー コート メンズ きれいめ", "ニット カーデ メンズ シンプル ゆったり", "マウンテン パーカー メンズ おしゃれ 軽量"] },
+      { name: "シューズ", icon: "👟", tags: ["#メンズスニーカー", "#ローファー メンズ", "#ブーツ"], keywords: ["スニーカー メンズ 白 シンプル 高見え", "ローファー メンズ スリッポン おしゃれ", "チャッカ ブーツ メンズ 秋冬 きれいめ", "サンダル メンズ おしゃれ 夏 コーデ", "革靴 メンズ 安い 高見え ビジネス"] },
+      { name: "セットアップ", icon: "🤵", tags: ["#セットアップ メンズ", "#スーツカジュアル"], keywords: ["セットアップ メンズ きれいめ カジュアル", "スーツ 生地 パンツ ジャケット メンズ", "テーラードジャケット メンズ 安い 高見え", "スラックス セットアップ メンズ 春夏", "ジャージ セットアップ メンズ おしゃれ"] },
+      { name: "インナー・小物", icon: "🎒", tags: ["#メンズバッグ", "#トートバッグ メンズ"], keywords: ["トート バッグ メンズ キャンバス おしゃれ", "ショルダー バッグ メンズ 斜めがけ 小さい", "リュック メンズ 通勤 軽い おしゃれ", "マフラー メンズ ウール シンプル 冬", "ベルト メンズ レザー シンプル 細い"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "韓国メンズファッション", icon: "🇰🇷", tags: ["#韓国メンズコーデ", "#オルチャンメンズ"], keywords: ["韓国 メンズ ファッション 2025 コーデ", "オルチャン メンズ 服 通販 安い", "韓国系 メンズ ワイドパンツ コーデ", "韓国 メンズ ニット ショート丈", "韓国風 メンズ 服 セットアップ おしゃれ"] },
+      { name: "ストリート・スケーター", icon: "🛹", tags: ["#ストリートメンズ", "#スケーターファッション"], keywords: ["ストリート ファッション メンズ 2025 ブランド", "スケーター コーデ メンズ パンツ おしゃれ", "グラフィック Tシャツ メンズ ストリート", "フーディー メンズ ビッグシルエット", "スウェット パンツ メンズ ストリート ゆったり"] },
+      { name: "古着・ヴィンテージ", icon: "🕺", tags: ["#古着メンズ", "#ヴィンテージ メンズ"], keywords: ["古着 メンズ コーデ おしゃれ 通販", "ヴィンテージ デニム メンズ 90s", "古着 フランネル シャツ メンズ チェック", "USA古着 メンズ ミリタリー おしゃれ", "古着ミックス メンズ コーデ 大人"] },
+      { name: "きれいめ・大人カジュアル", icon: "🎩", tags: ["#きれいめメンズ", "#大人カジュアルメンズ"], keywords: ["きれいめ メンズ コーデ 30代 おしゃれ", "大人 カジュアル メンズ 服 2025", "ジャケット コーデ メンズ カジュアル", "センタープレス パンツ メンズ きれいめ", "白シャツ メンズ コーデ 大人 上品"] },
+      { name: "アウトドア・機能系", icon: "🏔️", tags: ["#アウトドアファッション", "#ゴアテックス"], keywords: ["アウトドア ファッション メンズ おしゃれ 2025", "マウンテン パーカー メンズ 防水 軽量", "フリース メンズ おしゃれ 暖かい", "ワークパンツ メンズ アウトドア 丈夫", "トレッキング シューズ メンズ 軽量 安い"] },
+      { name: "プチプラ・高見え", icon: "💰", tags: ["#メンズプチプラ", "#ユニクロコーデ"], keywords: ["ユニクロ メンズ コーデ 2025 春", "GU メンズ 新作 おしゃれ コーデ", "しまむら メンズ 高見え おすすめ", "3000円 以下 メンズ コーデ 全身", "ワークマン メンズ おしゃれ コーデ"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "フレンチ・ヨーロピアン", icon: "🇫🇷", tags: ["#フレンチメンズ", "#ヨーロピアンスタイル"], keywords: ["フレンチ スタイル メンズ コーデ おしゃれ", "マリン シャツ メンズ ボーダー コーデ", "リネン シャツ メンズ 夏 涼しい おしゃれ", "テーラード コーデ メンズ 大人 ヨーロピアン", "ベレー帽 コーデ メンズ フレンチ"] },
+      { name: "モノトーン・ミニマル", icon: "⬛", tags: ["#メンズモノトーン", "#オールブラックメンズ"], keywords: ["オールブラック メンズ コーデ かっこいい", "モノトーン メンズ コーデ 大人", "白 黒 コーデ メンズ シンプル おしゃれ", "グレー コーデ メンズ ベーシック", "ミニマル メンズ ファッション 2025"] },
+      { name: "ワーク・アメカジ", icon: "🛠️", tags: ["#アメカジメンズ", "#ワークウェア"], keywords: ["アメカジ メンズ コーデ 大人 おしゃれ", "ワーク ジャケット メンズ デニム", "チェック ネルシャツ メンズ コーデ 秋", "カーハート 風 ジャケット メンズ", "デニム シャツ メンズ 重ね着 コーデ"] },
+      { name: "和風・和モダン", icon: "⛩️", tags: ["#和風メンズ", "#和モダンファッション"], keywords: ["和柄 シャツ メンズ おしゃれ 大人", "甚平 メンズ おしゃれ 夏 コーデ", "袴 パンツ メンズ 和モダン", "流水 柄 Tシャツ メンズ 和風", "モンペ パンツ メンズ ゆったり おしゃれ"] },
+      { name: "秋冬ニット・コート", icon: "🧶", tags: ["#メンズニット", "#メンズコート"], keywords: ["ニット セーター メンズ 秋冬 シンプル", "ケーブルニット メンズ 太め おしゃれ", "チェスターコート メンズ ゆったり 大人", "ウール コート メンズ 安い 高見え", "タートルネック メンズ 黒 コーデ 冬"] },
+      { name: "サステナブル", icon: "🌱", tags: ["#サステナブルメンズ", "#エシカルファッション メンズ"], keywords: ["サステナブル ファッション メンズ ブランド", "オーガニック コットン Tシャツ メンズ", "リサイクル 素材 メンズ アウター", "古着 リメイク メンズ おしゃれ", "エシカル メンズ ブランド 日本 おすすめ"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "バズりコーデ", icon: "🔥", tags: ["#メンズバズりコーデ", "#お洒落さんと繋がりたい メンズ"], keywords: ["バズ メンズ コーデ 2025 真似したい", "男性 おしゃれ 服 楽天 買って良かった", "高見え メンズ コーデ プチプラ 2025", "映え メンズ コーデ インスタ 服 通販", "話題 メンズファッション バイラル 2025"] },
+      { name: "ビジネス・通勤", icon: "💼", tags: ["#ビジネスカジュアルメンズ", "#通勤コーデ メンズ"], keywords: ["ビジネス カジュアル メンズ 2025 春 コーデ", "通勤 メンズ パンツ きれいめ 安い", "スーツ インナー メンズ おしゃれ", "テレワーク メンズ 服 おしゃれ 上だけ", "オフィス スニーカー メンズ 革靴風"] },
+      { name: "デート・お出かけ", icon: "❤️", tags: ["#デートコーデ メンズ", "#モテコーデ"], keywords: ["デート コーデ メンズ 春 おしゃれ 清潔感", "モテ コーデ メンズ 20代 30代", "清潔感 メンズ ファッション ポイント 2025", "彼女ができる コーデ メンズ おしゃれ", "合コン 服装 メンズ 好印象 おすすめ"] },
+      { name: "フェス・ライブ", icon: "🎸", tags: ["#フェスコーデ メンズ", "#ライブコーデ メンズ"], keywords: ["フェス コーデ メンズ 夏 おしゃれ 動きやすい", "ライブ 服装 メンズ おしゃれ 推し活", "野外 フェス コーデ メンズ 暑さ対策", "バンドT コーデ メンズ おしゃれ 大人", "コンサート 服装 メンズ きれいめ"] },
+      { name: "大きいサイズ", icon: "✨", tags: ["#大きいサイズメンズ", "#XLメンズコーデ"], keywords: ["大きいサイズ メンズ ファッション 通販 おしゃれ", "3L 4L メンズ コーデ かっこいい", "体型 カバー メンズ コーデ 着痩せ", "XL XXL メンズ 服 おしゃれ 安い", "ぽっちゃり メンズ コーデ おしゃれ 2025"] },
+      { name: "楽天まとめ買い", icon: "🛍️", tags: ["#楽天メンズファッション", "#楽天マラソンメンズ"], keywords: ["楽天 メンズ ファッション 購入品 2025", "楽天マラソン メンズ 服 おすすめ", "楽天 セール メンズ 買うべき おしゃれ", "楽天ファッション メンズ 人気 ランキング", "お気に入り メンズ 服 楽天 安い 高見え"] },
+    ],
+  },
+};
+
+const SNS_GOURMET = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "おうちカフェ", icon: "☕", tags: ["#おうちカフェ", "#カフェインテリア", "#ホームカフェ"], keywords: ["おうちカフェ グッズ おしゃれ 通販", "コーヒードリッパー おしゃれ ギフト", "マグカップ おしゃれ 北欧 かわいい", "カフェ風 食器 セット おしゃれ", "ラテアート ピッチャー 家庭用"] },
+      { name: "映えスイーツ", icon: "🍰", tags: ["#映えスイーツ", "#手作りお菓子", "#韓国スイーツ"], keywords: ["韓国 スイーツ 通販 お取り寄せ 人気", "映え ケーキ型 シリコン おしゃれ", "クッキー型 かわいい 抜き型 セット", "チョコレート ギフト おしゃれ 2025", "マカロン 手作り キット 初心者"] },
+      { name: "テーブルコーデ", icon: "🍽️", tags: ["#テーブルコーデ", "#テーブルウェア", "#食器コレクション"], keywords: ["食器 おしゃれ セット 北欧風 テーブル", "プレート 皿 おしゃれ カフェ風", "カトラリー おしゃれ ステンレス セット", "ランチョンマット リネン おしゃれ", "グラス おしゃれ ペア ギフト"] },
+      { name: "健康・デトックス", icon: "🥗", tags: ["#腸活", "#デトックス", "#ヘルシーごはん"], keywords: ["腸活 食品 お取り寄せ 人気 2025", "プロテイン おいしい 女性向け 人気", "スムージー ミキサー 小型 おしゃれ", "グラノーラ 無添加 おしゃれ パッケージ", "オートミール レシピ ダイエット 人気"] },
+      { name: "お取り寄せグルメ", icon: "📦", tags: ["#お取り寄せ", "#食べ物ギフト", "#楽天グルメ"], keywords: ["お取り寄せ スイーツ 人気 2025 楽天", "ご当地 グルメ ギフト 送料無料", "高級 チーズ ギフト お取り寄せ", "クラフトビール セット ギフト 飲み比べ", "和菓子 ギフト おしゃれ 個包装"] },
+      { name: "キッチン雑貨", icon: "🔪", tags: ["#キッチングッズ", "#料理道具", "#おしゃれキッチン"], keywords: ["包丁 おすすめ 主婦 コスパ 切れる", "まな板 おしゃれ 木製 抗菌", "フライパン 軽い コーティング おすすめ", "調味料入れ おしゃれ 収納 セット", "エコバッグ おしゃれ 大容量 折りたたみ"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "バズりレシピ", icon: "🔥", tags: ["#バズりレシピ", "#TikTokグルメ", "#簡単レシピ"], keywords: ["バズ レシピ 簡単 材料少ない 人気 2025", "TikTok 飯 作ってみた 話題 グルメ", "韓国 レシピ 簡単 家で作れる 人気", "ズボラ飯 レシピ 一人暮らし 簡単 安い", "時短 料理 グッズ キッチン 便利 おすすめ"] },
+      { name: "韓国フード", icon: "🇰🇷", tags: ["#韓国グルメ", "#韓国料理", "#トッポギ"], keywords: ["韓国 食品 通販 本格 お取り寄せ", "トッポギ 材料 通販 セット 本格", "チーズ ハットグ 材料 セット 家で", "韓国 ラーメン 人気 辛い セット", "ホットク 粉 ミックス 韓国 通販"] },
+      { name: "映えドリンク", icon: "🧋", tags: ["#タピオカ", "#映えドリンク", "#自家製ラテ"], keywords: ["タピオカ 粉 作り方 通販 業務用", "バタフライピー ラテ 材料 おしゃれ", "シロップ おしゃれ フレーバー ドリンク", "豆乳 ラテ 泡立て スチーマー 家庭用", "コーヒー シロップ 自作 おしゃれ 瓶"] },
+      { name: "お菓子作り", icon: "🍫", tags: ["#お菓子作り", "#手作りスイーツ", "#クッキー作り"], keywords: ["チョコ ケーキ 型 シリコン かわいい", "アイシング クッキー 材料 セット 初心者", "チョコレート テンパリング 道具 初心者", "バレンタイン 手作り キット 簡単 おしゃれ", "スコーン ミックス 粉 手作り 簡単"] },
+      { name: "キャンプ飯", icon: "🏕️", tags: ["#キャンプ飯", "#ソロキャンプ飯", "#アウトドア料理"], keywords: ["メスティン 料理 キャンプ飯 レシピ", "スキレット 料理 キャンプ アウトドア おすすめ", "キャンプ 調味料 セット アウトドア 携帯", "カップ ヌードル アレンジ キャンプ 人気", "アウトドア 食器 軽量 おしゃれ チタン"] },
+      { name: "節約・コスパ飯", icon: "💰", tags: ["#節約レシピ", "#コスパ飯", "#業務スーパー"], keywords: ["業務スーパー おすすめ 商品 2025 人気", "節約 食材 まとめ買い 一週間 レシピ", "コスパ 最高 食材 通販 おすすめ 楽天", "冷凍食品 アレンジ 簡単 おいしい", "一人暮らし 食費 節約 食材 セット"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "北欧・ナチュラルフード", icon: "🌿", tags: ["#北欧スタイル料理", "#ナチュラルフード"], keywords: ["北欧 食器 ナチュラル 木製 おしゃれ", "グラノーラ ボウル おしゃれ 北欧風", "ハーブ 栽培 キット 室内 おしゃれ", "オーガニック 調味料 ギフト セット", "リネン キッチン タオル おしゃれ"] },
+      { name: "ブランチ・モーニング", icon: "🥞", tags: ["#ブランチ", "#モーニングプレート", "#朝ごはん"], keywords: ["おしゃれ 朝食 プレート 食器 セット", "フレンチトースト 型 おしゃれ 厚切り", "エッグスタンド 陶器 おしゃれ 朝食", "ブレックファスト ボード 木製 おしゃれ", "パン ケース 保存 おしゃれ 木製"] },
+      { name: "ギフト・ハンドメイドフード", icon: "🎁", tags: ["#フードギフト", "#手作りギフト食品"], keywords: ["手作り ジャム 瓶 おしゃれ ギフト用", "クッキー 缶 おしゃれ ギフト 詰め合わせ", "フード ギフト ボックス おしゃれ 包装", "ナッツ 詰め合わせ おしゃれ 瓶", "紅茶 ギフト セット おしゃれ 個包装"] },
+      { name: "ワイン・チーズ", icon: "🍷", tags: ["#ワインペアリング", "#チーズボード", "#おつまみ"], keywords: ["チーズ ボード 木製 おしゃれ セット", "ワイン グラス おしゃれ ペア ギフト", "おつまみ ギフト おしゃれ お取り寄せ", "ワイン ラック おしゃれ インテリア", "チーズ ナイフ セット おしゃれ ギフト"] },
+      { name: "発酵・腸活", icon: "🫙", tags: ["#発酵食品", "#腸活", "#ぬか漬け"], keywords: ["ぬか漬け 容器 おしゃれ 初心者 セット", "味噌 手作り キット 簡単 セット", "甘酒 飲む 美容 効果 おすすめ", "発酵 食品 お取り寄せ 腸活 人気", "キムチ 手作り 材料 セット 本格"] },
+      { name: "ピクニック・行楽弁当", icon: "🧺", tags: ["#ピクニック", "#お弁当", "#映え弁当"], keywords: ["ピクニック バスケット おしゃれ ランチ", "お弁当箱 おしゃれ 大人 女性 二段", "保冷 ランチバッグ おしゃれ 大容量", "水筒 おしゃれ 大人 ステンレス コンパクト", "サンドイッチ ケース おしゃれ 携帯 ランチ"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "話題のお取り寄せ", icon: "🔥", tags: ["#お取り寄せ", "#楽天グルメ", "#バズりグルメ"], keywords: ["楽天 お取り寄せ グルメ 人気 2025", "バズ 食品 通販 話題 おいしい", "SNS 話題 お菓子 お取り寄せ 楽天", "フードロス 食品 訳あり お取り寄せ 安い", "産地直送 海産物 ギフト お取り寄せ"] },
+      { name: "コンビニ・スーパー新作", icon: "🏪", tags: ["#コンビニ新作", "#スーパーグルメ", "#新発売"], keywords: ["コンビニ スイーツ 新作 2025 おすすめ", "セブンイレブン 話題 商品 アレンジ", "コンビニ 飯 アレンジ 簡単 おいしい", "スーパー 激安 食材 アレンジ レシピ", "業務スーパー 冷凍 おすすめ 2025"] },
+      { name: "グルメギフト", icon: "🎁", tags: ["#グルメギフト", "#食べ物プレゼント", "#楽天マラソン食品"], keywords: ["楽天マラソン グルメ 食品 おすすめ 2025", "父の日 グルメ ギフト おすすめ 楽天", "誕生日 食べ物 ギフト おしゃれ 通販", "スイーツ ギフト 送料無料 おすすめ", "ビール ギフト セット お取り寄せ 人気"] },
+      { name: "話題のダイエット食", icon: "💪", tags: ["#ダイエット食", "#プロテイン", "#糖質制限"], keywords: ["プロテイン バー おいしい コンビニ 人気", "糖質 オフ 食品 お取り寄せ おすすめ", "置き換え ダイエット 食品 おいしい 人気", "低カロリー スイーツ お取り寄せ 罪悪感なし", "ダイエット 宅配 食事 コスパ おすすめ"] },
+      { name: "スパイス・調味料沼", icon: "🧂", tags: ["#調味料マニア", "#スパイスカレー", "#万能調味料"], keywords: ["万能 調味料 おすすめ 楽天 2025", "スパイス カレー セット 本格 お取り寄せ", "だし 無添加 おすすめ 出汁 取り寄せ", "オリーブオイル 本物 イタリア 通販", "塩麹 手作り キット 簡単 おすすめ"] },
+      { name: "一人暮らしごはん", icon: "🍜", tags: ["#一人暮らしご飯", "#ひとり飯", "#ズボラ飯"], keywords: ["一人暮らし 食材 まとめ買い 通販 コスパ", "冷凍 宅配 弁当 一人暮らし コスパ おすすめ", "レトルト 高級 おいしい お取り寄せ 楽天", "インスタント 麺 高級 お取り寄せ 人気", "缶詰 おしゃれ おいしい お取り寄せ"] },
+    ],
+  },
+};
+
+const SNS_RECIPE = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "映えレシピ", icon: "✨", tags: ["#映えレシピ", "#おしゃれごはん", "#フォトジェニック料理"], keywords: ["映え ランチ プレート 盛り付け おしゃれ 食器", "カラフル サラダ ボウル 食器 おしゃれ", "パンケーキ 型 おしゃれ シリコン かわいい", "スムージー ボウル 食器 おしゃれ 北欧", "グラスデザート カップ おしゃれ プリン 型"] },
+      { name: "韓国レシピ", icon: "🇰🇷", tags: ["#韓国料理レシピ", "#韓国家庭料理", "#チーズタッカルビ"], keywords: ["チーズ タッカルビ 食材 セット 通販", "韓国 鍋 スンドゥブ 素 お取り寄せ", "ビビンバ 石鍋 IH対応 おすすめ", "韓国 調味料 コチュジャン 本格 通販", "トッポギ 材料 セット 送料無料 通販"] },
+      { name: "スイーツレシピ", icon: "🍮", tags: ["#手作りスイーツ", "#焼き菓子", "#お菓子作り好きな人と繋がりたい"], keywords: ["タルト 型 おしゃれ シリコン セット", "チーズケーキ 型 底取れ 18cm おすすめ", "マドレーヌ 型 シリコン おしゃれ かわいい", "ガトーショコラ 型 スクエア おすすめ", "シフォン ケーキ 型 アルミ 使いやすい"] },
+      { name: "ヘルシーレシピ", icon: "🥦", tags: ["#ヘルシーレシピ", "#腸活レシピ", "#糖質オフレシピ"], keywords: ["グリル パン おしゃれ 電気 卓上 簡単", "蒸し器 シリコン スチーマー レンジ 対応", "低温 調理器 コスパ おすすめ 家庭用", "スープ ジャー おしゃれ 保温 ランチ", "ミキサー スムージー 小型 静音 おすすめ"] },
+      { name: "パン・発酵レシピ", icon: "🍞", tags: ["#パン作り", "#手ごねパン", "#天然酵母"], keywords: ["パン 型 食パン 1斤 おすすめ アルミ", "デジタル スケール 製菓 精密 おすすめ", "発酵 カゴ バヌトン パン おしゃれ", "パン こね 台 シリコン おすすめ", "天然 酵母 エキス 通販 お取り寄せ"] },
+      { name: "作り置きレシピ", icon: "🫙", tags: ["#作り置き", "#常備菜", "#週末まとめ料理"], keywords: ["保存 容器 ガラス おしゃれ セット 冷凍", "ホーロー 保存 容器 野田琺瑯 おすすめ", "真空 保存 容器 セット コンパクト", "シール 蓋 容器 タッパー おしゃれ セット", "冷凍 保存 袋 スタンド おしゃれ 立てて保存"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "バズりレシピ動画", icon: "🔥", tags: ["#バズりレシピ", "#TikTokレシピ", "#簡単レシピ動画"], keywords: ["バズ レシピ 材料 少ない 簡単 再現 グッズ", "フライパン ひとつ 簡単 レシピ 道具", "電子 レンジ 調理 容器 シリコン 蒸し", "卵焼き 器 フライパン 小さい 使いやすい", "たこ焼き 器 電気 おすすめ ホットプレート"] },
+      { name: "映え弁当・キャラ弁", icon: "🎌", tags: ["#お弁当レシピ", "#キャラ弁", "#映え弁当"], keywords: ["お弁当 箱 おしゃれ 2段 保温 おすすめ", "キャラ弁 型 セット かわいい 抜き型", "弁当 バンド おしゃれ 大人 シリコン", "スープ ジャー ランチ 保温 おすすめ 500ml", "お弁当 袋 おしゃれ 大人 女性 巾着"] },
+      { name: "アイスクリームレシピ", icon: "🍦", tags: ["#自家製アイス", "#アイスレシピ", "#フローズン"], keywords: ["アイス メーカー 家庭用 電動 おすすめ", "ソフトクリーム メーカー 家庭用 コスパ", "アイス 型 シリコン かわいい アイスキャンディー", "かき氷 機 電動 家庭用 おすすめ コスパ", "フローズン ヨーグルト メーカー 家庭用"] },
+      { name: "ワンパンレシピ", icon: "🍳", tags: ["#ワンパンレシピ", "#フライパンひとつ", "#時短料理"], keywords: ["フライパン 20cm 深型 軽い コーティング", "スキレット 16cm IH対応 おすすめ コスパ", "グリル パン 鉄 おすすめ 使いやすい", "セラミック フライパン 安全 おすすめ", "アルミ フライパン 軽い 焦げ付かない"] },
+      { name: "チーズ・ピザレシピ", icon: "🍕", tags: ["#ピザレシピ", "#チーズ料理", "#チーズ沼"], keywords: ["ピザ 石窯 家庭用 電気 おすすめ", "ピザ 生地 ミックス 粉 簡単 通販", "とろける チーズ 業務用 通販 お取り寄せ", "ピザ カッター おしゃれ ステンレス", "モッツァレラ チーズ お取り寄せ 本格"] },
+      { name: "飲み物・ドリンクレシピ", icon: "🧃", tags: ["#自家製ドリンク", "#フルーツビネガー", "#健康ドリンク"], keywords: ["フルーツ 酢 ビネガー お取り寄せ おすすめ", "コンブチャ スターター キット 通販", "梅 シロップ 梅 お取り寄せ 南高梅", "ハーブ ティー セット おしゃれ ギフト", "甘酒 メーカー 家庭用 ヨーグルト も作れる"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "フレンチ・欧風レシピ", icon: "🥐", tags: ["#フランス料理レシピ", "#欧風家庭料理", "#ビストロ料理"], keywords: ["ル クルーゼ 鍋 コンパクト おすすめ 色", "ストウブ 鍋 14cm おすすめ 使い方", "テリーヌ 型 フランス製 おしゃれ", "グラタン 皿 おしゃれ 耐熱 2人前", "キッシュ 型 タルト 陶器 おしゃれ"] },
+      { name: "ナチュラルスイーツ", icon: "🌾", tags: ["#ナチュラルスイーツ", "#ヴィーガンスイーツ", "#グルテンフリー"], keywords: ["グルテン フリー 小麦粉 代替 通販", "ヴィーガン バター 代替 植物性 通販", "アーモンド 粉 お菓子 通販 業務用", "ココナッツ シュガー 代替 低GI 通販", "デーツ 砂糖 代替 乾燥 お取り寄せ"] },
+      { name: "和食レシピ・だし", icon: "🍱", tags: ["#和食レシピ", "#出汁レシピ", "#だしパック"], keywords: ["だし パック 無添加 おすすめ お取り寄せ", "昆布 だし 一番だし 通販 おすすめ", "土鍋 ご飯 IH 対応 おすすめ 2合", "すり鉢 おしゃれ 日本製 セット", "木の芽 山椒 料理 お取り寄せ 春"] },
+      { name: "テーブルセッティング", icon: "🕯️", tags: ["#テーブルセッティング", "#おもてなし料理", "#ディナー演出"], keywords: ["キャンドル ホルダー おしゃれ テーブル ディナー", "ナプキン リング おしゃれ シルバー セット", "プレース マット おしゃれ 大人 シック", "花瓶 小さい おしゃれ テーブル 花", "ワイン クーラー おしゃれ テーブル 卓上"] },
+      { name: "保存食・瓶詰めレシピ", icon: "🫙", tags: ["#保存食レシピ", "#瓶詰め", "#手作り調味料"], keywords: ["メイソン ジャー 瓶 おしゃれ セット 保存", "ジャム 瓶 おしゃれ 脱気 蓋付き", "ピクルス 瓶 ガラス おしゃれ 広口", "ドレッシング 容器 おしゃれ ガラス 瓶", "ハーブ オイル 漬け 瓶 おしゃれ ギフト"] },
+      { name: "ブランチ・週末料理", icon: "🥂", tags: ["#週末料理", "#ブランチレシピ", "#休日ごはん"], keywords: ["エッグ スタンド 陶器 おしゃれ 朝食", "ベーコン 厚切り お取り寄せ 燻製 本格", "サーモン スモーク お取り寄せ ギフト", "ワッフル メーカー 家庭用 おすすめ 深型", "ホット サンド メーカー 直火 おすすめ"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "話題レシピ再現", icon: "🔥", tags: ["#バズりレシピ", "#話題のレシピ", "#レシピ再現"], keywords: ["バズ レシピ 再現 道具 グッズ 楽天 おすすめ", "話題 レシピ 材料 通販 お取り寄せ 楽天", "SNS 話題 鍋 フライパン おすすめ 2025", "レシピ 本 話題 人気 2025 料理家", "楽天 買って よかった キッチン グッズ 2025"] },
+      { name: "節約レシピ", icon: "💰", tags: ["#節約レシピ", "#もやし料理", "#コスパ料理"], keywords: ["節約 食材 まとめ買い 冷凍 保存 容器", "もやし 大量消費 レシピ 道具 フライパン", "鶏むね肉 柔らかく 調理 低温 器具", "豆腐 料理 アレンジ 保存 容器 水切り", "卵 レシピ 大量消費 道具 エッグパン"] },
+      { name: "時短・ズボラレシピ", icon: "⚡", tags: ["#時短レシピ", "#ズボラ料理", "#レンジ調理"], keywords: ["電子 レンジ 調理 容器 シリコン おすすめ", "時短 調理 グッズ 楽天 おすすめ 2025", "炊飯器 レシピ 材料 お取り寄せ 簡単", "スロー クッカー 電気 おすすめ コスパ", "圧力 鍋 電気 コスパ おすすめ 時短"] },
+      { name: "お菓子作り道具", icon: "🍪", tags: ["#製菓道具", "#お菓子作りグッズ", "#ケーキ型"], keywords: ["製菓 道具 セット 初心者 おすすめ 楽天", "ケーキ 型 15cm おすすめ 底取れ アルミ", "絞り袋 口金 セット おすすめ 使いやすい", "温度計 製菓 デジタル 料理 おすすめ", "めん棒 おしゃれ 木製 長い お菓子"] },
+      { name: "料理道具レビュー", icon: "⭐", tags: ["#買って良かったキッチングッズ", "#楽天キッチン", "#調理器具レビュー"], keywords: ["楽天 キッチン グッズ 買って よかった 2025", "包丁 研ぎ 器 シャープナー おすすめ 簡単", "計量 スプーン セット おしゃれ 使いやすい", "ピーラー おすすめ スライサー セット 使いやすい", "おろし 器 セラミック おすすめ 軽い"] },
+      { name: "子ども・家族レシピ", icon: "👨‍👩‍👧", tags: ["#子どもごはん", "#家族レシピ", "#ホットプレート料理"], keywords: ["ホット プレート 家族 大人数 おすすめ 2025", "たこ焼き プレート 家族 電気 おすすめ", "子供 お弁当 グッズ キャラ弁 道具 セット", "離乳食 食器 セット おすすめ シリコン", "家族 鍋 大きい 土鍋 IH 対応 おすすめ"] },
+    ],
+  },
+};
+
+const SNS_BRAND_LADIES = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "人気レディースブランド", icon: "👜", tags: ["#レディースブランド", "#ブランドコーデ", "#ブランド好きな人と繋がりたい"], keywords: ["ZARA レディース 新作 2025 おすすめ", "H&M レディース おしゃれ コーデ", "ユニクロ レディース 人気 2025 春夏", "GU レディース 新作 おすすめ コーデ", "無印良品 レディース おすすめ シンプル"] },
+      { name: "高見えプチプラブランド", icon: "✨", tags: ["#プチプラブランド", "#高見えコーデ", "#プチプラファッション"], keywords: ["しまむら レディース 高見え 2025 コーデ", "ナチュラルビューティーベーシック おすすめ", "earth music ecology レディース 2025", "プチプラ ブランド レディース 人気 楽天", "高見え コーデ レディース ブランド 安い"] },
+      { name: "バッグブランド", icon: "👜", tags: ["#ブランドバッグ", "#バッグコーデ", "#トートバッグ"], keywords: ["トートバッグ レディース ブランド 人気 楽天", "ショルダーバッグ レディース ブランド おしゃれ", "かごバッグ レディース ブランド 夏 おすすめ", "ミニバッグ レディース おしゃれ ブランド", "クラッチ バッグ レディース おしゃれ パーティー"] },
+      { name: "シューズブランド", icon: "👠", tags: ["#ブランドシューズ", "#パンプス", "#スニーカーレディース"], keywords: ["パンプス レディース ブランド 痛くない 歩きやすい", "スニーカー レディース ブランド おしゃれ 人気", "サンダル レディース ブランド 歩きやすい 夏", "ローファー レディース ブランド 大人 おしゃれ", "ブーツ レディース ブランド 秋冬 おすすめ"] },
+      { name: "コスメ・美容ブランド", icon: "💄", tags: ["#コスメブランド", "#プチプラコスメ", "#韓国コスメ"], keywords: ["韓国 コスメ ブランド 人気 2025 楽天", "プチプラ コスメ ブランド おすすめ 2025", "セザンヌ 新作 おすすめ 2025 楽天", "キャンメイク 人気 商品 2025 おすすめ", "CLIO コスメ 韓国 楽天 おすすめ"] },
+      { name: "楽天ブランド購入品", icon: "🛍️", tags: ["#楽天ブランド", "#楽天購入品", "#楽天マラソンブランド"], keywords: ["楽天 ブランド レディース 購入品 2025", "楽天マラソン レディース ブランド おすすめ", "楽天 ファッション ブランド 人気 ランキング", "楽天 セール ブランド レディース 買うべき", "楽天 ブランド バッグ 財布 おすすめ"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "バズりブランドアイテム", icon: "🔥", tags: ["#ブランドバズり", "#TikTokブランド", "#話題のブランド"], keywords: ["TikTok バズ ブランド レディース 2025 通販", "話題 ブランド アイテム レディース 楽天", "SNS バズ ファッション レディース ブランド", "流行 ブランド レディース 2025 春夏", "人気 ブランド レディース ランキング 楽天 2025"] },
+      { name: "韓国ブランド", icon: "🇰🇷", tags: ["#韓国ブランド", "#韓国ファッションブランド", "#Kファッション"], keywords: ["韓国 ブランド レディース 通販 楽天 おすすめ", "ADER error 風 レディース 楽天 通販", "韓国 ブランド バッグ レディース 通販", "Musinsa 人気 ブランド レディース 楽天", "韓国系 ブランド コーデ レディース 2025"] },
+      { name: "スポーツ・アクティブブランド", icon: "🏃‍♀️", tags: ["#スポーツブランドレディース", "#ヨガウェア", "#アクティブウェア"], keywords: ["ヨガ ウェア レディース ブランド おしゃれ 楽天", "スポーツ ブラ レディース ブランド おすすめ", "レギンス レディース ブランド 人気 2025", "ランニング ウェア レディース おしゃれ ブランド", "ジム ウェア レディース おしゃれ ブランド"] },
+      { name: "ヴィンテージ・古着ブランド", icon: "🕶️", tags: ["#古着ブランド", "#ヴィンテージブランド", "#古着女子"], keywords: ["古着 ブランド レディース 通販 おすすめ", "ヴィンテージ ブランド レディース 楽天 コーデ", "古着 女子 コーデ ブランド ミックス", "リユース ブランド レディース おしゃれ", "セカンドハンド ブランド 通販 楽天 おすすめ"] },
+      { name: "コラボブランド", icon: "🤝", tags: ["#コラボアイテム", "#限定コラボ", "#ブランドコラボ"], keywords: ["コラボ ブランド レディース 限定 2025 楽天", "ユニクロ コラボ レディース 新作 おすすめ", "GU コラボ レディース 限定 2025", "ブランド コラボ バッグ 限定 通販", "人気 コラボ アイテム レディース 楽天"] },
+      { name: "サステナブルブランド", icon: "🌿", tags: ["#サステナブルブランド", "#エシカルファッション", "#エコブランド"], keywords: ["サステナブル ブランド レディース 日本 おすすめ", "エシカル ファッション ブランド レディース 通販", "オーガニック コットン ブランド レディース", "フェアトレード ブランド レディース おしゃれ", "環境 配慮 ブランド レディース 楽天 おすすめ"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "ラグジュアリー風ブランド", icon: "👸", tags: ["#ラグジュアリーコーデ", "#高級感コーデ", "#上品コーデ"], keywords: ["ラグジュアリー 風 コーデ レディース 楽天 通販", "上品 ブランド レディース コーデ 大人 おしゃれ", "高見え ブランド バッグ レディース 通販", "セレブ 風 コーデ レディース ブランド 安い", "大人 エレガント ブランド コーデ レディース"] },
+      { name: "北欧・ミニマルブランド", icon: "⬜", tags: ["#北欧ブランド", "#ミニマルファッション", "#シンプルブランド"], keywords: ["北欧 ブランド レディース 通販 日本 おすすめ", "ミニマル ブランド レディース シンプル おしゃれ", "モノトーン ブランド レディース コーデ 2025", "ベーシック ブランド レディース 高品質 通販", "シンプル ブランド バッグ レディース おしゃれ"] },
+      { name: "ジュエリーブランド", icon: "💍", tags: ["#ジュエリーブランド", "#アクセサリーブランド", "#プチプラジュエリー"], keywords: ["プチプラ ジュエリー ブランド レディース 楽天", "シルバー ジュエリー ブランド レディース おしゃれ", "ゴールド ジュエリー ブランド レディース 人気", "K18 ネックレス ブランド レディース 通販", "ダイヤ 風 アクセサリー ブランド レディース 安い"] },
+      { name: "ナチュラルブランド", icon: "🌸", tags: ["#ナチュラルブランド", "#リネンブランド", "#ナチュラルコーデ"], keywords: ["ナチュラル ブランド レディース 日本 通販", "リネン ブランド レディース おしゃれ 夏", "コットン ブランド レディース シンプル 通販", "ナチュラル系 ブランド レディース 大人 コーデ", "麻 素材 ブランド レディース 楽天 おすすめ"] },
+      { name: "アウトドアブランド", icon: "🏔️", tags: ["#アウトドアブランド女子", "#アウトドアレディース", "#山ガールブランド"], keywords: ["アウトドア ブランド レディース おしゃれ 通販", "山ガール ブランド コーデ レディース 2025", "ノースフェイス 風 レディース 楽天 おすすめ", "アウトドア コーデ レディース ブランド おしゃれ", "撥水 ジャケット レディース ブランド おしゃれ"] },
+      { name: "ワンピースブランド", icon: "👗", tags: ["#ワンピースブランド", "#ワンピースコーデ", "#マキシワンピ"], keywords: ["ワンピース ブランド レディース おしゃれ 楽天", "マキシ ワンピース ブランド レディース 夏", "花柄 ワンピース ブランド レディース おしゃれ", "リネン ワンピース ブランド レディース 通販", "ニット ワンピース ブランド レディース 秋冬"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "話題のブランドアイテム", icon: "🔥", tags: ["#楽天ブランド購入品", "#ブランドバズり", "#話題ブランド"], keywords: ["楽天 ブランド 購入品 レディース 2025 おすすめ", "話題 ブランド アイテム レディース 通販 楽天", "バズ ブランド レディース 2025 真似したい", "人気 ブランド レディース ランキング 楽天 2025", "SNS 人気 ブランド レディース 買って よかった"] },
+      { name: "プチプラブランド比較", icon: "💰", tags: ["#プチプラブランド比較", "#コスパブランド", "#安くておしゃれブランド"], keywords: ["プチプラ ブランド レディース おすすめ 比較 2025", "コスパ ブランド レディース 楽天 人気", "安い ブランド レディース おしゃれ 通販", "しまむら vs GU レディース 比較 2025", "ユニクロ GU レディース 使い回し コーデ"] },
+      { name: "ブランドセール情報", icon: "🏷️", tags: ["#ブランドセール", "#楽天セールブランド", "#楽天マラソンブランド"], keywords: ["楽天マラソン ブランド レディース 買うべき 2025", "楽天 セール ブランド レディース おすすめ 時期", "ブランド セール レディース 楽天 おすすめ", "楽天 スーパーSALE ブランド レディース 人気", "楽天 ポイント ブランド レディース お得 2025"] },
+      { name: "ブランド財布・小物", icon: "👛", tags: ["#ブランド財布レディース", "#ブランド小物", "#お財布コーデ"], keywords: ["ブランド 財布 レディース 人気 楽天 通販", "二つ折り 財布 レディース ブランド おしゃれ", "長財布 レディース ブランド 人気 2025", "カードケース レディース ブランド おしゃれ 薄い", "コインケース レディース ブランド かわいい 通販"] },
+      { name: "ブランドギフト", icon: "🎁", tags: ["#ブランドギフト", "#プレゼントブランド", "#誕生日ブランド"], keywords: ["ブランド ギフト レディース 誕生日 おすすめ", "プレゼント ブランド レディース 人気 楽天", "母の日 ブランド レディース おすすめ 楽天", "ブランド アクセサリー ギフト レディース 通販", "記念日 ブランド ギフト レディース おしゃれ"] },
+      { name: "ブランドコーデまとめ", icon: "📋", tags: ["#ブランドコーデまとめ", "#ブランド着こなし", "#おしゃれさんのブランド"], keywords: ["ブランド コーデ まとめ レディース 楽天 2025", "ブランド 着こなし レディース おしゃれ 大人", "ブランド ミックス コーデ レディース 高見え", "プチプラ ブランド ミックス コーデ レディース", "楽天 ブランド コーデ 購入品 まとめ レディース"] },
+    ],
+  },
+};
+
+const SNS_BRAND_MENS = {
+  instagram: {
+    label: "Instagram", icon: "📸",
+    categories: [
+      { name: "人気メンズブランド", icon: "🧥", tags: ["#メンズブランド", "#ブランドメンズコーデ", "#ブランド好き"], keywords: ["ZARA メンズ 新作 2025 おすすめ コーデ", "H&M メンズ おしゃれ コーデ 2025", "ユニクロ メンズ 人気 2025 春夏 おすすめ", "GU メンズ 新作 おすすめ コーデ 2025", "無印良品 メンズ おすすめ シンプル 2025"] },
+      { name: "ストリートブランド", icon: "🛹", tags: ["#ストリートブランド", "#メンズストリートコーデ", "#ストリートファッション"], keywords: ["ストリート ブランド メンズ 日本 人気 2025", "グラフィック Tシャツ ブランド メンズ 楽天", "スケーター ブランド メンズ コーデ 通販", "ヒップホップ 系 ブランド メンズ 楽天", "ストリート ブランド メンズ 安い 高見え"] },
+      { name: "アウトドアブランド", icon: "🏕️", tags: ["#アウトドアブランドメンズ", "#キャンプコーデ", "#登山ブランド"], keywords: ["アウトドア ブランド メンズ おしゃれ 人気 楽天", "ノースフェイス 風 メンズ 楽天 安い", "パタゴニア 風 メンズ コーデ 楽天", "マウンテン パーカー ブランド メンズ おすすめ", "アウトドア コーデ メンズ ブランド 2025"] },
+      { name: "ビジネスブランド", icon: "💼", tags: ["#ビジネスブランドメンズ", "#スーツブランド", "#ビジネスカジュアルブランド"], keywords: ["ビジネス ブランド メンズ スーツ 安い 高見え", "ビジネス カジュアル ブランド メンズ 楽天", "ネクタイ ブランド メンズ おしゃれ 楽天", "ビジネス バッグ ブランド メンズ 安い おしゃれ", "スーツ ブランド メンズ コスパ 楽天 おすすめ"] },
+      { name: "スポーツブランド", icon: "⚽", tags: ["#スポーツブランドメンズ", "#ナイキ風", "#アディダス風"], keywords: ["スポーツ ブランド メンズ コーデ おしゃれ 2025", "ナイキ 風 スニーカー メンズ 楽天 安い", "アディダス 風 メンズ コーデ 楽天 おすすめ", "スポーツ MIX コーデ メンズ ブランド", "トラック ジャケット メンズ ブランド おしゃれ"] },
+      { name: "楽天ブランド購入品", icon: "🛍️", tags: ["#楽天メンズブランド", "#楽天購入品メンズ", "#楽天マラソンメンズブランド"], keywords: ["楽天 ブランド メンズ 購入品 2025 おすすめ", "楽天マラソン メンズ ブランド おすすめ 買うべき", "楽天 ファッション ブランド メンズ 人気 ランキング", "楽天 セール ブランド メンズ 2025 おすすめ", "楽天 買って よかった メンズ ブランド 服"] },
+    ],
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎵",
+    categories: [
+      { name: "バズりメンズブランド", icon: "🔥", tags: ["#メンズブランドバズり", "#TikTokメンズブランド", "#話題メンズブランド"], keywords: ["TikTok バズ ブランド メンズ 2025 楽天 通販", "話題 ブランド メンズ 服 楽天 安い 高見え", "SNS 人気 ブランド メンズ 2025 真似したい", "バズ メンズ ブランド コーデ 春夏 2025", "人気 メンズ ブランド ランキング 楽天 2025"] },
+      { name: "韓国メンズブランド", icon: "🇰🇷", tags: ["#韓国メンズブランド", "#韓国ブランドメンズ", "#Kメンズファッション"], keywords: ["韓国 ブランド メンズ 通販 楽天 おすすめ", "韓国系 メンズ ブランド コーデ 2025", "オルチャン メンズ ブランド 服 楽天 通販", "Musinsa 人気 ブランド メンズ 楽天 通販", "韓国 ストリート ブランド メンズ おしゃれ"] },
+      { name: "古着・ヴィンテージブランド", icon: "🕺", tags: ["#古着ブランドメンズ", "#ヴィンテージブランドメンズ", "#古着メンズコーデ"], keywords: ["古着 ブランド メンズ 通販 おすすめ 楽天", "ヴィンテージ ブランド メンズ コーデ 楽天", "USA 古着 ブランド メンズ 通販 安い", "古着 ミックス ブランド メンズ おしゃれ", "リユース ブランド メンズ 楽天 おすすめ"] },
+      { name: "ワークブランド", icon: "🛠️", tags: ["#ワークブランドメンズ", "#カーハート風", "#ワークウェアメンズ"], keywords: ["ワーク ブランド メンズ おしゃれ コーデ 楽天", "カーハート 風 ジャケット メンズ 楽天", "ワーク パンツ ブランド メンズ 丈夫 おしゃれ", "デッキ シューズ ブランド メンズ 楽天", "ダック ジャケット メンズ ブランド 安い"] },
+      { name: "コラボブランド", icon: "🤝", tags: ["#メンズコラボブランド", "#限定コラボメンズ", "#ブランドコラボメンズ"], keywords: ["コラボ ブランド メンズ 限定 2025 楽天", "ユニクロ コラボ メンズ 新作 2025 おすすめ", "GU コラボ メンズ 限定 楽天 通販", "スニーカー コラボ ブランド メンズ 楽天", "話題 コラボ アイテム メンズ 2025 通販"] },
+      { name: "プチプラメンズブランド", icon: "💰", tags: ["#プチプラメンズブランド", "#コスパメンズブランド", "#安くておしゃれメンズ"], keywords: ["プチプラ ブランド メンズ おすすめ 楽天 2025", "コスパ ブランド メンズ 高見え 楽天 通販", "しまむら メンズ ブランド 高見え 2025", "ワークマン ブランド メンズ おしゃれ 2025", "安い ブランド メンズ 高見え おしゃれ 楽天"] },
+    ],
+  },
+  pinterest: {
+    label: "Pinterest", icon: "📌",
+    categories: [
+      { name: "アメカジブランド", icon: "🇺🇸", tags: ["#アメカジブランド", "#アメリカンカジュアル", "#アメカジメンズ"], keywords: ["アメカジ ブランド メンズ コーデ 楽天 通販", "チャンピオン 風 スウェット メンズ 楽天", "リーバイス 風 デニム メンズ 楽天 安い", "アメカジ ブランド メンズ 大人 おしゃれ", "ワーク シャツ ブランド メンズ アメカジ"] },
+      { name: "ミニマル・モノトーンブランド", icon: "⬛", tags: ["#ミニマルブランドメンズ", "#モノトーンブランドメンズ", "#シンプルメンズブランド"], keywords: ["ミニマル ブランド メンズ シンプル おしゃれ 楽天", "モノトーン ブランド メンズ コーデ 大人", "オールブラック ブランド メンズ おしゃれ 楽天", "グレー ブランド コーデ メンズ ベーシック", "シンプル ブランド メンズ 2025 楽天 おすすめ"] },
+      { name: "和ブランド・和モダン", icon: "⛩️", tags: ["#和ブランドメンズ", "#和モダンブランド", "#国産ブランドメンズ"], keywords: ["和 ブランド メンズ おしゃれ 日本製 楽天", "和柄 ブランド メンズ コーデ 2025", "国産 ブランド メンズ 職人 こだわり 楽天", "藍染め ブランド メンズ おしゃれ 通販", "和モダン ブランド メンズ 大人 おしゃれ"] },
+      { name: "ジュエリー・時計ブランド", icon: "⌚", tags: ["#メンズジュエリーブランド", "#メンズ時計ブランド", "#メンズウォッチ"], keywords: ["メンズ 時計 ブランド コスパ 楽天 おすすめ", "スマート ウォッチ ブランド メンズ 安い おしゃれ", "シルバー アクセサリー ブランド メンズ 楽天", "メンズ ネックレス ブランド 人気 楽天 2025", "メンズ リング ブランド シルバー 楽天 おすすめ"] },
+      { name: "サステナブルメンズブランド", icon: "🌱", tags: ["#サステナブルメンズブランド", "#エシカルメンズ", "#エコブランドメンズ"], keywords: ["サステナブル ブランド メンズ 日本 楽天 おすすめ", "オーガニック コットン ブランド メンズ 通販", "フェアトレード ブランド メンズ おしゃれ", "リサイクル 素材 ブランド メンズ コーデ", "環境 配慮 ブランド メンズ 楽天 2025"] },
+      { name: "シューズ・スニーカーブランド", icon: "👟", tags: ["#メンズスニーカーブランド", "#スニーカーコレクション", "#スニーカー沼"], keywords: ["スニーカー ブランド メンズ 人気 楽天 2025", "ランニング シューズ ブランド メンズ コスパ", "革靴 ブランド メンズ 安い 高見え 楽天", "サンダル ブランド メンズ 夏 おしゃれ 楽天", "スリッポン ブランド メンズ 楽な 楽天"] },
+    ],
+  },
+  x: {
+    label: "X (Twitter)", icon: "🐦",
+    categories: [
+      { name: "話題のメンズブランド", icon: "🔥", tags: ["#楽天メンズブランド購入品", "#メンズブランドバズり", "#話題メンズブランド"], keywords: ["楽天 メンズ ブランド 購入品 2025 おすすめ", "話題 ブランド メンズ 通販 楽天 安い 高見え", "バズ メンズ ブランド 2025 コーデ 真似", "人気 メンズ ブランド ランキング 楽天 2025", "SNS 人気 ブランド メンズ 買って よかった"] },
+      { name: "ブランドセール・お得情報", icon: "🏷️", tags: ["#メンズブランドセール", "#楽天セールメンズ", "#楽天マラソンメンズブランド"], keywords: ["楽天マラソン メンズ ブランド 買うべき 2025", "楽天 セール メンズ ブランド おすすめ 時期", "メンズ ブランド セール 楽天 お得 2025", "楽天 スーパーSALE メンズ ブランド 人気", "楽天 ポイント メンズ ブランド お得 買い方"] },
+      { name: "ブランド財布・バッグ", icon: "👝", tags: ["#メンズブランド財布", "#メンズブランドバッグ", "#メンズ小物ブランド"], keywords: ["ブランド 財布 メンズ 人気 楽天 二つ折り", "メンズ バッグ ブランド トート おしゃれ 楽天", "ブリーフ ケース メンズ ブランド 安い 高見え", "ショルダー バッグ メンズ ブランド 楽天 斜めがけ", "マネー クリップ ブランド メンズ おしゃれ 楽天"] },
+      { name: "コスパブランド徹底比較", icon: "📊", tags: ["#コスパブランドメンズ", "#メンズブランド比較", "#安くておしゃれメンズブランド"], keywords: ["コスパ メンズ ブランド 比較 楽天 2025", "ユニクロ vs GU メンズ ブランド 比較", "しまむら メンズ ブランド コスパ 2025", "ワークマン メンズ ブランド おしゃれ 安い", "プチプラ メンズ ブランド 高見え 楽天"] },
+      { name: "ブランドギフト", icon: "🎁", tags: ["#メンズブランドギフト", "#メンズプレゼントブランド", "#父の日ブランド"], keywords: ["ブランド ギフト メンズ 誕生日 おすすめ 楽天", "父の日 ブランド メンズ おすすめ 楽天 2025", "プレゼント ブランド メンズ 人気 楽天 安い", "記念日 ブランド ギフト メンズ おしゃれ 通販", "メンズ ブランド ギフト セット 楽天 おすすめ"] },
+      { name: "スニーカー・シューズ沼", icon: "👟", tags: ["#スニーカー沼メンズ", "#スニーカーコレクション", "#シューズブランドメンズ"], keywords: ["スニーカー 沼 メンズ ブランド 楽天 2025", "スニーカー コレクション メンズ おすすめ 通販", "限定 スニーカー メンズ ブランド 楽天 通販", "スニーカー ブランド メンズ 安い 高見え 楽天", "スニーカー コーデ メンズ ブランド 2025 春夏"] },
+    ],
+  },
+};
+
+let _snsPlatform = localStorage.getItem("snsPlatform") || "instagram";
+let _snsGenre = localStorage.getItem("snsGenre") || "ladies";
+
+function openSnsHowPopup() {
+  document.getElementById("snsHowPopup").classList.add("open");
+}
+function closeSnsHowPopup(e) {
+  if (e && e.target !== document.getElementById("snsHowPopup")) return;
+  document.getElementById("snsHowPopup").classList.remove("open");
+}
+
+function showCopyToast(msg, anchorEl) {
+  let t = document.getElementById("copyToast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "copyToast";
+    t.style.cssText = "position:fixed;background:rgba(0,0,0,0.6);color:#fff;padding:4px 12px;border-radius:6px;font-size:0.72rem;z-index:99999;pointer-events:none;transition:opacity 0.4s;white-space:nowrap";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  if (anchorEl) {
+    const r = anchorEl.getBoundingClientRect();
+    t.style.left = r.left + "px";
+    t.style.top = (r.bottom + 6) + "px";
+  }
+  t.style.opacity = "1";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = "0"; }, 1200);
+}
+
+function snsKwCopy(btn, kw) {
+  // textarea方式（同期・確実）
+  const ta = document.createElement("textarea");
+  ta.value = kw;
+  ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.01;border:none;outline:none";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch(e) {}
+  document.body.removeChild(ta);
+
+  if (ok) {
+    btn.classList.add("sns-kw-copied");
+    showCopyToast("コピーしました", btn);
+    setTimeout(() => { btn.classList.remove("sns-kw-copied"); }, 1400);
+  } else {
+    // Clipboard API フォールバック
+    navigator.clipboard && navigator.clipboard.writeText(kw).then(() => {
+      showCopyToast("コピーしました", btn);
+    }).catch(e => showCopyToast("コピー失敗: " + e.message));
+  }
+}
+
+function openBulkSearch() {
+  const items = _allItems || [];
+  const grid = document.getElementById("bulkImgGrid");
+  grid.innerHTML = items.filter(it => it.image).map((it, i) => `
+    <label class="bulk-img-card" style="cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;border:2px solid #e8edf2;border-radius:10px;transition:border-color 0.15s" onmouseover="this.style.borderColor='#1a3a5c'" onmouseout="updateBulkCardBorder(this)">
+      <input type="checkbox" data-idx="${i}" data-url="${it.image.replace(/"/g,'&quot;')}" onchange="updateBulkCount()" style="position:absolute;top:6px;left:6px;width:16px;height:16px;accent-color:#1a3a5c">
+      <img src="${it.image}" style="width:90px;height:90px;object-fit:cover;border-radius:6px;pointer-events:none">
+      <span style="font-size:0.62rem;color:#555;text-align:center;line-height:1.3;max-width:100px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${it.name.slice(0,30)}</span>
+    </label>`).join("");
+  updateBulkCount();
+  const ov = document.getElementById("bulkSearchOverlay");
+  ov.style.display = "flex";
+}
+
+function updateBulkCardBorder(label) {
+  const cb = label.querySelector("input[type=checkbox]");
+  label.style.borderColor = cb && cb.checked ? "#1a3a5c" : "#e8edf2";
+}
+
+function updateBulkCount() {
+  const checked = document.querySelectorAll("#bulkImgGrid input:checked").length;
+  document.getElementById("bulkSelectedCount").textContent = checked + "件選択中";
+  document.querySelectorAll("#bulkImgGrid .bulk-img-card").forEach(card => {
+    updateBulkCardBorder(card);
+  });
+}
+
+function bulkSelectAll(val) {
+  document.querySelectorAll("#bulkImgGrid input[type=checkbox]").forEach(cb => cb.checked = val);
+  updateBulkCount();
+}
+
+function closeBulkSearch(e) {
+  if (e && e.target !== document.getElementById("bulkSearchOverlay")) return;
+  document.getElementById("bulkSearchOverlay").style.display = "none";
+}
+
+function runBulkSearch(platform) {
+  const checked = [...document.querySelectorAll("#bulkImgGrid input:checked")];
+  if (!checked.length) { alert("画像を選択してください"); return; }
+  const urlMap = {
+    "1688":       img => `https://s.1688.com/selloffer/offerlist.htm?imageAddress=${encodeURIComponent(img)}`,
+    "aliexpress": img => `https://www.aliexpress.com/wholesale?SearchText=&catId=0&imageSearchType=imgurl&imgUrl=${encodeURIComponent(img)}`,
+    "taobao":     img => `https://s.taobao.com/search?imgfile=&js=1&q=&initiative_id=staobaoz_20250101&ie=utf8&img=${encodeURIComponent(img)}`,
+  };
+  const builder = urlMap[platform];
+  if (checked.length > 5 && !confirm(`${checked.length}件のタブを開きます。よろしいですか？`)) return;
+  checked.forEach(cb => {
+    const img = cb.dataset.url.replace(/&quot;/g, '"');
+    const hqImg = img.replace(/_ex=\d+x\d+/, "_ex=400x400");
+    window.open(builder(hqImg), "_blank");
+  });
+}
+
+function openImgZoom(src, el) {
+  const box = document.getElementById("imgZoomBox");
+  const hqSrc = src.replace(/_ex=\d+x\d+/, "_ex=400x400");
+  document.getElementById("imgZoomImg").src = hqSrc;
+  const r = el.getBoundingClientRect();
+  const top = Math.min(r.top + window.scrollY, window.scrollY + window.innerHeight - 320);
+  const left = r.right + 12 + window.scrollX;
+  box.style.top = top + "px";
+  box.style.left = Math.min(left, window.scrollX + window.innerWidth - 280) + "px";
+  box.style.display = "block";
+}
+function closeImgZoom() {
+  document.getElementById("imgZoomBox").style.display = "none";
+}
+
+function switchSnsGenre(genre, btn) {
+  _snsGenre = genre;
+  localStorage.setItem("snsGenre", genre);
+  document.querySelectorAll(".sns-genre-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderSnsTrends();
+}
+
+function switchSnsPlatform(pf) {
+  _snsPlatform = pf;
+  localStorage.setItem("snsPlatform", pf);
+  document.querySelectorAll(".sns-pf-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderSnsTrends();
+}
+
+function snsCopyKw(btn, kw) {
+  const done = () => {
+    const orig = btn.textContent;
+    btn.textContent = "✓ コピー";
+    btn.classList.add("sns-kw-copied");
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove("sns-kw-copied"); }, 1400);
+  };
+  // Clipboard API (HTTPS/localhost)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(kw).then(done).catch(() => _execCopy(kw, done));
+    return;
+  }
+  _execCopy(kw, done);
+}
+function _execCopy(text, cb) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  // 画面内に配置しないと select() が効かないブラウザ対策
+  ta.style.cssText = "position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.setSelectionRange(0, ta.value.length);
+  const ok = document.execCommand("copy");
+  document.body.removeChild(ta);
+  if (ok) { cb(); } else { prompt("コピーしてください (Ctrl+C):", text); }
+}
+
+function snsTagUrl(tag, platform) {
+  const word = tag.replace(/^#/, "");
+  if (platform === "instagram") return `https://www.instagram.com/explore/tags/${encodeURIComponent(word)}/`;
+  if (platform === "tiktok")    return `https://www.tiktok.com/tag/${encodeURIComponent(word)}`;
+  if (platform === "pinterest") return `https://www.pinterest.jp/search/pins/?q=${encodeURIComponent(word)}`;
+  if (platform === "x")         return `https://x.com/search?q=${encodeURIComponent(tag)}`;
+  return "#";
+}
+
+function renderSnsTrends() {
+  const el = document.getElementById("snsTrendContent");
+  if (!el) return;
+  function mergeSns(pf, ...srcs) {
+    const datasets = srcs.map(s => s[pf]).filter(Boolean);
+    if (!datasets.length) return null;
+    return { label: datasets[0].label, icon: datasets[0].icon, categories: datasets.flatMap(d => d.categories) };
+  }
+  const srcMap = {
+    ladies:  { [_snsPlatform]: mergeSns(_snsPlatform, SNS_TRENDS, SNS_FASHION, SNS_BRAND_LADIES) },
+    mens:    { [_snsPlatform]: mergeSns(_snsPlatform, SNS_MENS_ACCESSORY, SNS_MENS_FASHION, SNS_BRAND_MENS) },
+    gourmet: SNS_GOURMET,
+    recipe:  SNS_RECIPE,
+  };
+  const src = srcMap[_snsGenre] || srcMap.ladies;
+  const data = src[_snsPlatform];
+  if (!data) return;
+  el.innerHTML = data.categories.map(cat => `
+    <div class="sns-cat-card">
+      <div class="sns-cat-head">
+        <span class="sns-cat-icon">${cat.icon}</span>
+        <span class="sns-cat-name">${cat.name}</span>
+      </div>
+      <div class="sns-cat-tags">${cat.tags.map(t => `<a class="sns-tag" href="${snsTagUrl(t, _snsPlatform)}" target="_blank" title="${data.label}で見る">${t}</a>`).join("")}</div>
+      <div class="sns-cat-kws">${cat.keywords.map(kw => {
+        const esc = kw.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+        return `<button class="sns-kw-btn" onclick='snsKwCopy(this,${JSON.stringify(kw)})'>${esc}</button>`;
+      }).join("")}</div>
+    </div>`).join("");
+}
+
+// URLに ?q= があれば自動検索（F5リロード対応）
+// ※ showWelcome/loadOtakara が全て定義された後に実行
+function _initPage() {
+  checkProxy();
+
+  const _initKw = new URLSearchParams(location.search).get("q");
+  if (_initKw && _initKw.trim()) {
+    document.getElementById("keyword").value = _initKw.trim();
+    setTimeout(doSearch, 0);
+  } else {
+    showWelcome();
+  }
+}
+
+function showWelcome() {
+  history.replaceState(null, "", location.pathname);
+  document.getElementById("marketSideBtn")?.classList.add("hidden");
+  document.getElementById("result").classList.add("hidden");
+  const tc = document.getElementById("topContent");
+  if (tc) tc.classList.remove("hidden");
+  document.getElementById("nicheBar").innerHTML = "";
+  document.getElementById("shopTagList").innerHTML = "";
+  document.getElementById("priceFilterBox").classList.add("hidden");
+  document.getElementById("tableContent").classList.add("hidden");
+  // ジャンル・プラットフォームのactiveボタンを復元
+  document.querySelectorAll(".sns-genre-btn").forEach(b => {
+    const match = b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${_snsGenre}'`);
+    b.classList.toggle("active", !!match);
+  });
+  document.querySelectorAll(".sns-pf-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.pf === _snsPlatform);
+  });
+  renderSnsTrends();
+}
+
+function loadRanking() {
+  const btn = document.getElementById("searchBtn");
+  btn.disabled = true;
+  btn.textContent = "調査中...";
+  setStatus("info", "📊 楽天ランキング総合を読み込み中...");
+  const _tc = document.getElementById("topContent");
+  if (_tc) _tc.classList.add("hidden");
+  document.getElementById("result").classList.remove("hidden");
+  document.getElementById("tableContent").classList.remove("hidden");
+  document.getElementById("priceFilterBox").classList.remove("hidden");
+  document.getElementById("filterCount").textContent = "";
+  document.getElementById("resultTitle").textContent = "楽天ランキング 総合";
+
+  const cb = `_rnk_${Date.now()}`;
+  const s = document.createElement("script");
+  s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20170628?` +
+    new URLSearchParams({ applicationId: RAKUTEN_APP_ID, hits: 30, page: 1, formatVersion: 2, callback: cb });
+  window[cb] = d => {
+    delete window[cb]; s.remove();
+    btn.disabled = false; btn.textContent = "調査する";
+    if (d.error) { setStatus("error", "ランキング取得エラー: " + d.error_description); return; }
+    const items = (d.Items || []).map((i, idx) => ({
+      name: i.itemName || "",
+      price: i.itemPrice || 0,
+      reviewCount: i.reviewCount || 0,
+      reviewAvg: i.reviewAverage || 0,
+      url: i.itemUrl || "#",
+      itemCode: i.itemCode || "",
+      genreId: i.genreId || "",
+      shopName: i.shopName || "",
+      image: (i.mediumImageUrls && i.mediumImageUrls[0]) ? (typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl) : ""
+    }));
+    if (!items.length) { setStatus("error", "ランキングデータが取得できませんでした。"); return; }
+    _allItems = items;
+    _orderMap = {};
+    items.forEach((it, i) => { if (it.itemCode) _orderMap[it.itemCode] = i + 1; });
+    _sortedItems = [...items];
+    renderSummary(items);
+    document.getElementById("filterCount").textContent = `(${items.length}件)`;
+    renderTable(_sortedItems, _orderMap);
+    document.getElementById("status").className = "status hidden";
+  };
+  s.onerror = () => {
+    s.remove();
+    btn.disabled = false; btn.textContent = "調査する";
+    setStatus("error", "ランキング取得に失敗しました。");
+  };
+  document.head.appendChild(s);
+}
+
+let _searching = false;
+async function doSearch(searchGenreId) {
+  if (_searching) return;
+  _searching = true;
+  const keyword = document.getElementById("keyword").value.trim();
+
+  _currentGenreId = searchGenreId || null;
+  // キーワードもジャンルもない場合はランキングを表示
+  if (!keyword && searchGenreId == null) { loadRanking(); return; }
+  history.replaceState(null, "", keyword ? "?q=" + encodeURIComponent(keyword) : location.pathname);
+
+  const btn = document.getElementById("searchBtn");
+  btn.disabled = true;
+  btn.textContent = "調査中...";
+  const statusMsg = keyword
+    ? `🔍 「${keyword}」で検索中...`
+    : `📂 カテゴリを読み込み中...`;
+  setStatus("info", statusMsg);
+  document.getElementById("result").classList.add("hidden");
+  const tc = document.getElementById("topContent");
+  if (tc) tc.classList.add("hidden");
+
+  try {
+    let items = await fetchRakuten(keyword, searchGenreId || undefined);
+    if (!items.length) { setStatus("error", "データが取得できませんでした。"); return; }
+
+    // 除外キーワードフィルター
+    const excludeTerms = getExcludeTerms();
+    if (excludeTerms.length) {
+      const before = items.length;
+      items = items.filter(it => !excludeTerms.some(ex => it.name.includes(ex)));
+      if (items.length < before) {
+        setStatus("info", `🚫 除外キーワードで ${before - items.length}件を除外 → ${items.length}件`);
+        await new Promise(r => setTimeout(r, 600));
+      }
+    }
+    if (!items.length) { setStatus("error", "除外後に商品が残りませんでした。除外キーワードを見直してください。"); return; }
+
+    setStatus("info", `📊 ${items.length}件のデータを分析しています...`);
+    await new Promise(r => setTimeout(r, 0));
+
+    _allItems = items;
+    renderSummary(items);
+    renderNiche(items, keyword);
+
+    // standard順の位置を記録してからレビュー数順で表示
+    _orderMap = {};
+    items.forEach((it, i) => { if (it.itemCode) _orderMap[it.itemCode] = i + 1; });
+    _sortedItems = [...items].sort((a, b) => {
+      const pa = _orderMap[a.itemCode] || 999;
+      const pb = _orderMap[b.itemCode] || 999;
+      return pa - pb;
+    });
+    document.getElementById("filterCount").textContent = `(${_sortedItems.length}件)`;
+    document.getElementById("resultTitle").textContent = keyword
+      ? `検索結果「${keyword}」${_sortedItems.length}件`
+      : `カテゴリ検索結果 ${_sortedItems.length}件`;
+    renderTable(_sortedItems, _orderMap);
+
+
+    document.getElementById("result").classList.remove("hidden");
+    document.getElementById("tableContent").classList.remove("hidden");
+    document.getElementById("priceFilterBox").classList.remove("hidden");
+    document.getElementById("status").className = "status hidden";
+  } catch(e) {
+    setStatus("error", "エラー: " + e.message);
+  } finally {
+    _searching = false;
+    btn.disabled = false;
+    btn.textContent = "調査する";
+    document.getElementById("marketSideBtn")?.classList.remove("hidden");
+  }
+}
+
+function fetchRakuten(keyword, genreId) {
+  return new Promise((resolve, reject) => {
+    let all = [], page = 1;
+    function next() {
+      const cb = `_r_${Date.now()}`;
+      const s  = document.createElement("script");
+      const params = { applicationId: RAKUTEN_APP_ID, hits: 30,
+        page, sort: "standard", formatVersion: 2, callback: cb };
+      if (keyword) params.keyword = keyword;
+      if (genreId) params.genreId = genreId;
+      s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+        new URLSearchParams(params);
+      setStatus("info", `📦 商品データを取得中... (${page}/3ページ目)`);
+      window[cb] = d => {
+        delete window[cb]; s.remove();
+        if (d.error) { reject(new Error(d.error_description || d.error)); return; }
+        if (page === 1) _totalCount = d.count || 0;
+        const items = (d.Items || []).map(i => ({
+          name: i.itemName || "",
+          price: i.itemPrice || 0,
+          reviewCount: i.reviewCount || 0,
+          reviewAvg: i.reviewAverage || 0,
+          url: i.itemUrl || "#",
+          itemCode: i.itemCode || "",
+          genreId: i.genreId || "",
+          shopName: i.shopName || "",
+          image: (i.mediumImageUrls && i.mediumImageUrls[0]) ? (typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl) : ""
+        }));
+        all = all.concat(items);
+        page++;
+        if (page <= 3 && items.length > 0) setTimeout(next, 400);
+        else resolve(all);
+      };
+      s.onerror = () => { s.remove(); all.length ? resolve(all) : reject(new Error("通信エラー")); };
+      document.head.appendChild(s);
+    }
+    next();
+  });
+}
+
+// ── キーワード抽出 ────────────────────────────────────────
+function extractKeywords(items, searchKeyword) {
+  const freq = {};
+  const searchTerms = searchKeyword.split(/\s+/);
+  // 区切り文字で分割して単語を抽出
+  const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
+  items.forEach(item => {
+    const words = item.name.split(splitter).map(w => w.trim()).filter(w => w.length >= 2);
+    words.forEach(w => {
+      if (STOP_WORDS.has(w)) return;
+      // 検索キーワード自体は除外
+      if (searchTerms.some(t => w === t)) return;
+      // 数字のみ除外
+      if (/^[\d,]+$/.test(w)) return;
+      freq[w] = (freq[w] || 0) + 1;
+    });
+  });
+  return Object.entries(freq)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 30);
+}
+
+
+function renderNiche(items, keyword) {
+  const total   = _totalCount;
+  const avgRev  = items.reduce((s,i) => s + i.reviewCount, 0) / items.length;
+
+  // スコアリング（各5点満点）
+  let s1 = total < 500 ? 5 : total < 2000 ? 4 : total < 6000 ? 3 : total < 20000 ? 2 : 1;
+  let s2 = avgRev < 50 ? 5 : avgRev < 200 ? 4 : avgRev < 500 ? 3 : avgRev < 1000 ? 2 : 1;
+  const score = s1 + s2; // 2〜10
+
+  let label, color, desc;
+  if (score >= 8) {
+    label = "🟢 ニッチ市場度";
+    color = "#27ae60";
+    desc  = "競合が少なく参入しやすい市場です。";
+  } else if (score >= 5) {
+    label = "🟡 中規模市場";
+    color = "#f39c12";
+    desc  = "適度な競合がいます。差別化がカギです。";
+  } else {
+    label = "🔴 競合激戦区";
+    color = "#e74c3c";
+    desc  = "競合が多く価格競争になりやすい市場です。";
+  }
+
+  const pct = Math.round((score - 2) / 8 * 100);
+  const badge = document.getElementById("nicheScoreBadge");
+  if (badge) badge.innerHTML = `<span style="font-size:0.78rem;font-weight:700;color:${color};background:${color}18;padding:2px 8px;border-radius:10px">${label} ${score}/10</span>`;
+  document.getElementById("nicheBar").innerHTML = `
+    <div class="summary-card" style="border-left:3px solid ${color};flex-direction:column;align-items:flex-start;gap:4px">
+      <div style="display:flex;align-items:baseline;gap:4px">
+        <span class="card-value" style="color:${color}">${label}</span>
+        <span style="font-size:1.1rem;font-weight:800;color:${color}">${score}</span><span style="font-size:0.72rem;color:#aaa">/10</span>
+      </div>
+      <div style="height:6px;background:#e0e0e8;border-radius:3px;overflow:hidden;width:100%">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.8s ease"></div>
+      </div>
+      <span style="font-size:0.76rem;color:#555;font-weight:500;line-height:1.5">${desc}</span>
+      <button onclick="openMarketPopup()" style="margin-top:6px;width:100%;padding:7px 0;font-size:0.78rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 市場分析レポート</button>
+    </div>`;
+}
+
+function renderSummary(items) {
+  const prices = items.map(i => i.price).filter(p => p > 0).sort((a,b)=>a-b);
+  const median = prices[Math.floor(prices.length/2)] || 0;
+  const avg    = prices.reduce((s,v)=>s+v,0) / (prices.length||1);
+  const avgRev = items.reduce((s,i)=>s+i.reviewAvg,0) / items.length;
+  const top    = items[0];
+  // ── 市場規模推計 ──────────────────────────────────────────
+  // レビュー率：楽天は購入者の約5〜8%がレビューを書くとされる
+  const REVIEW_RATE = 0.06;
+  // 累積レビューを月次に換算（平均出品期間24ヶ月想定）
+  const AVG_MONTHS = 24;
+  // 各商品の推計月間売上 = (累積レビュー ÷ レビュー率 ÷ 出品月数) × 価格
+  const sampledRevenue = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
+  // 上位90件は検索上位の高売上品。残り長尾はべき乗則で急減するため√で補正
+  const scaleUp = _totalCount > items.length ? Math.sqrt(_totalCount / items.length) : 1;
+  const totalMarketRevenue = sampledRevenue * scaleUp * 12; // 月→年換算
+
+  // ユニーク店舗数・市場集中度を計算
+  const shopCounts = {};
+  items.forEach(it => { if (it.shopName) shopCounts[it.shopName] = (shopCounts[it.shopName] || 0) + 1; });
+  const uniqueShops = Math.max(Object.keys(shopCounts).length, 1);
+  const topShopShare = Math.max(...Object.values(shopCounts)) / items.length;
+
+  // 新規参入シェア：市場の分散度に応じて 0.3〜2%
+  // 競合が少なく分散していれば参入しやすい
+  let entrantShare = uniqueShops < 10 ? 0.003
+                   : uniqueShops < 20 ? 0.007
+                   : uniqueShops < 40 ? 0.013
+                   : 0.02;
+  // 上位店が30%超を独占していれば難易度UP
+  if (topShopShare > 0.3) entrantShare *= 0.55;
+  // 市場が巨大すぎる場合はシェアが薄まる
+  if (totalMarketRevenue > 50e8) entrantShare *= 0.6;
+
+  const yearlyEstimate = totalMarketRevenue * entrantShare;
+  const marketLabel = (() => {
+    const v = totalMarketRevenue;
+    return v >= 1e8 ? `約${(v/1e8).toFixed(0)}億円規模` : `約${Math.round(v/1e4)}万円規模`;
+  })();
+  // 季節変動係数：レビューのばらつきで判定（CV高い＝季節商品）
+  const revCounts = items.map(i => i.reviewCount).filter(r => r > 0);
+  const revMean = revCounts.reduce((s,v)=>s+v,0) / (revCounts.length||1);
+  const revStd  = Math.sqrt(revCounts.reduce((s,v)=>s+(v-revMean)**2,0) / (revCounts.length||1));
+  const cv = revMean > 0 ? revStd / revMean : 0;
+  const seasonNote = cv > 0.9 ? "⚠️ 季節変動が大きい商品です。繁忙期に売上が集中する可能性があります。"
+                   : cv > 0.5 ? "📅 やや季節性あり。時期によって売上にばらつきが出ることがあります。"
+                   : "📊 季節変動は比較的小さめです。通年で安定した販売が見込めます。";
+  const fmtYen = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円`
+                    : v >= 1e4 ? `約${Math.round(v/1e4)}万円`
+                    : `約${Math.round(v).toLocaleString()}円`;
+  const yearlyLabel = fmtYen(yearlyEstimate);
+  let entryJudge, entryColor, entryBg, entryAdvice;
+  if (yearlyEstimate < 30e4)       { entryJudge = "🚫 参入困難";    entryColor = "#888";    entryBg = "#f0f0f0"; entryAdvice = "市場が小さすぎるか、競合が極めて強い状況です。別のキーワードや商品カテゴリの検討を推奨します。"; }
+  else if (yearlyEstimate < 100e4) { entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea"; entryAdvice = "副業レベルなら挑戦可能ですが、本業での参入はリスクが高めです。独自の差別化ポイントが必須です。"; }
+  else if (yearlyEstimate < 300e4) { entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7"; entryAdvice = "差別化できれば年商100〜300万円圏内が狙えます。商品コンセプトや写真クオリティで勝負しましょう。"; }
+  else if (yearlyEstimate < 1000e4){ entryJudge = "✅ 参入推奨";   entryColor = "#1e8449"; entryBg = "#eafaf1"; entryAdvice = "新規参入でも売上が見込める健全な市場です。SEO対策と口コミ獲得を早期に進めましょう。"; }
+  else if (yearlyEstimate < 5000e4){ entryJudge = "🏆 積極参入";   entryColor = "#1a5276"; entryBg = "#eaf4fb"; entryAdvice = "年商1,000万円超が狙える魅力的な市場です。差別化戦略と広告投資があれば大きく稼げます。"; }
+  else                             { entryJudge = "🔴 激戦区";     entryColor = "#c0392b"; entryBg = "#fdedec"; entryAdvice = "市場は巨大ですが競合も強力です。資金力・ブランド力・独自性がなければ埋もれるリスクがあります。"; }
+
+  // ポップアップ用データをグローバルに保持
+  window._marketAnalysis = {
+    yearlyEstimate, yearlyLabel, totalMarketRevenue, marketLabel,
+    uniqueShops, topShopShare, entrantShare,
+    entryJudge, entryColor, entryBg, entryAdvice, seasonNote, cv,
+    priceMedian: median, priceAvg: Math.round(avg),
+    totalCount: _totalCount,
+    keyword: document.getElementById("keyword").value.trim()
+  };
+
+  document.getElementById("summaryGrid").innerHTML = "";
+
+  const priceMin = Math.min(...prices), priceMax = Math.max(...prices);
+  document.getElementById("priceRangeCard").innerHTML = "";
+  document.getElementById("filterMin").value = priceMin;
+  document.getElementById("filterMax").value = priceMax;
+  renderShopTags(items);
+}
+
+function filterByShop(shopName) {
+  document.querySelectorAll(".shop-tag").forEach(el => el.classList.remove("active"));
+  if (shopName === null) {
+    document.getElementById("shopTagAll")?.classList.add("active");
+    const min = parseFloat(document.getElementById("filterMin").value) || 0;
+    const max = parseFloat(document.getElementById("filterMax").value) || Infinity;
+    const base = _selectedGenre ? _sortedItems.filter(it => it.genreId == _selectedGenre) : _sortedItems;
+    renderTable(base.filter(it => it.price >= min && it.price <= max), _orderMap);
+    document.getElementById("filterCount").textContent = `(${_sortedItems.length}件)`;
+  } else {
+    event.currentTarget.classList.add("active");
+    const filtered = _sortedItems.filter(it => it.shopName === shopName);
+    renderTable(filtered, _orderMap);
+    document.getElementById("filterCount").textContent = `(${filtered.length} / ${_sortedItems.length}件)`;
+  }
+}
+
+function renderShopTags(items) {
+  const el = document.getElementById("shopTagList");
+  if (!el) return;
+
+  // 店舗ごとに商品数・推計売上を集計
+  const REVIEW_RATE = 0.06, AVG_MONTHS = 24;
+  const shopMap = {};
+  items.forEach(it => {
+    if (!it.shopName) return;
+    const code = (it.itemCode || "").split(":")[0];
+    if (!shopMap[it.shopName]) shopMap[it.shopName] = { code, count: 0, revenue: 0 };
+    shopMap[it.shopName].count++;
+    shopMap[it.shopName].revenue += (it.reviewCount / REVIEW_RATE / AVG_MONTHS) * it.price;
+  });
+
+  const shops = Object.entries(shopMap)
+    .sort((a, b) => b[1].count - a[1].count);
+
+  if (!shops.length) { el.innerHTML = ""; return; }
+
+  el.innerHTML = `
+    <div class="shop-tag-box">
+      <span class="shop-tag-label">検索結果表示数<small>${shops.length}店舗</small></span>
+      <div class="shop-tag-row">
+        <button class="shop-tag shop-tag-all active" id="shopTagAll" onclick="filterByShop(null)">すべて</button>
+        ${shops.map(([name, d]) =>
+          `<button class="shop-tag" onclick="filterByShop('${name.replace(/'/g,"\\'")}')">
+            ${name}<span class="shop-tag-cnt">${d.count}</span>
+          </button>`
+        ).join("")}
+      </div>
+    </div>`;
+}
+
+function renderPriceChart(items) {
+  const prices = items.map(i => i.price).filter(p => p > 0);
+  const min = Math.min(...prices), max = Math.max(...prices), bins = 10;
+  const step = (max - min) / bins || 1;
+  const labels = [], counts = [];
+  for (let i = 0; i < bins; i++) {
+    const lo = Math.round(min + step*i), hi = Math.round(min + step*(i+1));
+    labels.push(`¥${lo.toLocaleString()}`);
+    counts.push(prices.filter(p => p >= lo && p < hi).length);
+  }
+  if (priceChart) priceChart.destroy();
+  priceChart = new Chart(document.getElementById("priceChart"), {
+    type: "bar",
+    data: { labels, datasets: [{ label:"商品数", data: counts,
+      backgroundColor:"rgba(52,152,219,0.6)", borderColor:"rgba(52,152,219,1)", borderWidth:1 }] },
+    options: { responsive:true, plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{maxRotation:45}} } }
+  });
+}
+
+
+let _allItems = [];
+
+
+function fetchSearchOrder(keyword) {
+  return new Promise(resolve => {
+    const cb = `_so_${Date.now()}`;
+    const s = document.createElement("script");
+    s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+      new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword, hits: 30,
+        page: 1, sort: "standard", formatVersion: 2, callback: cb });
+    window[cb] = d => {
+      delete window[cb]; s.remove();
+      const map = {};
+      (d.Items || []).forEach((item, idx) => { if (item.itemCode) map[item.itemCode] = idx + 1; });
+      resolve(map);
+    };
+    s.onerror = () => { s.remove(); resolve({}); };
+    setTimeout(() => { if (window[cb]) { delete window[cb]; s.remove(); resolve({}); } }, 6000);
+    document.head.appendChild(s);
+  });
+}
+
+let _sortCol = "", _sortAsc = true;
+
+function _getFilteredBase() {
+  const min = parseFloat(document.getElementById("filterMin").value) || 0;
+  const max = parseFloat(document.getElementById("filterMax").value) || Infinity;
+  return _sortedItems.filter(it => it.price >= min && it.price <= max);
+}
+
+function tableSort(col) {
+  _sortAsc = _sortCol === col ? !_sortAsc : true;
+  _sortCol = col;
+  document.querySelectorAll(".sort-icon").forEach(el => {
+    el.textContent = el.dataset.col === col ? (_sortAsc ? "↑" : "↓") : "↕";
+  });
+  const base = [..._getFilteredBase()];
+  base.sort((a, b) => {
+    let va, vb;
+    if (col === "rank")   { va = _orderMap[a.itemCode] || 999; vb = _orderMap[b.itemCode] || 999; }
+    else if (col === "name")  { va = a.name;  vb = b.name; }
+    else if (col === "price") { va = a.price; vb = b.price; }
+    else if (col === "review"){ va = a.reviewCount; vb = b.reviewCount; }
+    else if (col === "shop")  { va = a.shopName; vb = b.shopName; }
+    if (typeof va === "string") return _sortAsc ? va.localeCompare(vb, "ja") : vb.localeCompare(va, "ja");
+    return _sortAsc ? va - vb : vb - va;
+  });
+  renderTable(base, _orderMap);
+}
+
+const PAGE_SIZE = 15;
+let _currentPage = 1;
+let _tableItems = [], _tableOrderMap = {};
+
+
+
+function renderTable(items, orderMap) {
+  _tableItems = items;
+  _tableOrderMap = orderMap;
+  _currentPage = 1;
+  renderTablePage();
+}
+
+function renderTablePage() {
+  const start = (_currentPage - 1) * PAGE_SIZE;
+  const page = _tableItems.slice(start, start + PAGE_SIZE);
+  document.querySelector("#itemTable tbody").innerHTML = page.map(it => {
+    const pos = _tableOrderMap?.[it.itemCode];
+    const rankCls = pos === 1 ? "rank-1" : pos === 2 ? "rank-2" : pos === 3 ? "rank-3" : "";
+    const posCell = pos
+      ? `<td style="text-align:center"><span class="rank-num ${rankCls}">${pos}</span></td>`
+      : `<td class="pos-cell miss">-</td>`;
+    const isFav = isFavorite(it.itemCode);
+    const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
+    return `<tr>
+      ${posCell}
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${it.image ? `<img src="${it.image}" class="item-img" loading="lazy" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : ""}
+          <a href="${it.url}" target="_blank" class="item-name-link">${it.name}</a>
+        </div>
+      </td>
+      <td><span class="price-cell">¥${it.price.toLocaleString()}</span></td>
+      <td>
+        <div class="review-cell">
+          <span class="review-count" style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'}">${it.reviewCount.toLocaleString()}件</span>
+          <span class="review-avg">★${it.reviewAvg > 0 ? it.reviewAvg.toFixed(1) : '-'}</span>
+        </div>
+      </td>
+      <td class="shop-name">
+        <span class="shop-link" onclick="openShopModal('${(it.itemCode||'').split(':')[0]}','${(it.shopName||'').replace(/'/g,"\\'")}')">${it.shopName || '-'}</span>
+      </td>
+      <td style="text-align:center">
+        <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
+      </td>
+    </tr>`;
+  }).join("");
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = _tableItems.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  const el = document.getElementById("pagination");
+  if (pages <= 1) { el.innerHTML = ""; return; }
+  const btns = [];
+  btns.push(`<button class="pg-btn${_currentPage===1?" pg-disabled":""}" onclick="goPage(${_currentPage-1})">‹</button>`);
+  for (let i = 1; i <= pages; i++) {
+    btns.push(`<button class="pg-btn${i===_currentPage?" pg-active":""}" onclick="goPage(${i})">${i}</button>`);
+  }
+  btns.push(`<button class="pg-btn${_currentPage===pages?" pg-disabled":""}" onclick="goPage(${_currentPage+1})">›</button>`);
+  el.innerHTML = `<div class="pg-row">${btns.join("")}</div>`;
+}
+
+function goPage(p) {
+  const pages = Math.ceil(_tableItems.length / PAGE_SIZE);
+  if (p < 1 || p > pages) return;
+  _currentPage = p;
+  renderTablePage();
+}
+
+
+
+// ── 季節需要データベース ──────────────────────────────────
+const SEASONAL_DB = [
+  { words:["クリスマス","christmas","xmas","サンタ"], months:[10,11,11,12,12,12], label:"🎄 クリスマス商戦（12月がピーク）" },
+  { words:["バレンタイン","valentine","チョコ"], months:[1,1,2,2], label:"🍫 バレンタイン（1〜2月）" },
+  { words:["ホワイトデー"], months:[2,2,3,3], label:"🍬 ホワイトデー（3月）" },
+  { words:["ひな祭り","雛祭り","雛人形","ひなまつり"], months:[1,2,2,3,3], label:"🎎 ひな祭り（2〜3月）" },
+  { words:["節分","恵方巻","豆まき"], months:[1,2,2], label:"👹 節分（2月）" },
+  { words:["卒業","卒園","入学","入園","ランドセル","入学式","卒業式"], months:[2,3,3,4,4], label:"🎓 卒業・入学シーズン（2〜4月）" },
+  { words:["桜","花見","お花見","春"], months:[2,3,3,4,4,5], label:"🌸 春シーズン（3〜4月）" },
+  { words:["母の日"], months:[4,4,5,5], label:"💐 母の日（5月）" },
+  { words:["父の日"], months:[5,5,6,6], label:"👔 父の日（6月）" },
+  { words:["ゴールデンウィーク","GW","連休","行楽"], months:[3,4,5,5], label:"🌿 GW（4〜5月）" },
+  { words:["梅雨","レインコート","傘","雨"], months:[5,6,6,7], label:"☔ 梅雨シーズン（6〜7月）" },
+  { words:["夏","サマー","summer","海水浴","プール","水着"], months:[5,6,7,7,8,8], label:"☀️ 夏シーズン（7〜8月）" },
+  { words:["日焼け","UVカット","日傘","日焼け止め","紫外線"], months:[4,5,6,7,8,8], label:"🌞 UV・日焼け対策（5〜8月）" },
+  { words:["花火","浴衣","祭り","夏祭り","盆踊り"], months:[6,7,7,8,8], label:"🎆 夏祭り・花火（7〜8月）" },
+  { words:["お中元","中元"], months:[6,7,7], label:"🎁 お中元（7月）" },
+  { words:["お盆","帰省","お墓参り"], months:[7,7,8,8], label:"🪔 お盆（8月）" },
+  { words:["敬老の日"], months:[8,9,9], label:"👴 敬老の日（9月）" },
+  { words:["ハロウィン","halloween","仮装","コスプレ","コスチューム"], months:[8,9,10,10], label:"🎃 ハロウィン（10月）" },
+  { words:["七五三"], months:[9,10,10,11,11], label:"🎏 七五三（11月）" },
+  { words:["結婚式","ウェディング","ブライダル","wedding","花嫁","新郎","新婦"], months:[3,4,5,5,9,10,10,11], label:"💍 ウェディングシーズン（春・秋）" },
+  { words:["フラワーシャワー","造花","ブーケ","ウェルカムボード"], months:[3,4,5,9,10,10,11], label:"💐 ブライダル需要（春・秋）" },
+  { words:["お歳暮","歳暮","年末","年賀","お正月","正月","おせち"], months:[10,11,12,12,1], label:"🎍 年末年始（12月がピーク）" },
+  { words:["冬","ウィンター","防寒","暖かい","あったか","マフラー","手袋","ダウン","コート","ニット"], months:[9,10,11,12,1,2], label:"🧣 冬物（10〜2月）" },
+  { words:["カイロ","湯たんぽ","電気毛布","こたつ","ホットカーペット"], months:[10,11,12,1,2], label:"🔥 防寒グッズ（11〜2月）" },
+  { words:["鍋","おでん","温かい","スープ","シチュー"], months:[9,10,11,12,1,2], label:"🍲 冬の食事（10〜3月）" },
+  { words:["花粉","アレルギー","花粉症"], months:[1,2,3,3,4,5], label:"🌿 花粉シーズン（3〜5月）" },
+  { words:["冷感","冷却","扇風機","冷風機","エアコン","クーラー","保冷"], months:[4,5,6,7,8,9], label:"❄️ 夏の冷却グッズ（6〜8月）" },
+  { words:["秋","オータム","紅葉","fall"], months:[8,9,10,11], label:"🍂 秋シーズン（9〜11月）" },
+  { words:["プレゼント","ギフト","贈り物","贈答"], months:[2,5,6,9,12,12], label:"🎁 ギフト需要（全般・12月集中）" },
+  { words:["防災","非常食","備蓄","緊急"], months:[1,3,9,9], label:"⛑️ 防災意識（9月・防災の日）" },
+  { words:["引越し","新生活","一人暮らし"], months:[2,3,3,4,4], label:"🏠 新生活（3〜4月）" },
+  { words:["アウトドア","キャンプ","BBQ","ハイキング","登山"], months:[3,4,5,6,9,10], label:"⛺ アウトドア（春・秋）" },
+  { words:["バレンタイン","halloween","christmas","クリスマス"], months:[], label:"" },
+];
+
+function analyzeSeasonalDemand(keyword, items) {
+  // 検索ワード + 上位20件の商品名を結合してスキャン
+  const text = [keyword, ...items.slice(0, 20).map(i => i.name)].join(" ").toLowerCase();
+
+  // 月別スコア（0インデックス：0=1月）
+  const scores = new Array(12).fill(0);
+  const hitEvents = [];
+
+  SEASONAL_DB.forEach(entry => {
+    if (!entry.label) return;
+    const matched = entry.words.some(w => text.includes(w.toLowerCase()));
+    if (!matched) return;
+    hitEvents.push(entry.label);
+    entry.months.forEach(m => { scores[m - 1] += 1; });
+  });
+
+  // スコアがゼロなら「通年型」として均一に
+  const hasSignal = scores.some(s => s > 0);
+  if (!hasSignal) return { scores: new Array(12).fill(3), events: [], isYearRound: true };
+
+  return { scores, events: [...new Set(hitEvents)], isYearRound: false };
+}
+
+function renderSeasonChart(scores) {
+  const months = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  const max = Math.max(...scores, 1);
+  const now = new Date().getMonth(); // 現在月（0インデックス）
+  return `<div style="display:flex;align-items:flex-end;gap:3px;height:54px;padding:0 2px">
+    ${scores.map((s, i) => {
+      const pct = Math.round(s / max * 100);
+      const isPeak = s === max && s > 0;
+      const isCur  = i === now;
+      const barColor = isPeak ? "#e74c3c" : s > max * 0.5 ? "#f39c12" : s > 0 ? "#7fb3d3" : "#e8eef5";
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:100%;background:${barColor};height:${Math.max(pct * 0.44, s > 0 ? 4 : 2)}px;border-radius:3px 3px 0 0;transition:height 0.4s ease;${isPeak?'box-shadow:0 0 6px rgba(231,76,60,0.5)':''}"></div>
+        <span style="font-size:0.52rem;color:${isCur?'#2980b9':'#aaa'};font-weight:${isCur?700:400};white-space:nowrap">${months[i]}</span>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── 市場分析ポップアップ ──────────────────────────────────
+function openMarketPopup() {
+  const d = window._marketAnalysis;
+  if (!d) return;
+  const fmtYen = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
+  const concLabel = d.topShopShare > 0.3 ? "⚠️ 上位集中型" : d.topShopShare > 0.15 ? "📊 やや集中" : "✅ 分散型";
+  const cvLabel   = d.cv > 0.9 ? "⚠️ 高い（季節商品）" : d.cv > 0.5 ? "📅 やや高い" : "✅ 安定傾向";
+  const shareDisp = `約${(d.entrantShare * 100).toFixed(1)}%`;
+
+  const seasonal = analyzeSeasonalDemand(d.keyword || "", _allItems || []);
+  const seasonChart = renderSeasonChart(seasonal.scores);
+  const peakMonths = seasonal.scores
+    .map((s, i) => ({ m: i + 1, s }))
+    .filter(x => x.s === Math.max(...seasonal.scores) && x.s > 0)
+    .map(x => `${x.m}月`).join("・");
+
+  // ── 差別化ポイント分析 ────────────────────────────────
+  const items = _allItems || [];
+  const diffPoints = [];
+
+  // ① 価格の空白帯（最安〜最高を5分割して件数が少ないゾーン）
+  const prices = items.map(i => i.price).filter(p => p > 0).sort((a,b)=>a-b);
+  if (prices.length > 5) {
+    const pMin = prices[0], pMax = prices[prices.length-1];
+    const step = (pMax - pMin) / 5;
+    const zones = Array.from({length:5}, (_,i) => {
+      const lo = Math.round(pMin + step*i), hi = Math.round(pMin + step*(i+1));
+      const cnt = prices.filter(p => p >= lo && p < hi).length;
+      return { lo, hi, cnt };
+    });
+    const sparse = zones.filter(z => z.cnt <= Math.max(1, items.length * 0.08));
+    if (sparse.length) {
+      const z = sparse[0];
+      diffPoints.push({ icon:"💴", title:"価格の空白ゾーンがあります", body:`¥${z.lo.toLocaleString()}〜¥${z.hi.toLocaleString()} 付近は競合が少なめ。この価格帯での出品が狙い目です。` });
+    } else {
+      diffPoints.push({ icon:"💴", title:"価格競争が激しい", body:`¥${Math.round(d.priceMedian*0.85).toLocaleString()}以下または¥${Math.round(d.priceMedian*1.3).toLocaleString()}以上の価格帯で差別化を検討しましょう。` });
+    }
+  }
+
+  // ② レビュー数の低さ（新規参入余地）
+  const lowRevItems = items.filter(i => i.reviewCount < 30);
+  const lowRevPct = Math.round(lowRevItems.length / (items.length||1) * 100);
+  if (lowRevPct >= 40) {
+    diffPoints.push({ icon:"⭐", title:`商品の${lowRevPct}%がレビュー30件未満`, body:"口コミが少ない商品が多く、レビューを早期に集めれば一気に上位を狙えます。初回購入者へのフォローが鍵です。" });
+  } else {
+    const avgRev = Math.round(items.reduce((s,i)=>s+i.reviewCount,0)/(items.length||1));
+    diffPoints.push({ icon:"⭐", title:"レビュー獲得が競争力に直結", body:`上位商品の平均レビュー数は約${avgRev}件。レビュー施策（同梱カード・フォローアップメール）で差をつけましょう。` });
+  }
+
+  // ③ 評価スコア（低い市場＝品質で差別化できる）
+  const avgScore = items.reduce((s,i)=>s+i.reviewAvg,0)/(items.filter(i=>i.reviewAvg>0).length||1);
+  if (avgScore < 4.2 && avgScore > 0) {
+    diffPoints.push({ icon:"🎯", title:`市場平均評価 ★${avgScore.toFixed(1)} — 品質で勝てる`, body:"競合の評価がやや低め。商品品質・梱包・説明文の改善で高評価を獲得し、検索上位を狙いやすい環境です。" });
+  } else if (avgScore >= 4.5) {
+    diffPoints.push({ icon:"🎯", title:`市場平均評価 ★${avgScore.toFixed(1)} — 高品質が前提`, body:"競合のレベルが高く、品質面での差別化は難しい市場です。独自のブランドストーリーや限定感で差をつけましょう。" });
+  }
+
+  // ④ 店舗集中度（分散型なら参入しやすい）
+  if (d.topShopShare < 0.15) {
+    diffPoints.push({ icon:"🏬", title:"特定店舗の独占なし — 参入チャンス", body:`上位1店舗のシェアは${Math.round(d.topShopShare*100)}%と低く、市場が分散しています。SEOと写真クオリティを磨けば十分に競争できます。` });
+  } else if (d.topShopShare > 0.3) {
+    diffPoints.push({ icon:"🏬", title:"上位店舗が市場を支配", body:`上位1店舗が${Math.round(d.topShopShare*100)}%を占有。正面からの価格競争は避け、ニッチな用途・ターゲット層に特化した商品展開が有効です。` });
+  }
+
+  // ⑤ キーワード差別化ヒント（上位商品の共通ワードから）
+  const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
+  const freq = {};
+  items.slice(0,20).forEach(it => {
+    it.name.split(splitter).filter(w=>w.length>=2 && !STOP_WORDS.has(w)).forEach(w => { freq[w]=(freq[w]||0)+1; });
+  });
+  const topKws = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([w])=>w);
+  if (topKws.length) {
+    diffPoints.push({ icon:"🔑", title:"上位商品が使う共通キーワード", body:`「${topKws.join("」「")}」などが頻出。これらを商品タイトル・説明文に含めると検索に引っかかりやすくなります。` });
+  }
+
+  // ── 市場の魅力度 ★評価 ────────────────────────────────────
+  let attractScore = 3.0;
+  const monthRev = d.totalMarketRevenue / 12;
+  if (monthRev > 5e7) attractScore += 0.5;
+  if (monthRev > 2e8) attractScore += 0.5;
+  if (d.topShopShare < 0.15) attractScore += 0.5;
+  else if (d.topShopShare > 0.3) attractScore -= 0.5;
+  if (d.priceMedian >= 2000) attractScore += 0.3;
+  else if (d.priceMedian < 500) attractScore -= 0.5;
+  if (d.cv < 0.5) attractScore += 0.2;
+  attractScore = Math.round(Math.max(1, Math.min(5, attractScore)) * 2) / 2;
+  const attractStarHtml = Array.from({length:5}, (_,i) =>
+    `<span style="color:${i < attractScore ? '#f39c12' : '#ddd'};font-size:1.3rem">★</span>`
+  ).join("") + ` <span style="font-size:0.88rem;font-weight:700;color:#e67e22">${attractScore}/5</span>`;
+
+  // ── ターゲット分析 ───────────────────────────────────────
+  const kwLow = (d.keyword || "").toLowerCase();
+  const allItemText = items.slice(0,30).map(i=>i.name).join(" ");
+  const combined = kwLow + " " + allItemText;
+  const targetGender = /レディース|女性|女の子|ガール|フェミニン|ウィメンズ/.test(combined) ? "主に女性"
+    : /メンズ|男性|男の子|ボーイ/.test(combined) ? "主に男性" : "男女共通";
+  const targetAge = /シニア|高齢|おじい|おばあ/.test(combined) ? "60代以上"
+    : /ベビー|赤ちゃん|乳幼児/.test(combined) ? "0〜3歳（購入者は親・祖父母）"
+    : /キッズ|子供|こども|ジュニア/.test(combined) ? "子供向け（購入者は親）"
+    : /10代|ティーン|高校生/.test(combined) ? "10〜20代" : "20〜50代";
+  const targetScene = /結婚式|ウェディング|ブライダル|フラワーシャワー/.test(combined) ? "結婚式・ウェディング"
+    : /プレゼント|ギフト|贈り物|お祝い|誕生日/.test(combined) ? "ギフト・お祝い"
+    : /アウトドア|キャンプ|登山|スポーツ/.test(combined) ? "アウトドア・スポーツ"
+    : /インテリア|部屋|ルーム|ホーム/.test(combined) ? "インテリア・生活"
+    : /仕事|オフィス|ビジネス/.test(combined) ? "仕事・オフィス" : "日常・ライフスタイル";
+  const targetNeeds = [];
+  if (/セット|まとめ|お得|値引/.test(allItemText)) targetNeeds.push("お得にまとめて購入したい");
+  if (/大容量|たっぷり|大入/.test(allItemText)) targetNeeds.push("十分な量・大容量を求めている");
+  if (/軽い|軽量|コンパクト|持ち運/.test(allItemText)) targetNeeds.push("軽さ・携帯性を重視する");
+  if (/かわいい|可愛い|おしゃれ|映え/.test(allItemText)) targetNeeds.push("見た目・SNS映えを重視する");
+  if (/安い|格安|激安|低価格/.test(allItemText)) targetNeeds.push("コストを抑えたい");
+  if (/品質|高品質|丈夫|しっかり/.test(allItemText)) targetNeeds.push("品質・耐久性にこだわる");
+  if (/簡単|手軽|らくらく|便利/.test(allItemText)) targetNeeds.push("手軽・簡単に使えるものが欲しい");
+  if (targetNeeds.length === 0) { targetNeeds.push("コスパの良い商品を探している", "手軽に購入できるものを求めている"); }
+
+  // ── ペルソナ詳細 ─────────────────────────────────────────
+  const personaIcon = targetGender === "主に女性" ? "👩" : targetGender === "主に男性" ? "👨" : "🧑";
+  const personaNames = targetGender === "主に女性"
+    ? ["さくらさん","あやかさん","みほさん","ゆいさん","なつきさん"]
+    : targetGender === "主に男性"
+    ? ["たくやさん","けんじさん","ひろしさん","たかしさん","こうじさん"]
+    : ["あきこさん","まさるさん","さとしさん","ゆうこさん","たろうさん"];
+  const personaName = personaNames[Math.abs((d.keyword||"").charCodeAt(0)||0) % 5];
+
+  const personaJob = /結婚式|ウェディング|ブライダル|フラワーシャワー/.test(combined) ? "結婚を控えたプレ花嫁・主婦"
+    : /キッズ|こども|ベビー|赤ちゃん/.test(combined) ? "子育て中の親（20〜40代）"
+    : /アウトドア|キャンプ|登山|釣り/.test(combined) ? "アウトドア愛好家・会社員"
+    : /インテリア|ホーム|部屋/.test(combined) ? "インテリアにこだわる主婦・一人暮らし"
+    : /プレゼント|ギフト|贈り物|誕生日/.test(combined) ? "大切な人への贈り物を探す会社員"
+    : /仕事|オフィス|ビジネス/.test(combined) ? "仕事効率を上げたいビジネスパーソン"
+    : "日常的に楽天市場を利用する主婦・会社員";
+
+  const personaIncome = d.priceMedian >= 10000 ? "世帯年収 600万円以上"
+    : d.priceMedian >= 3000 ? "世帯年収 400〜600万円"
+    : d.priceMedian >= 1000 ? "世帯年収 300〜500万円"
+    : "年収問わず（価格重視層）";
+
+  const personaSNS = /フラワー|花|インテリア|ウェディング|おしゃれ|かわいい|コスメ|美容/.test(combined) ? "Instagram・Pinterest"
+    : /料理|レシピ|グルメ|食/.test(combined) ? "Instagram・YouTube"
+    : /アウトドア|キャンプ|登山|釣り|スポーツ/.test(combined) ? "YouTube・X(Twitter)"
+    : /ゲーム|アニメ|漫画|フィギュア/.test(combined) ? "X(Twitter)・YouTube"
+    : /10代|ティーン|高校生/.test(combined) ? "TikTok・Instagram"
+    : "楽天ランキング・Google検索・口コミサイト";
+
+  const personaPriceSensitivity = d.priceMedian < 800 ? "高い（1円でも安く。送料無料が必須）"
+    : d.priceMedian < 3000 ? "中程度（コスパ重視。レビューで納得してから買う）"
+    : d.priceMedian < 10000 ? "やや低い（品質優先。多少高くても良いものを選ぶ）"
+    : "低い（価格より価値・ブランドを重視）";
+
+  const personaBuyTiming = peakMonths
+    ? `${peakMonths}前後が購買ピーク。シーズン前に検討開始することが多い`
+    : "通年購入するが、セール・ポイントアップ時に集中する傾向";
+
+  const personaMotivation = /結婚式|ウェディング|ブライダル/.test(combined)
+    ? "準備は楽に、仕上がりは完璧に。特別な1日に妥協はしたくない。"
+    : /プレゼント|ギフト|贈り物/.test(combined)
+    ? "失敗できない。レビューが多くて評価が高いものを選びたい。"
+    : /アウトドア|キャンプ/.test(combined)
+    ? "機能性第一。スペックをしっかり確認してから買う。"
+    : /インテリア|ホーム/.test(combined)
+    ? "部屋の雰囲気に合うものを。写真映えも外せない。"
+    : /キッズ|ベビー|こども/.test(combined)
+    ? "安全・安心が最優先。コスパも外せない。"
+    : "レビューで納得してから買う。損はしたくない。";
+
+  const personaPainPoints = [];
+  if (/結婚式|ウェディング/.test(combined)) personaPainPoints.push("準備が多くて時間がない","どれを選べばいいか分からない","当日の失敗が怖い");
+  else if (/プレゼント|ギフト/.test(combined)) personaPainPoints.push("相手の好みが分からない","失敗したら関係に影響する","予算内で見栄えが良いものを探すのが大変");
+  else if (/アウトドア|キャンプ/.test(combined)) personaPainPoints.push("偽物・粗悪品を掴まされたくない","使ってみないと品質が分からない","荷物が重くなりすぎないか心配");
+  else if (/キッズ|ベビー/.test(combined)) personaPainPoints.push("安全性が一番心配","子供がすぐ飽きてしまうかも","サイズ感が写真では分かりにくい");
+  else { personaPainPoints.push("実物を見られないので品質が不安","レビューが少ない商品は怖い","届くまでの時間が気になる"); }
+
+  const buyReasons = [];
+  if (/結婚式|ウェディング|ブライダル/.test(combined)) {
+    buyReasons.push({ icon:"💍", text:"一生に一度の特別な日を完璧にしたい" }, { icon:"📸", text:"写真に残るから見た目にこだわりたい" }, { icon:"⏰", text:"準備の手間を減らして他のことに集中したい" });
+  } else if (/プレゼント|ギフト|贈り物/.test(combined)) {
+    buyReasons.push({ icon:"🎁", text:"相手に喜んでもらいたい・感謝を伝えたい" }, { icon:"✨", text:"センスの良さをアピールしたい" }, { icon:"💌", text:"特別な日の記念として残したい" });
+  } else if (/ダイエット|痩せ|スリム/.test(combined)) {
+    buyReasons.push({ icon:"💪", text:"理想の体型になって自信を持ちたい" }, { icon:"👗", text:"着たい服を着られるようになりたい" }, { icon:"🏃", text:"健康的な生活習慣を手に入れたい" });
+  } else if (/美容|スキンケア|コスメ/.test(combined)) {
+    buyReasons.push({ icon:"✨", text:"肌トラブルを解消して自信を持ちたい" }, { icon:"🪞", text:"毎日のケアを楽しみたい" }, { icon:"📱", text:"SNSで話題の商品を試してみたい" });
+  } else if (/子供|キッズ|ベビー|育児/.test(combined)) {
+    buyReasons.push({ icon:"👶", text:"子供に安全で良いものを使わせたい" }, { icon:"😊", text:"子供の笑顔が見たい" }, { icon:"🏠", text:"育児の負担を少しでも楽にしたい" });
+  } else if (/アウトドア|キャンプ|登山/.test(combined)) {
+    buyReasons.push({ icon:"🏕️", text:"快適で充実したアウトドア体験をしたい" }, { icon:"🔒", text:"安全・信頼できる装備で安心したい" }, { icon:"📸", text:"仲間や家族と最高の思い出を作りたい" });
+  } else if (d.priceMedian > 10000) {
+    buyReasons.push({ icon:"🏆", text:"品質の良いものを長く使いたい" }, { icon:"💎", text:"自分へのご褒美・特別感を得たい" }, { icon:"🔍", text:"本当に良い商品を探し続けてやっと見つけた" });
+  } else {
+    buyReasons.push({ icon:"💰", text:"コスパよく生活の質を上げたい" }, { icon:"🔄", text:"今使っているものより良い選択肢を求めている" }, { icon:"⭐", text:"レビューで評判が良かったので試してみたい" });
+  }
+
+  // ── 課題・リスク ─────────────────────────────────────────
+  const risks = [];
+  if (d.topShopShare > 0.3) risks.push({ icon:"⚔️", lv:"high", title:"競合の壁が高い（上位集中型）", body:`上位1店舗が市場の${Math.round(d.topShopShare*100)}%を占有しています。正面からの競争は難しく、ニッチ用途や特定ターゲットへの特化が有効です。` });
+  else if (d.uniqueShops > 80) risks.push({ icon:"⚔️", lv:"mid", title:"競合店舗が多い", body:`${d.uniqueShops}店舗が参入済み。差別化なしでは埋もれるリスクがあります。タイトル・写真・説明文の最適化が必須です。` });
+  else risks.push({ icon:"⚔️", lv:"low", title:"参入障壁は比較的低い", body:`競合が分散しており（${d.uniqueShops}店舗）、新規参入のチャンスがあります。早期参入で口コミを積み上げることが重要です。` });
+  if (d.cv > 0.9) risks.push({ icon:"📦", lv:"high", title:"在庫リスク高（強い季節商品）", body:`季節変動が非常に大きく、オフシーズンに在庫を抱えるリスクがあります。ピーク月（${peakMonths||"春・秋"}）前後の仕入れ計画と処分策を準備してください。` });
+  else if (d.cv > 0.5) risks.push({ icon:"📦", lv:"mid", title:"季節変動あり — 仕入れ計画が重要", body:`ある程度の季節変動があります。ピーク月（${peakMonths||"春・秋"}）に向けた在庫の積み増しと過剰在庫リスクを管理してください。` });
+  else risks.push({ icon:"📦", lv:"low", title:"在庫リスクは低め（通年型）", body:"季節変動が小さく、安定した仕入れが可能です。在庫を抱えすぎるリスクは比較的低い市場です。" });
+  if (d.priceMedian < 500) risks.push({ icon:"💴", lv:"high", title:"低単価市場 — 利益確保が困難", body:`中央単価¥${d.priceMedian.toLocaleString()}と非常に低く、送料・広告費を差し引くと利益がほぼ残らないケースがあります。採算ラインを必ず計算してください。` });
+  else if (d.priceMedian < 2000) risks.push({ icon:"💴", lv:"mid", title:"中〜低単価 — 費用計算が重要", body:`中央単価¥${d.priceMedian.toLocaleString()}。楽天手数料・広告費・送料を差し引いた実質利益率を事前に確認してください。` });
+  else risks.push({ icon:"💴", lv:"low", title:"単価は適切 — 利益確保しやすい", body:`中央単価¥${d.priceMedian.toLocaleString()}と比較的高く、コスト差し引き後も利益が残りやすい価格帯です。品質・写真で差をつけましょう。` });
+  risks.push({ icon:"📈", lv:"mid", title:"トレンド依存リスク", body:"流行に左右される商品はトレンド急変リスクがあります。検索トレンドを定期モニタリングし、売れ筋の変化に素早く対応できる仕入れ体制を整えましょう。" });
+  const riskColor = { high:"#e74c3c", mid:"#e67e22", low:"#27ae60" };
+  const riskBg   = { high:"#fdf0ef", mid:"#fef6ec", low:"#edfaf2" };
+  const riskLabel = { high:"⚠️ 高", mid:"📊 中", low:"✅ 低" };
+
+  document.getElementById("marketPopupTitle").textContent = `📊 市場分析レポート`;
+  document.getElementById("marketPopupBody").innerHTML = `
+    <div class="mp-tabs">
+      <button class="mp-tab active" onclick="mpTab(this,0)">① サマリー</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">② 市場概要</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">③ 需要</button>
+      <button class="mp-tab" onclick="mpTab(this,3)">④ ターゲット</button>
+      <button class="mp-tab" onclick="mpTab(this,4)">⑤ 競合</button>
+      <button class="mp-tab" onclick="mpTab(this,5)">⑥ 商品分析</button>
+      <button class="mp-tab" onclick="mpTab(this,6)">⑦ リスク</button>
+    </div>
+    <div class="mp-panes">
+
+      <!-- タブ0: ①エグゼクティブサマリー -->
+      <div class="mp-pane active">
+        <div style="font-size:0.82rem;color:#888;font-weight:600;letter-spacing:0.04em;margin-bottom:8px">👉 ここだけ読めば判断できます</div>
+
+        <!-- 月商予測 ＋ 結論 横並び -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+          <!-- 結論 -->
+          <div class="market-popup-verdict" style="background:${d.entryBg};border-left:5px solid ${d.entryColor}">
+            <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:4px">● 結論（参入すべきか）</div>
+            <div style="font-size:1.15rem;font-weight:800;color:${d.entryColor};margin-bottom:6px">${d.entryJudge}</div>
+            <div style="font-size:0.88rem;color:#444;line-height:1.75">${d.entryAdvice}</div>
+          </div>
+
+          <!-- 月商予測 -->
+          <div style="background:#f0fff5;border:1px solid #b2e5c8;border-radius:12px;padding:16px">
+            <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:8px">● 月商予測（シェア${shareDisp}想定）</div>
+            <div style="font-size:0.84rem;color:#888;margin-bottom:3px">あなたの推計月商</div>
+            <div style="font-size:1.8rem;font-weight:900;color:${d.entryColor};line-height:1;margin-bottom:4px">${fmtYen(d.yearlyEstimate / 12)}</div>
+            <div style="font-size:0.82rem;color:#888;margin-bottom:8px">年間 ${fmtYen(d.yearlyEstimate)}</div>
+            <div style="background:#e0e8f0;border-radius:4px;height:8px;overflow:hidden">
+              <div style="height:100%;background:${d.entryColor};border-radius:4px;width:${Math.min(100,Math.round(d.entrantShare*100*2))}%;transition:width 0.6s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:#888;margin-top:4px">
+              <span>あなた ${shareDisp}</span>
+              <span>市場全体 ${fmtYen(monthRev)}</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 勝ち筋（フル幅） -->
+        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:12px;padding:16px">
+          <div style="font-size:0.8rem;font-weight:700;color:#888;margin-bottom:10px">● 勝ち筋（どこで戦うか）</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            ${diffPoints.slice(0,3).map(p => `
+              <div style="display:flex;gap:10px;align-items:flex-start">
+                <span style="font-size:1.2rem;flex-shrink:0">${p.icon}</span>
+                <div>
+                  <div style="font-size:0.9rem;font-weight:700;color:#1a3a5c;margin-bottom:2px">${p.title}</div>
+                  <div style="font-size:0.84rem;color:#555;line-height:1.65">${p.body}</div>
+                </div>
+              </div>`).join("")}
+          </div>
+        </div>
+
+        <div class="market-popup-note">※楽天市場データ（レビュー率3%・新規シェア${shareDisp}想定）の推計値。実際の売上は商品力・広告戦略により変動します。</div>
+      </div>
+
+      <!-- タブ1: ②市場概要 -->
+      <div class="mp-pane">
+        <div class="market-popup-grid">
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">🏪 月間市場規模</span>
+            <span class="market-popup-stat-value">${fmtYen(monthRev)}</span>
+            <span class="market-popup-stat-sub">楽天市場 推計売上／月</span>
+          </div>
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">📅 年間市場規模</span>
+            <span class="market-popup-stat-value">${fmtYen(d.totalMarketRevenue)}</span>
+            <span class="market-popup-stat-sub">楽天市場 推計売上／年</span>
+          </div>
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">📦 総出品数</span>
+            <span class="market-popup-stat-value">${d.totalCount.toLocaleString()}件</span>
+            <span class="market-popup-stat-sub">検索でヒットする商品数</span>
+          </div>
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">🏬 競合店舗数</span>
+            <span class="market-popup-stat-value">${d.uniqueShops}店舗</span>
+            <span class="market-popup-stat-sub">市場集中度：${concLabel}</span>
+          </div>
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">💴 中央価格</span>
+            <span class="market-popup-stat-value">¥${d.priceMedian.toLocaleString()}</span>
+            <span class="market-popup-stat-sub">平均 ¥${d.priceAvg.toLocaleString()}</span>
+          </div>
+          <div class="market-popup-stat">
+            <span class="market-popup-stat-label">📈 季節変動</span>
+            <span class="market-popup-stat-value" style="font-size:0.82rem">${cvLabel}</span>
+            <span class="market-popup-stat-sub">変動係数 ${d.cv.toFixed(2)}</span>
+          </div>
+        </div>
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;margin-top:4px">
+          <div style="font-size:0.88rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📌 市場トレンド（上位商品の共通キーワード）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${topKws.map(w => `<span style="background:#e8f4fd;color:#2563eb;border:1px solid #bdd8f5;border-radius:20px;padding:3px 12px;font-size:0.86rem;font-weight:600">${w}</span>`).join("")}
+          </div>
+          <div style="font-size:0.82rem;color:#888;margin-top:8px">※上位20商品のタイトルから頻出ワードを抽出しました</div>
+        </div>
+        <div class="market-popup-note">※楽天APIから取得した商品データを元に推計しています。</div>
+      </div>
+
+      <!-- タブ2: ③需要分析 -->
+      <div class="mp-pane">
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px">
+          <div style="font-size:0.78rem;font-weight:700;color:#555;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+            <span>📅 月ごとの需要カレンダー（いつ売れる？）</span>
+            ${peakMonths ? `<span style="font-size:0.7rem;background:#fdecea;color:#c0392b;padding:2px 8px;border-radius:10px;font-weight:600">ピーク：${peakMonths}</span>` : ""}
+          </div>
+          ${seasonChart}
+          ${seasonal.isYearRound
+            ? `<p style="font-size:0.84rem;color:#888;margin-top:10px">✅ 通年型商品です。季節を問わず安定した需要が見込めます。</p>`
+            : seasonal.events.length
+              ? `<div style="margin-top:12px;display:flex;flex-direction:column;gap:5px">
+                  ${seasonal.events.map(e => `<div style="font-size:0.84rem;color:#444;padding:4px 10px;background:#fff;border:1px solid #e0e8f0;border-radius:6px">${e}</div>`).join("")}
+                 </div>`
+              : ""
+          }
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:14px">
+            <div style="font-size:0.85rem;font-weight:700;color:#2563eb;margin-bottom:4px">📊 楽天 出品数（検索ボリューム目安）</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#1a3a5c">${d.totalCount.toLocaleString()}件</div>
+            <div style="font-size:0.72rem;color:#888;margin-top:3px">${d.totalCount > 5000 ? "競争が激しい人気キーワード" : d.totalCount > 1000 ? "中程度の需要がある市場" : "ニッチ〜中規模の市場"}</div>
+          </div>
+          <div style="background:#f0fff5;border:1px solid #b2e5c8;border-radius:10px;padding:14px">
+            <div style="font-size:0.85rem;font-weight:700;color:#059669;margin-bottom:4px">🔄 リピート性</div>
+            <div style="font-size:0.92rem;font-weight:800;color:#1a1a2e">${
+              /消耗品|詰め替え|替え|補充|定期|リピ|毎月|毎日/.test(combined) ? "高い（消耗品・定期購入あり）"
+              : /一回|一度|記念|イベント|ウェディング|結婚式/.test(combined) ? "低い（1回限りが多い）"
+              : "中程度"
+            }</div>
+            <div style="font-size:0.72rem;color:#888;margin-top:3px">キーワード・商品名から推定</div>
+          </div>
+        </div>
+        <div class="market-popup-note">※需要カレンダーはキーワード・商品名から自動判定。楽天・Googleトレンドの実データと異なる場合があります。</div>
+      </div>
+
+      <!-- タブ3: ④ターゲット分析 -->
+      <div class="mp-pane">
+
+        <!-- ペルソナ + 属性グリッド -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+
+          <!-- 左：ペルソナ基本情報 -->
+          <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:0.78rem;font-weight:700;color:#888;letter-spacing:0.05em">👤 想定ペルソナ</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:2.2rem;line-height:1">${personaIcon}</div>
+              <div>
+                <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e">${personaName}</div>
+                <div style="font-size:0.84rem;color:#555;margin-top:2px">${targetAge}　${targetGender}</div>
+              </div>
+            </div>
+            <div style="font-size:0.84rem;color:#444;line-height:1.5">${personaJob}</div>
+            <div style="font-size:0.84rem;color:#555;border-left:3px solid #c0d0e0;padding-left:8px;line-height:1.55;margin-top:2px">${personaMotivation}</div>
+          </div>
+
+          <!-- 右：属性4項目 -->
+          <div style="display:grid;grid-template-columns:1fr;gap:8px">
+            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
+              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">💰 推定収入帯</div>
+              <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e">${personaIncome}</div>
+            </div>
+            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
+              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">📱 情報収集</div>
+              <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e">${personaSNS}</div>
+            </div>
+            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
+              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">💴 価格感度</div>
+              <div style="font-size:0.88rem;font-weight:700;color:#1a1a2e;line-height:1.4">${personaPriceSensitivity}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 購買タイミング -->
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:10px;padding:13px 16px">
+          <div style="font-size:0.8rem;font-weight:700;color:#ea580c;margin-bottom:5px">📅 購買タイミング</div>
+          <div style="font-size:0.9rem;color:#333;line-height:1.6">${personaBuyTiming}</div>
+        </div>
+
+        <!-- 購買理由 -->
+        <div style="background:#f5f0ff;border:1px solid #d4b8f0;border-radius:10px;padding:13px 16px">
+          <div style="font-size:0.8rem;font-weight:700;color:#7c3aed;margin-bottom:10px">🛒 この商品を買う理由（購買動機）</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${buyReasons.map((r, i) => `
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:8px;padding:9px 12px;border:1px solid #e8d8f8">
+                <span style="font-size:1.3rem;flex-shrink:0">${r.icon}</span>
+                <span style="font-size:0.88rem;color:#333;font-weight:${i===0?700:500};line-height:1.4">${r.text}</span>
+                ${i===0?'<span style="margin-left:auto;font-size:0.7rem;background:#7c3aed;color:#fff;border-radius:10px;padding:2px 8px;flex-shrink:0;font-weight:700">主要動機</span>':''}
+              </div>`).join("")}
+          </div>
+        </div>
+
+        <!-- ニーズ・ペインポイント -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:13px">
+            <div style="font-size:0.8rem;font-weight:700;color:#2563eb;margin-bottom:8px">✅ ニーズ（求めていること）</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              ${targetNeeds.map(n => `
+                <div style="display:flex;align-items:flex-start;gap:6px">
+                  <span style="color:#27ae60;font-weight:700;flex-shrink:0;margin-top:1px">✓</span>
+                  <span style="font-size:0.86rem;color:#333;line-height:1.45">${n}</span>
+                </div>`).join("")}
+            </div>
+          </div>
+          <div style="background:#fff5f5;border:1px solid #f5c6c6;border-radius:10px;padding:13px">
+            <div style="font-size:0.8rem;font-weight:700;color:#e74c3c;margin-bottom:8px">😟 ペインポイント（不安・不満）</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              ${personaPainPoints.map(p => `
+                <div style="display:flex;align-items:flex-start;gap:6px">
+                  <span style="color:#e74c3c;font-weight:700;flex-shrink:0;margin-top:1px">!</span>
+                  <span style="font-size:0.86rem;color:#333;line-height:1.45">${p}</span>
+                </div>`).join("")}
+            </div>
+          </div>
+        </div>
+
+        <div class="market-popup-note">※キーワード・商品名から自動推定したペルソナです。実際の購買層と異なる場合があります。</div>
+      </div>
+
+      <!-- タブ4: ⑤競合分析 -->
+      <div class="mp-pane">
+        ${(() => {
+          const shopMap = {};
+          items.forEach(it => {
+            if (!it.shopName) return;
+            if (!shopMap[it.shopName]) shopMap[it.shopName] = { code: (it.itemCode || "").split(":")[0], items: [] };
+            shopMap[it.shopName].items.push(it);
+          });
+          const shops = Object.entries(shopMap)
+            .map(([name, v]) => {
+              const its = v.items;
+              const totalRev = its.reduce((s,i) => s + i.reviewCount, 0);
+              const avgPrice = Math.round(its.reduce((s,i) => s+i.price,0) / its.length);
+              const avgRev = (its.reduce((s,i)=>s+i.reviewAvg,0)/its.filter(i=>i.reviewAvg>0).length||0);
+              const estSales = Math.round(totalRev / 0.03 / 24 * avgPrice);
+              return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev, estSales, its };
+            })
+            .sort((a,b) => b.estSales - a.estSales)
+            .slice(0, 15);
+          const maxRev = shops[0]?.estSales || 1;
+          return `
+          <div style="margin-bottom:12px;display:flex;gap:16px;font-size:0.88rem;color:#555;flex-wrap:wrap">
+            <span>🏆 上位${shops.length}店舗の比較（推計月商順）</span>
+            <span style="color:#888">※推計月商 = レビュー数÷3%÷24ヶ月×平均単価</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            ${shops.map((s, i) => {
+              const barW = Math.round(s.estSales / maxRev * 100);
+              const rankColor = i === 0 ? '#f39c12' : i === 1 ? '#95a5a6' : i === 2 ? '#cd7f32' : '#aabccc';
+              const estLabel = s.estSales >= 1e8 ? `${(s.estSales/1e8).toFixed(1)}億円` : s.estSales >= 1e4 ? `${Math.round(s.estSales/1e4)}万円` : `${s.estSales.toLocaleString()}円`;
+              const barColor = i === 0 ? '#e74c3c' : i < 3 ? '#e67e22' : '#3498db';
+              return `<div style="background:${i%2===0?'#fff':'#f8fafc'};border:1px solid #e8edf2;border-radius:10px;padding:10px 14px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${rankColor};color:#fff;font-size:0.75rem;font-weight:800;flex-shrink:0">${i+1}</span>
+                    <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.9rem;line-height:1.35;cursor:pointer">${s.name}</a>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    <div style="font-size:0.72rem;color:#888">推計月商</div>
+                    <div style="font-size:1.1rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'}">${estLabel}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;font-size:0.82rem;color:#555;flex-wrap:wrap;margin-bottom:7px">
+                  <span>📦 出品 <strong style="color:#1a3a5c">${s.count}件</strong></span>
+                  <span>💴 平均単価 <strong style="color:#1a3a5c">¥${s.avgPrice.toLocaleString()}</strong></span>
+                  <span>💬 レビュー <strong style="color:#2563eb">${s.totalRev.toLocaleString()}件</strong></span>
+                  <span>⭐ 評価 <strong style="color:#e67e22">★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</strong></span>
+                </div>
+                <div style="height:6px;background:#e8edf2;border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${barW}%;background:${barColor};border-radius:3px;transition:width 0.6s"></div>
+                </div>
+              </div>`;
+            }).join("")}
+          </div>
+          <div style="margin-top:14px;padding:12px 14px;background:#f0f7ff;border-radius:8px;font-size:0.88rem;color:#444;line-height:1.7">
+            💡 <strong>競合のウィークポイント：</strong>
+            ${shops.length > 0 && shops[0].avgRev < 4.3 ? `トップ店舗の評価が★${shops[0].avgRev.toFixed(1)}と低め。品質・梱包改善で逆転を狙えます。` : ''}
+            ${shops.filter(s=>s.count===1).length > shops.length*0.5 ? '単品出品が多い競合が目立ちます。セット販売・まとめ買い訴求で差別化を。' : ''}
+            ${shops[0]?.avgPrice > d.priceMedian*1.2 ? `上位店舗は高単価（平均¥${shops[0].avgPrice.toLocaleString()}）。¥${d.priceMedian.toLocaleString()}前後のコスパ路線に参入余地あり。` : ''}
+            上位3店舗で全レビューの${Math.round(shops.slice(0,3).reduce((s,x)=>s+x.totalRev,0)/Math.max(shops.reduce((s,x)=>s+x.totalRev,0),1)*100)}%を占有。
+          </div>`;
+        })()}
+      </div>
+
+      <!-- タブ5: ⑥商品・サービス分析 -->
+      <div class="mp-pane">
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px">
+          <div style="font-size:0.88rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">💴 価格の妥当性</div>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="text-align:center">
+              <div style="font-size:0.68rem;color:#888">市場最安値</div>
+              <div style="font-size:0.95rem;font-weight:700;color:#27ae60">¥${Math.min(...items.filter(i=>i.price>0).map(i=>i.price)).toLocaleString()}</div>
+            </div>
+            <div style="flex:1;height:6px;background:linear-gradient(to right,#27ae60,#f39c12,#e74c3c);border-radius:3px;min-width:60px"></div>
+            <div style="text-align:center">
+              <div style="font-size:0.68rem;color:#888">市場最高値</div>
+              <div style="font-size:0.95rem;font-weight:700;color:#e74c3c">¥${Math.max(...items.filter(i=>i.price>0).map(i=>i.price)).toLocaleString()}</div>
+            </div>
+          </div>
+          <div style="font-size:0.88rem;color:#444;line-height:1.7;padding:10px;background:#fff;border-radius:8px;border:1px solid #e8edf2">
+            ${d.topShopShare > 0.3
+              ? `上位店舗が強い市場です。¥${Math.round(d.priceMedian*0.85).toLocaleString()}〜¥${d.priceMedian.toLocaleString()}のやや低価格帯で参入し、レビューを集めることを推奨します。`
+              : d.priceMedian < 1000
+                ? `低単価市場（中央値¥${d.priceMedian.toLocaleString()}）です。送料込み価格での訴求か、セット販売で客単価を上げる戦略が有効です。`
+                : `市場の中央価格は¥${d.priceMedian.toLocaleString()}です。この価格帯±15%での参入が最も競争しやすく、利益も確保しやすい価格帯です。`
+            }
+          </div>
+        </div>
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px">
+          <div style="font-size:0.88rem;font-weight:700;color:#1a3a5c;margin-bottom:10px">🎯 差別化ポイント（自分の立ち位置）</div>
+          <div class="diff-list">
+            ${diffPoints.map(p => `
+              <div class="diff-item">
+                <div class="diff-item-header">
+                  <span class="diff-icon">${p.icon}</span>
+                  <span class="diff-title">${p.title}</span>
+                </div>
+                <p class="diff-body">${p.body}</p>
+              </div>`).join("")}
+          </div>
+        </div>
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:10px;padding:14px 16px">
+          <div style="font-size:0.88rem;font-weight:700;color:#ea580c;margin-bottom:8px">🔑 タイトルに入れるべきキーワード</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${topKws.map(w => `<span style="background:#fff3e0;color:#ea580c;border:1px solid #fddcb5;border-radius:20px;padding:3px 12px;font-size:0.86rem;font-weight:600">${w}</span>`).join("")}
+          </div>
+          <div style="font-size:0.82rem;color:#888;margin-top:8px">上位商品が使う共通ワードです。商品タイトル・説明文に含めましょう。</div>
+        </div>
+      </div>
+
+      <!-- タブ6: ⑦課題・リスク -->
+      <div class="mp-pane">
+        <div style="font-size:0.76rem;color:#555;margin-bottom:12px;padding:10px 14px;background:#fafbfc;border-radius:8px;border:1px solid #e8edf2">
+          ⚠️ 参入前に確認すべきリスクを整理しました。リスクは「高・中・低」の3段階で評価しています。
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${risks.map(r => `
+            <div style="border:1px solid ${riskColor[r.lv]}40;border-radius:10px;padding:14px 16px;background:${riskBg[r.lv]}">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:1.1rem">${r.icon}</span>
+                <span style="font-size:0.82rem;font-weight:700;color:#1a1a2e;flex:1">${r.title}</span>
+                <span style="font-size:0.7rem;font-weight:700;color:${riskColor[r.lv]};background:${riskColor[r.lv]}18;padding:2px 8px;border-radius:10px;white-space:nowrap">${riskLabel[r.lv]}</span>
+              </div>
+              <div style="font-size:0.88rem;color:#444;line-height:1.7">${r.body}</div>
+            </div>`).join("")}
+        </div>
+        <div class="market-popup-note">※リスク評価は楽天市場データから自動算出しています。市場環境の変化により実際のリスクは異なります。</div>
+      </div>
+
+    </div>
+  `;
+  document.getElementById("marketPopup").classList.add("open");
+}
+function closeMarketPopup(e) {
+  if (e.target === document.getElementById("marketPopup"))
+    document.getElementById("marketPopup").classList.remove("open");
+}
+function mpTab(btn, idx) {
+  btn.closest(".mp-tabs").querySelectorAll(".mp-tab").forEach((t,i) => t.classList.toggle("active", i===idx));
+  btn.closest(".market-popup-body").querySelectorAll(".mp-pane").forEach((p,i) => p.classList.toggle("active", i===idx));
+}
+
+// ── 店舗モーダル ─────────────────────────────────────────
+function openShopModal(shopCode, shopName, fromReport = false) {
+  if (!shopCode) return;
+  const backBtn = document.getElementById("shopModalBack");
+  if (backBtn) backBtn.style.display = fromReport ? "" : "none";
+  const modal = document.getElementById("shopModal");
+  document.getElementById("shopModalTitle").innerHTML = `<span style="font-size:1rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏪 ${shopName}</span><span id="shopStrengthBadge"></span>`;
+  document.getElementById("shopModalBody").innerHTML = '<p class="suggest-loading">取得中…</p>';
+  modal.classList.add("open");
+
+  // ① 店舗商品を複数ページ取得（最大3ページ=90件）
+  function fetchShopItems() {
+    return new Promise(resolve => {
+      let all = [], total = 0, page = 1;
+      function next() {
+        const cb = `_sf_${Date.now()}_${page}`;
+        const s = document.createElement("script");
+        s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+          new URLSearchParams({ applicationId: RAKUTEN_APP_ID, shopCode, hits: 30, page, sort: "-reviewCount", formatVersion: 2, callback: cb });
+        window[cb] = d => {
+          delete window[cb]; s.remove();
+          if (d.error) { resolve({ items: all, total }); return; }
+          if (page === 1) total = d.count || 0;
+          const items = d.Items || [];
+          all = all.concat(items);
+          page++;
+          if (items.length === 30 && page <= 3) setTimeout(next, 400);
+          else resolve({ items: all, total });
+        };
+        s.onerror = () => { s.remove(); resolve({ items: all, total }); };
+        setTimeout(() => { if(window[cb]){ delete window[cb]; s.remove(); resolve({ items: all, total }); } }, 8000);
+        document.head.appendChild(s);
+      }
+      next();
+    });
+  }
+
+  // ② ランキング取得
+  function fetchRank(genreId) {
+    return new Promise(resolve => {
+      const cb = `_sm_${Date.now()}`;
+      const s = document.createElement("script");
+      const params = { applicationId: RAKUTEN_APP_ID, hits: 30, page: 1, formatVersion: 2, callback: cb };
+      if (genreId) params.genreId = genreId;
+      s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20170628?` + new URLSearchParams(params);
+      window[cb] = d => { delete window[cb]; s.remove(); resolve(d.error ? [] : (d.Items||[])); };
+      s.onerror = () => { s.remove(); resolve([]); };
+      setTimeout(() => { if(window[cb]){ delete window[cb]; s.remove(); resolve([]); } }, 6000);
+      document.head.appendChild(s);
+    });
+  }
+
+  // ① まず店舗商品を表示
+  fetchShopItems().then(({ items: shopItems, total: shopTotal }) => {
+    if (!shopItems.length) {
+      document.getElementById("shopModalBody").innerHTML = '<p class="suggest-none">商品が見つかりませんでした</p>';
+      return;
+    }
+    const items = shopItems.map(i => ({
+      name: i.itemName||"", price: i.itemPrice||0,
+      reviewCount: i.reviewCount||0, reviewAvg: i.reviewAverage||0,
+      url: i.itemUrl||"#", itemCode: i.itemCode||"", rank: null,
+      image: (i.mediumImageUrls && i.mediumImageUrls[0]) ? (typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl) : ""
+    }));
+    renderShopModal(items, shopTotal, shopCode);
+
+    // ② ランキング照合（後から更新）
+    const genreFreq = {};
+    (_allItems||[]).forEach(it => { if(it.genreId) genreFreq[it.genreId]=(genreFreq[it.genreId]||0)+1; });
+    const topGenre = Object.entries(genreFreq).sort((a,b)=>b[1]-a[1])[0]?.[0];
+
+    fetchRank(topGenre || null).then(rankItems => {
+      const rankMap = {};
+      rankItems.forEach((it,i) => { if(it.itemCode) rankMap[it.itemCode] = i+1; });
+      items.forEach(it => { it.rank = rankMap[it.itemCode] || null; });
+      items.sort((a,b) => (a.rank||999)-(b.rank||999));
+      renderShopModal(items, shopTotal, shopCode);
+    });
+  });
+}
+
+function renderShopModal(items, shopTotal = 0, shopCode = "") {
+  if (!items.length) {
+    document.getElementById("shopModalBody").innerHTML = '<p class="suggest-none">商品が見つかりませんでした</p>';
+    return;
+  }
+
+  // ── 店舗分析 ──────────────────────────────────────────
+  const prices   = items.map(i => i.price).filter(p => p > 0).sort((a,b) => a-b);
+  const avgPrice = Math.round(prices.reduce((s,v) => s+v, 0) / (prices.length||1));
+  const minPrice = prices[0] || 0;
+  const maxPrice = prices[prices.length-1] || 0;
+  const totalReviews = items.reduce((s,i) => s + i.reviewCount, 0);
+  const avgReview = items.reduce((s,i) => s + i.reviewAvg, 0) / items.length;
+  const rankedItems = items.filter(i => i.rank !== null && i.rank !== undefined);
+  const top3Items  = items.filter(i => i.rank && i.rank <= 3);
+  const fmtYen = v => `¥${Math.round(v).toLocaleString()}`;
+
+  // 推計月商：上位20件から全商品へ√スケールアップ
+  const REVIEW_RATE = 0.06, AVG_MONTHS = 24;
+  const sampledMonthly = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
+  const shopScaleUp = shopTotal > items.length ? Math.sqrt(shopTotal / items.length) : 1;
+  const monthlyEst = sampledMonthly * shopScaleUp;
+  const shopTotalLabel = shopTotal > 0 ? `全${shopTotal.toLocaleString()}商品から推計` : `上位${items.length}件から推計`;
+  const fmtMonthly = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
+
+  // キーワード内での推計月商（検索結果 _allItems 内のこの店舗分）
+  const kwItems = (window._allItems || []).filter(it => (it.itemCode || "").split(":")[0] === shopCode);
+  const kwMonthly = kwItems.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
+  const mkt = window._marketAnalysis;
+  const marketMonthly = mkt ? mkt.totalMarketRevenue / 12 : 0;
+  const kwShare = marketMonthly > 0 ? Math.min(100, Math.round(kwMonthly / marketMonthly * 100)) : 0;
+
+  // 強さ判定
+  const strength = totalReviews > 5000 ? { label:"💪 強力な店舗", color:"#1a5276", bg:"#eaf4fb" }
+                 : totalReviews > 1000 ? { label:"✅ 安定した店舗", color:"#1e8449", bg:"#eafaf1" }
+                 : totalReviews > 200  ? { label:"🟡 成長中の店舗", color:"#b7770d", bg:"#fef9e7" }
+                 :                       { label:"🌱 新規・小規模店舗", color:"#888", bg:"#f5f5f5" };
+
+  window._shopModalItems = items;
+  const badgeEl = document.getElementById("shopStrengthBadge");
+  if (badgeEl) badgeEl.innerHTML = `<span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="color:${strength.color};font-size:0.85rem;font-weight:700;white-space:nowrap;flex-shrink:0">${strength.label}</span><span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="font-size:0.82rem;color:#888;white-space:nowrap;flex-shrink:0;align-self:center">${shopTotalLabel}</span>`;
+
+  const analysisHtml = `
+    <div class="shop-analysis">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative">
+        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:12px 14px">
+          <div style="font-size:0.78rem;color:#2563eb;font-weight:700;margin-bottom:4px">💬 レビュー数</div>
+          <div style="font-size:1.25rem;font-weight:900;color:#1a3a5c">${totalReviews.toLocaleString()}<span style="font-size:0.78rem;font-weight:500;margin-left:2px">件</span></div>
+        </div>
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:10px;padding:12px 14px">
+          <div style="font-size:0.78rem;color:#ea580c;font-weight:700;margin-bottom:4px">⭐ 平均評価</div>
+          <div style="font-size:1.25rem;font-weight:900;color:#e67e22">★${avgReview.toFixed(1)}</div>
+        </div>
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:12px 14px">
+          <div style="font-size:0.78rem;color:#555;font-weight:700;margin-bottom:4px">💴 価格帯</div>
+          <div style="font-size:0.95rem;font-weight:800;color:#333">${fmtYen(minPrice)}</div>
+          <div style="font-size:0.72rem;color:#888">〜 ${fmtYen(maxPrice)}</div>
+        </div>
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:10px;padding:12px 14px">
+          <div style="font-size:0.78rem;color:#c0392b;font-weight:700;margin-bottom:4px">🏪 推計月商</div>
+          <div style="font-size:1.25rem;font-weight:900;color:#c0392b">${fmtMonthly(monthlyEst)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById("shopModalBody").innerHTML = analysisHtml + `
+    <table class="shop-modal-table">
+      <colgroup><col class="col-name"><col class="col-price"><col class="col-eval"><col style="width:36px"></colgroup>
+      <thead><tr><th>商品名</th><th>価格</th><th>評価</th><th></th></tr></thead>
+      <tbody>${items.map(it => {
+        const faved = loadFavs().some(f => f.itemCode === it.itemCode);
+        return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${it.image ? `<img src="${it.image}" class="item-img" loading="lazy" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : ""}
+            <a href="${it.url}" target="_blank" class="item-name-link">${it.name}</a>
+          </div>
+        </td>
+        <td><span class="price-cell">¥${it.price.toLocaleString()}</span></td>
+        <td>
+          <div class="review-cell">
+            <span class="review-count" style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'}">${it.reviewCount.toLocaleString()}件</span>
+            <span class="review-avg">★${it.reviewAvg > 0 ? Number(it.reviewAvg).toFixed(1) : '-'}</span>
+          </div>
+        </td>
+        <td style="text-align:center">
+          <button class="shop-fav-btn fav-btn${faved?' fav-active':''}" data-code="${(it.itemCode||'').replace(/"/g,'&quot;')}" onclick="toggleShopFav('${(it.itemCode||'').replace(/'/g,"\\'")}')
+" title="${faved?'お気に入りから削除':'お気に入りに追加'}">★</button>
+        </td>
+      </tr>`;}).join("")}</tbody>
+    </table>
+    <p style="font-size:0.72rem;color:#aaa;margin-top:8px;padding:0 2px">ランキング入賞商品を上位表示／圏外は楽天おすすめ順</p>`;
+}
+function closeShopModal(e) {
+  if (e.target === document.getElementById("shopModal"))
+    document.getElementById("shopModal").classList.remove("open");
+}
+
+function toggleCard(header) {
+  const card = header.closest(".collapsible-card");
+  const body = card.querySelector(".card-body");
+  const btn  = header.querySelector(".collapse-btn");
+  const collapsed = card.classList.toggle("collapsed");
+  btn.textContent = collapsed ? "▼" : "▲";
+}
+
+function copyKw(btn, kw) {
+  navigator.clipboard.writeText(kw).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = "✓ コピー済";
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1500);
+  });
+}
+
+let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
+
+
+function applyFilter() {
+  const min = parseFloat(document.getElementById("filterMin").value) || 0;
+  const max = parseFloat(document.getElementById("filterMax").value) || Infinity;
+  const base = _selectedGenre ? _sortedItems.filter(it => it.genreId == _selectedGenre) : _sortedItems;
+  const filtered = base.filter(it => it.price >= min && it.price <= max);
+  renderTable(filtered, _orderMap);
+  document.getElementById("filterCount").textContent = filtered.length < _sortedItems.length
+    ? `(${filtered.length} / ${_sortedItems.length}件)`
+    : `(${_sortedItems.length}件)`;
+}
+
+function clearFilter() {
+  const prices = _sortedItems.map(i => i.price).filter(p => p > 0);
+  if (prices.length) {
+    document.getElementById("filterMin").value = Math.min(...prices);
+    document.getElementById("filterMax").value = Math.max(...prices);
+  } else {
+    document.getElementById("filterMin").value = "";
+    document.getElementById("filterMax").value = "";
+  }
+  renderTable(_sortedItems, _orderMap);
+  document.getElementById("filterCount").textContent = `(${_sortedItems.length}件)`;
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById("status");
+  el.className = `status ${type}`;
+  el.textContent = msg;
+}
+
+// ── ランキング・グリッド ──────────────────────────────────
+function loadRankingWidget(keyword) {
+  const grid = document.getElementById("timesaleGrid");
+  const titleEl = document.getElementById("rankingTitle");
+  const subEl   = document.getElementById("rankingSub");
+  if (!grid) return;
+  grid.innerHTML = '<div class="ts-loading">読み込み中...</div>';
+
+  const cb = `_rw_${Date.now()}`;
+  const s  = document.createElement("script");
+
+  if (keyword) {
+    // キーワードあり → 検索＋レビュー数順
+    if (titleEl) titleEl.textContent = `🏆 「${keyword}」の売れ筋ランキング`;
+    if (subEl)   subEl.textContent   = "レビュー数が多い順";
+    s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+      new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword, hits: 20, page: 1, sort: "-reviewCount", formatVersion: 2, callback: cb });
+  } else {
+    // キーワードなし → 総合ランキング API
+    if (titleEl) titleEl.textContent = `🏆 今売れているランキング`;
+    if (subEl)   subEl.textContent   = "楽天市場 総合ランキング";
+    s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20170628?` +
+      new URLSearchParams({ applicationId: RAKUTEN_APP_ID, hits: 20, page: 1, formatVersion: 2, callback: cb });
+  }
+
+  const timer = setTimeout(() => {
+    if (window[cb]) { delete window[cb]; s.remove(); grid.innerHTML = '<div class="ts-loading">取得できませんでした</div>'; }
+  }, 8000);
+
+  window[cb] = d => {
+    clearTimeout(timer);
+    delete window[cb]; s.remove();
+    const rawItems = d.Items || [];
+    if (d.error || !rawItems.length) { grid.innerHTML = '<div class="ts-loading">取得できませんでした</div>'; return; }
+
+    const items = rawItems.map((i, idx) => ({
+      rank: idx + 1,
+      name: i.itemName || "",
+      price: i.itemPrice || 0,
+      reviewCount: i.reviewCount || 0,
+      reviewAvg: i.reviewAverage || 0,
+      url: i.itemUrl || "#",
+      image: (i.mediumImageUrls?.[0]) ? (typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl) : "",
+      shopName: i.shopName || ""
+    }));
+
+    const prices = items.map(i => i.price).filter(p => p > 0);
+    const avg = prices.reduce((s, v) => s + v, 0) / (prices.length || 1);
+
+    const medalColor = r => r === 1 ? "#f9e400" : r === 2 ? "#c0c0c0" : r === 3 ? "#cd7f32" : "#e8eceb";
+    const medalText  = r => r === 1 ? "#7a6000" : r === 2 ? "#444"    : r === 3 ? "#fff"    : "#666";
+
+    grid.innerHTML = items.map(item => {
+      const pctVsAvg = avg > 0 ? Math.round((item.price - avg) / avg * 100) : 0;
+      const cheaper  = pctVsAvg < 0;
+      const diffLabel = cheaper
+        ? `<span class="ts-vs cheaper">平均より ${Math.abs(pctVsAvg)}% 安い</span>`
+        : pctVsAvg > 0
+          ? `<span class="ts-vs pricier">平均より ${pctVsAvg}% 高い</span>`
+          : `<span class="ts-vs equal">平均価格</span>`;
+      const barPct = Math.min(Math.max(50 + pctVsAvg * -1.2, 5), 100);
+      const stars  = item.reviewAvg > 0 ? `<span class="ts-stars">★${item.reviewAvg.toFixed(1)}</span>` : "";
+      const reviews = item.reviewCount > 0 ? `<span class="ts-reviews">${item.reviewCount.toLocaleString()}件</span>` : "";
+      return `
+        <a href="${item.url}" target="_blank" class="ts-card">
+          <div class="ts-rank-badge" style="background:${medalColor(item.rank)};color:${medalText(item.rank)}">${item.rank}</div>
+          ${item.image ? `<img src="${item.image}" class="ts-img" loading="lazy" alt="">` : '<div class="ts-img-placeholder">🛒</div>'}
+          <div class="ts-info">
+            <div class="ts-name">${item.name}</div>
+            <div class="ts-price-row">
+              <span class="ts-price">¥${item.price.toLocaleString()}</span>
+              ${stars}${reviews}
+            </div>
+            <div class="ts-compare">
+              ${diffLabel}
+              <div class="ts-bar-wrap">
+                <div class="ts-bar" style="width:${barPct}%;background:${cheaper ? '#27ae60' : '#e74c3c'}"></div>
+              </div>
+              <span class="ts-avg-label">グループ平均 ¥${Math.round(avg).toLocaleString()}</span>
+            </div>
+          </div>
+        </a>`;
+    }).join("");
+  };
+  s.onerror = () => { s.remove(); grid.innerHTML = ""; };
+  document.head.appendChild(s);
+}
+
+// ── 株価ウィジェット ──────────────────────────────────────
+async function loadStocks() {
+  const el = document.getElementById("stockWidget");
+  const symbols = [
+    { sym: "%5EN225",   label: "日経平均" },
+    { sym: "USDJPY%3DX", label: "USD/JPY" },
+  ];
+  try {
+    const results = await Promise.all(symbols.map(async ({ sym, label }) => {
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`, {
+        headers: { "Accept": "application/json" }
+      });
+      const d = await r.json();
+      const meta = d.chart?.result?.[0]?.meta;
+      if (!meta) return null;
+      const price = meta.regularMarketPrice;
+      const prev  = meta.chartPreviousClose;
+      const diff  = price - prev;
+      const pct   = (diff / prev * 100).toFixed(2);
+      const up    = diff >= 0;
+      return { label, price, diff, pct, up };
+    }));
+    const rows = results.filter(Boolean);
+    if (!rows.length) { el.innerHTML = ""; return; }
+    el.innerHTML = `
+      <span class="widget-label">📈 マーケット</span>
+      ${rows.map(r => `
+        <div class="stock-row">
+          <span class="stock-label">${r.label}</span>
+          <span class="stock-price">${r.price.toLocaleString(undefined, {maximumFractionDigits:2})}</span>
+          <span class="stock-diff ${r.up ? 'up' : 'dn'}">${r.up ? '▲' : '▼'}${Math.abs(r.pct)}%</span>
+        </div>`).join("")}`;
+  } catch { el.innerHTML = ""; }
+}
+
+loadStocks();
+
+// ── お気に入り ────────────────────────────────────────────
+function loadFavs() {
+  try { return JSON.parse(localStorage.getItem("favItems") || "[]"); } catch { return []; }
+}
+function saveFavs(list) {
+  localStorage.setItem("favItems", JSON.stringify(list));
+  updateFavCount();
+}
+function isFavorite(itemCode) {
+  return loadFavs().some(f => f.itemCode === itemCode);
+}
+function toggleShopFav(itemCode) {
+  const item = (window._shopModalItems || []).find(i => i.itemCode === itemCode);
+  if (!item) return;
+  let list = loadFavs();
+  if (list.some(f => f.itemCode === itemCode)) {
+    list = list.filter(f => f.itemCode !== itemCode);
+  } else {
+    list.unshift({ itemCode: item.itemCode, name: item.name, price: item.price,
+      reviewCount: item.reviewCount, reviewAvg: item.reviewAvg,
+      url: item.url, image: item.image, shopName: item.shopName,
+      savedAt: new Date().toLocaleDateString("ja-JP") });
+  }
+  saveFavs(list);
+  const btn = document.querySelector(`.shop-fav-btn[data-code="${CSS.escape(itemCode)}"]`);
+  if (btn) {
+    const faved = list.some(f => f.itemCode === itemCode);
+    btn.classList.toggle("fav-active", faved);
+    btn.title = faved ? "お気に入りから削除" : "お気に入りに追加";
+  }
+}
+function toggleFavorite(itemCode) {
+  const item = (_tableItems || []).find(i => i.itemCode === itemCode);
+  if (!item) return;
+  let list = loadFavs();
+  if (list.some(f => f.itemCode === itemCode)) {
+    list = list.filter(f => f.itemCode !== itemCode);
+  } else {
+    list.unshift({ itemCode: item.itemCode, name: item.name, price: item.price,
+      reviewCount: item.reviewCount, reviewAvg: item.reviewAvg,
+      url: item.url, image: item.image, shopName: item.shopName,
+      savedAt: new Date().toLocaleDateString("ja-JP") });
+  }
+  saveFavs(list);
+  renderTablePage(); // ボタン状態を更新
+}
+function updateFavCount() {
+  const el = document.getElementById("favCount");
+  if (el) el.textContent = loadFavs().length;
+}
+function openFavModal() {
+  document.getElementById("favModal").classList.add("open");
+  renderFavModal();
+}
+function closeFavModal(e) {
+  if (e.target === document.getElementById("favModal"))
+    document.getElementById("favModal").classList.remove("open");
+}
+function renderFavModal() {
+  const list = loadFavs();
+  const body = document.getElementById("favModalBody");
+  if (!list.length) {
+    body.innerHTML = '<p class="fav-empty">お気に入りに登録された商品はありません。<br>検索結果の ♥ ボタンで追加できます。</p>';
+    return;
+  }
+  body.innerHTML = `
+    <div class="fav-list">
+      ${list.map(it => `
+        <div class="fav-item">
+          <a href="${it.url}" target="_blank" class="fav-item-img-wrap">
+            ${it.image ? `<img src="${it.image}" class="fav-item-img" loading="lazy">` : '<div class="fav-item-img-ph">🛒</div>'}
+          </a>
+          <div class="fav-item-info">
+            <a href="${it.url}" target="_blank" class="fav-item-name">${it.name}</a>
+            <div class="fav-item-meta">
+              <span class="fav-item-price">¥${it.price.toLocaleString()}</span>
+              <span class="fav-item-shop">${it.shopName || ''}</span>
+              <span class="fav-item-date">${it.savedAt}</span>
+            </div>
+          </div>
+          <button class="fav-item-del" onclick="removeFav('${(it.itemCode||'').replace(/'/g,"\\'")}')">✕</button>
+        </div>`).join("")}
+    </div>
+    <div class="fav-footer">
+      <button class="fav-clear-btn" onclick="if(confirm('お気に入りをすべて削除しますか？')){saveFavs([]);renderFavModal();}">すべて削除</button>
+    </div>`;
+}
+function removeFav(itemCode) {
+  saveFavs(loadFavs().filter(f => f.itemCode !== itemCode));
+  renderFavModal();
+  renderTablePage();
+}
+updateFavCount();
+
+// ── キーワードビルダー ────────────────────────────────────
+function kbUpdatePreview() {
+  const cat     = document.querySelector("#kbCat .kb-chip.active")?.dataset.val || "";
+  const feature = document.querySelector("#kbFeature .kb-chip.active")?.dataset.val || "";
+  const scene   = document.querySelector("#kbScene .kb-chip.active")?.dataset.val || "";
+  const kw = [cat, feature, scene].filter(Boolean).join(" ");
+  document.getElementById("kbPreview").textContent = kw || "（選択してください）";
+}
+document.querySelectorAll(".kb-chips").forEach(group => {
+  group.addEventListener("click", e => {
+    const chip = e.target.closest(".kb-chip");
+    if (!chip) return;
+    group.querySelectorAll(".kb-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    kbUpdatePreview();
+  });
+});
+function kbSearch() {
+  const kw = document.getElementById("kbPreview").textContent.trim();
+  if (!kw || kw === "（選択してください）") return;
+  document.getElementById("keyword").value = kw;
+  document.getElementById("excludeInput").value = "";
+  doSearch();
+}
+
+// ── お宝キーワードスキャン ───────────────────────────────
+function loadOtakara() {
+  const grid = document.getElementById("otakaraGrid");
+  if (!grid) return;
+  const seeds = [...OTAKARA_SEEDS].sort(() => Math.random() - 0.5).slice(0, 6);
+  let done = 0;
+  const results = [];
+  seeds.forEach((kw, idx) => {
+    const cb = `_ot_${Date.now()}_${idx}`;
+    const s = document.createElement("script");
+    s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
+      new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: kw, hits: 10, page: 1, sort: "standard", formatVersion: 2, callback: cb });
+    const timer = setTimeout(() => { if (window[cb]) { delete window[cb]; s.remove(); finish(idx, kw, null); } }, 6000);
+    window[cb] = d => { clearTimeout(timer); delete window[cb]; s.remove(); finish(idx, kw, d.error ? null : d); };
+    s.onerror = () => { s.remove(); finish(idx, kw, null); };
+    document.head.appendChild(s);
+  });
+  function finish(idx, kw, d) {
+    if (d && d.Items?.length) {
+      const count = d.count || 0;
+      const items = d.Items;
+      const avgRev = items.reduce((s, i) => s + (i.reviewCount || 0), 0) / items.length;
+      const s1 = count < 300 ? 5 : count < 1000 ? 4 : count < 3000 ? 3 : count < 10000 ? 2 : 1;
+      const s2 = avgRev < 30 ? 5 : avgRev < 100 ? 4 : avgRev < 300 ? 3 : avgRev < 600 ? 2 : 1;
+      const prices = items.map(i => i.itemPrice || 0).filter(p => p > 0);
+      const avgPrice = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
+      results[idx] = { kw, count, avgRev: Math.round(avgRev), avgPrice, score: s1 + s2 };
+    } else { results[idx] = null; }
+    if (++done === seeds.length) renderOtakara(results.filter(Boolean));
+  }
+}
+function renderOtakara(results) {
+  const grid = document.getElementById("otakaraGrid");
+  if (!grid) return;
+  if (!results.length) { grid.innerHTML = '<div class="otakara-loading">取得できませんでした</div>'; return; }
+  results.sort((a, b) => b.score - a.score);
+  const levelOf = s => s >= 9 ? { label:"💎 超ニッチ", color:"#8e44ad", bg:"#f5eeff" }
+                      : s >= 7 ? { label:"🥇 お宝",    color:"#b7770d", bg:"#fffbe6" }
+                      : s >= 5 ? { label:"🥈 有望",    color:"#2471a3", bg:"#eaf4fb" }
+                      :          { label:"🥉 競合あり", color:"#888",    bg:"#f5f5f5" };
+  grid.innerHTML = results.map(r => {
+    const lv = levelOf(r.score);
+    return `
+      <div class="otakara-card" onclick="setKeyword('${r.kw.replace(/'/g,"\\'")}')">
+        <div class="otakara-badge" style="background:${lv.bg};color:${lv.color}">${lv.label}</div>
+        <div class="otakara-kw">${r.kw}</div>
+        <div class="otakara-stats">
+          <span class="otakara-stat"><span class="otakara-stat-label">競合</span>${r.count.toLocaleString()}件</span>
+          <span class="otakara-stat"><span class="otakara-stat-label">平均レビュー</span>${r.avgRev}件</span>
+          <span class="otakara-stat"><span class="otakara-stat-label">平均価格</span>¥${r.avgPrice.toLocaleString()}</span>
+        </div>
+        <div class="otakara-score-bar"><div style="width:${Math.round(r.score/10*100)}%;background:${lv.color};height:100%;border-radius:3px"></div></div>
+        <div class="otakara-cta">🔍 タップして調査する</div>
+      </div>`;
+  }).join("");
+}
+_initPage();
+</script>
+</body>
+</html>
