@@ -48,28 +48,13 @@
   <!-- トップコンテンツ（検索前のみ表示） -->
   <div id="topContent">
 
-    <!-- SNSトレンド -->
-    <section class="top-section sns-trend-section">
+    <!-- お気に入り商品グリッド -->
+    <section class="top-section" id="favGridSection">
       <div class="top-section-header">
-        <span class="top-section-title"><span class="title-emoji">📱</span> SNSトレンド</span>
-        <div class="sns-platform-nav" id="snsPlatformNav">
-          <button class="sns-pf-btn active" data-pf="instagram" onclick="switchSnsPlatform('instagram')">Instagram</button>
-          <button class="sns-pf-btn" data-pf="tiktok" onclick="switchSnsPlatform('tiktok')">TikTok</button>
-          <button class="sns-pf-btn" data-pf="pinterest" onclick="switchSnsPlatform('pinterest')">Pinterest</button>
-          <button class="sns-pf-btn" data-pf="x" onclick="switchSnsPlatform('x')">X (Twitter)</button>
-          <button class="sns-how-btn" onclick="openSnsHowPopup()" title="各SNSのトレンド取得方法">？ 取得方法</button>
-        </div>
+        <span class="top-section-title"><span class="title-emoji">★</span> お気に入り商品</span>
       </div>
       <div class="top-section-body">
-        <div class="sns-genre-nav">
-          <button class="sns-genre-btn active" onclick="switchSnsGenre('ladies', this)">👗 レディース</button>
-          <button class="sns-genre-btn" onclick="switchSnsGenre('mens', this)">👔 メンズ</button>
-          <span class="sns-gender-sep"></span>
-          <button class="sns-genre-btn" onclick="switchSnsGenre('gourmet', this)">🍽️ グルメ</button>
-          <button class="sns-genre-btn" onclick="switchSnsGenre('recipe', this)">🍳 レシピ</button>
-        </div>
-        <div id="snsTrendContent" class="sns-trend-grid"></div>
-        <p class="sns-trend-note">※ SNS各社のAPI制限のため、トレンドデータは定期更新のキュレーション情報です。クリックで楽天市場を検索します。</p>
+        <div id="favItemGrid"></div>
       </div>
     </section>
 
@@ -507,23 +492,43 @@ function renderSavedKeywords() {
   const el = document.getElementById("savedKeywords");
   if (!el) return;
   const list = loadSaved();
-  if (!list.length) { el.innerHTML = ""; return; }
   window._savedList = list;
-  el.innerHTML = `
-    <div class="saved-kw-box">
-      <div class="saved-kw-items">
-        ${list.map((e, i) => {
-          const kw    = e.kw || e;
-          const kwEsc = kw.replace(/'/g,"\\'");
-          return `<div class="saved-kw-item">
-            <div class="saved-kw-main" onclick="setKeywordByIndex(${i})"><span class="saved-kw-text">${kw}</span></div>
-            <button class="saved-kw-del" onclick="deleteSaved('${kwEsc}')">×</button>
-          </div>`;
-        }).join("")}
-      </div>
-    </div>`;
+  // ヘッダーのタグ表示
+  if (!list.length) { el.innerHTML = ""; } else {
+    el.innerHTML = `
+      <div class="saved-kw-box">
+        <div class="saved-kw-items">
+          ${list.map((e, i) => {
+            const kw    = e.kw || e;
+            const kwEsc = kw.replace(/'/g,"\\'");
+            return `<div class="saved-kw-item">
+              <div class="saved-kw-main" onclick="setKeywordByIndex(${i})"><span class="saved-kw-text">${kw}</span></div>
+              <button class="saved-kw-del" onclick="deleteSaved('${kwEsc}')">×</button>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+  }
+  // トップページグリッド
+  const grid = document.getElementById("savedKwGrid");
+  const sec  = document.getElementById("savedKwGridSection");
+  if (!grid || !sec) return;
+  if (!list.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  grid.innerHTML = list.map((e, i) => {
+    const kw    = e.kw || e;
+    const kwEsc = kw.replace(/'/g,"\\'");
+    const ex    = (e.exclude || []).join(" ");
+    return `
+      <div class="saved-kw-card" onclick="setKeywordByIndex(${i})">
+        <div class="saved-kw-card-name">${kw}</div>
+        ${ex ? `<div class="saved-kw-card-ex">除外: ${ex}</div>` : ''}
+        <button class="saved-kw-card-del" onclick="event.stopPropagation();deleteSaved('${kwEsc}')">×</button>
+      </div>`;
+  }).join("");
 }
 renderSavedKeywords();
+renderFavGrid();
 function setKeywordByIndex(i) {
   const e = (window._savedList || [])[i];
   if (!e) return;
@@ -2310,11 +2315,10 @@ function openMarketPopup() {
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">① 市場概要</button>
       <button class="mp-tab" onclick="mpTab(this,1)">② 需要</button>
-      <button class="mp-tab" onclick="mpTab(this,2)">③ ターゲット</button>
-      <button class="mp-tab" onclick="mpTab(this,3)">④ 競合</button>
-      <button class="mp-tab" onclick="mpTab(this,4)">⑤ 商品分析</button>
-      <button class="mp-tab" onclick="mpTab(this,5)">⑥ リスク</button>
-      <button class="mp-tab" onclick="mpTab(this,6)">⑦ 商品概要</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">③ 競合</button>
+      <button class="mp-tab" onclick="mpTab(this,3)">④ 商品分析</button>
+      <button class="mp-tab" onclick="mpTab(this,4)">⑤ リスク</button>
+      <button class="mp-tab" onclick="mpTab(this,5)">⑥ 商品概要</button>
     </div>
     <div class="mp-panes">
 
@@ -2398,90 +2402,7 @@ function openMarketPopup() {
         <div class="market-popup-note">※需要カレンダーはキーワード・商品名から自動判定。楽天・Googleトレンドの実データと異なる場合があります。</div>
       </div>
 
-      <!-- タブ3: ④ターゲット分析 -->
-      <div class="mp-pane">
-
-        <!-- ペルソナ + 属性グリッド -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-
-          <!-- 左：ペルソナ基本情報 -->
-          <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px">
-            <div style="font-size:0.78rem;font-weight:700;color:#888;letter-spacing:0.05em">👤 想定ペルソナ</div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div style="font-size:2.2rem;line-height:1">${personaIcon}</div>
-              <div>
-                <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e">${personaName}</div>
-                <div style="font-size:0.84rem;color:#555;margin-top:2px">${targetAge}　${targetGender}</div>
-              </div>
-            </div>
-            <div style="font-size:0.84rem;color:#444;line-height:1.5">${personaJob}</div>
-            <div style="font-size:0.84rem;color:#555;border-left:3px solid #c0d0e0;padding-left:8px;line-height:1.55;margin-top:2px">${personaMotivation}</div>
-          </div>
-
-          <!-- 右：属性4項目 -->
-          <div style="display:grid;grid-template-columns:1fr;gap:8px">
-            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
-              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">💰 推定収入帯</div>
-              <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e">${personaIncome}</div>
-            </div>
-            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
-              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">📱 情報収集</div>
-              <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e">${personaSNS}</div>
-            </div>
-            <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:10px 12px">
-              <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:3px">💴 価格感度</div>
-              <div style="font-size:0.88rem;font-weight:700;color:#1a1a2e;line-height:1.4">${personaPriceSensitivity}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 購買タイミング -->
-        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:10px;padding:13px 16px">
-          <div style="font-size:0.8rem;font-weight:700;color:#ea580c;margin-bottom:5px">📅 購買タイミング</div>
-          <div style="font-size:0.9rem;color:#333;line-height:1.6">${personaBuyTiming}</div>
-        </div>
-
-        <!-- 購買理由 -->
-        <div style="background:#f5f0ff;border:1px solid #d4b8f0;border-radius:10px;padding:13px 16px">
-          <div style="font-size:0.8rem;font-weight:700;color:#7c3aed;margin-bottom:10px">🛒 この商品を買う理由（購買動機）</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            ${buyReasons.map((r, i) => `
-              <div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:8px;padding:9px 12px;border:1px solid #e8d8f8">
-                <span style="font-size:1.3rem;flex-shrink:0">${r.icon}</span>
-                <span style="font-size:0.88rem;color:#333;font-weight:${i===0?700:500};line-height:1.4">${r.text}</span>
-                ${i===0?'<span style="margin-left:auto;font-size:0.7rem;background:#7c3aed;color:#fff;border-radius:10px;padding:2px 8px;flex-shrink:0;font-weight:700">主要動機</span>':''}
-              </div>`).join("")}
-          </div>
-        </div>
-
-        <!-- ニーズ・ペインポイント -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:13px">
-            <div style="font-size:0.8rem;font-weight:700;color:#2563eb;margin-bottom:8px">✅ ニーズ（求めていること）</div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-              ${targetNeeds.map(n => `
-                <div style="display:flex;align-items:flex-start;gap:6px">
-                  <span style="color:#27ae60;font-weight:700;flex-shrink:0;margin-top:1px">✓</span>
-                  <span style="font-size:0.86rem;color:#333;line-height:1.45">${n}</span>
-                </div>`).join("")}
-            </div>
-          </div>
-          <div style="background:#fff5f5;border:1px solid #f5c6c6;border-radius:10px;padding:13px">
-            <div style="font-size:0.8rem;font-weight:700;color:#e74c3c;margin-bottom:8px">😟 ペインポイント（不安・不満）</div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-              ${personaPainPoints.map(p => `
-                <div style="display:flex;align-items:flex-start;gap:6px">
-                  <span style="color:#e74c3c;font-weight:700;flex-shrink:0;margin-top:1px">!</span>
-                  <span style="font-size:0.86rem;color:#333;line-height:1.45">${p}</span>
-                </div>`).join("")}
-            </div>
-          </div>
-        </div>
-
-        <div class="market-popup-note">※キーワード・商品名から自動推定したペルソナです。実際の購買層と異なる場合があります。</div>
-      </div>
-
-      <!-- タブ4: ⑤競合分析 -->
+      <!-- タブ2: ③競合分析 -->
       <div class="mp-pane">
         ${(() => {
           const shopMap = {};
@@ -3066,6 +2987,37 @@ async function loadStocks() {
 
 loadStocks();
 
+// ── お気に入りトップグリッド ──────────────────────────────
+function renderFavGrid() {
+  const el = document.getElementById("favItemGrid");
+  if (!el) return;
+  const list = loadFavs();
+  if (!list.length) {
+    el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">お気に入り商品はありません</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="fav-top-grid">${list.map(f => `
+    <div class="fav-top-card">
+      <a href="${f.url||'#'}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
+        ${f.image ? `<img src="${f.image}" class="fav-top-img">` : '<div class="fav-top-img" style="background:#f0f0f0"></div>'}
+        <div class="fav-top-info">
+          <div class="fav-top-name">${f.name}</div>
+          <div class="fav-top-price">¥${(f.price||0).toLocaleString()}</div>
+          <div class="fav-top-meta">
+            <span class="fav-top-rating">★${f.reviewAvg||0}　${f.reviewCount||0}件</span>
+            ${f.shopName ? `<span class="fav-top-shop">🏪 ${f.shopName}</span>` : ''}
+          </div>
+        </div>
+      </a>
+      <button class="fav-top-del" onclick="removeFavFromGrid('${(f.itemCode||'').replace(/'/g,"\\'")}')">×</button>
+    </div>`).join('')}</div>`;
+}
+function removeFavFromGrid(itemCode) {
+  let list = loadFavs().filter(f => f.itemCode !== itemCode);
+  saveFavs(list);
+  renderFavGrid();
+}
+
 // ── お気に入り ────────────────────────────────────────────
 function loadFavs() {
   try { return JSON.parse(localStorage.getItem("favItems") || "[]"); } catch { return []; }
@@ -3073,6 +3025,7 @@ function loadFavs() {
 function saveFavs(list) {
   localStorage.setItem("favItems", JSON.stringify(list));
   updateFavCount();
+  renderFavGrid();
 }
 function isFavorite(itemCode) {
   return loadFavs().some(f => f.itemCode === itemCode);
