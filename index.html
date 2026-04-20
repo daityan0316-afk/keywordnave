@@ -86,6 +86,7 @@
       <aside class="result-sidebar">
         <div class="sidebar-sticky">
           <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 市場分析レポート</button>
+          <div id="summaryGrid" class="summary-grid"></div>
           <div id="nicheBar"></div>
           <div class="sidebar-price-filter hidden" id="priceFilterBox">
             <span class="price-filter-label">価格帯（最安〜最高）</span>
@@ -97,7 +98,6 @@
               <input type="number" id="filterMax" placeholder="上限" oninput="applyFilter()">
             </div>
           </div>
-          <div id="summaryGrid" class="summary-grid"></div>
           <div id="priceRangeCard"></div>
           <div id="shopTagList"></div>
         </div>
@@ -1798,7 +1798,15 @@ function renderSummary(items) {
     keyword: document.getElementById("keyword").value.trim()
   };
 
-  document.getElementById("summaryGrid").innerHTML = "";
+  document.getElementById("summaryGrid").innerHTML = `
+    <div style="background:${entryBg};border-left:3px solid ${entryColor};border-radius:10px;padding:10px 12px;margin-bottom:6px">
+      <div style="font-size:0.82rem;font-weight:800;color:${entryColor};margin-bottom:4px">${entryJudge}</div>
+      <div style="font-size:0.76rem;color:#444;margin-bottom:6px">${entryAdvice}</div>
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#555;border-top:1px solid ${entryColor}30;padding-top:6px">
+        <span>市場規模<br><b style="color:${entryColor}">${marketLabel}</b></span>
+        <span>参入後年収予測<br><b style="color:${entryColor}">${yearlyLabel}</b></span>
+      </div>
+    </div>`;
 
   const priceMin = Math.min(...prices), priceMax = Math.max(...prices);
   document.getElementById("priceRangeCard").innerHTML = "";
