@@ -2834,8 +2834,28 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
       </div>
     </div>`;
 
-  document.getElementById("shopModalBody").innerHTML = analysisHtml + `
-    <table class="shop-modal-table">
+  const isMobileSM = window.innerWidth <= 640;
+  const itemsHtml = isMobileSM
+    ? `<div style="display:flex;flex-direction:column;gap:8px;padding:8px 0">` +
+      items.map(it => {
+        const faved = loadFavs().some(f => f.itemCode === it.itemCode);
+        const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
+        return `<div class="item-card-sp">
+          <div class="item-card-sp-top">
+            ${it.image ? `<img src="${it.image}" class="item-card-sp-img" loading="lazy">` : '<div class="item-card-sp-img" style="background:#f0f0f0"></div>'}
+            <div class="item-card-sp-info">
+              <a href="${it.url}" target="_blank" class="item-card-sp-name">${it.name}</a>
+            </div>
+            <button class="shop-fav-btn fav-btn${faved?' fav-active':''}" data-code="${(it.itemCode||'').replace(/"/g,'&quot;')}" onclick="toggleShopFav('${codeEsc}')" style="flex-shrink:0">★</button>
+          </div>
+          <div class="item-card-sp-bottom">
+            <span class="price-cell" style="font-size:1rem">¥${it.price.toLocaleString()}</span>
+            <span style="color:${it.reviewCount > 0 ? '#2980b9' : '#ccc'};font-size:0.78rem">${it.reviewCount.toLocaleString()}件</span>
+            <span style="font-size:0.78rem">★${it.reviewAvg > 0 ? Number(it.reviewAvg).toFixed(1) : '-'}</span>
+          </div>
+        </div>`;
+      }).join("") + `</div>`
+    : `<table class="shop-modal-table">
       <colgroup><col class="col-name"><col class="col-price"><col class="col-eval"><col style="width:36px"></colgroup>
       <thead><tr><th>商品名</th><th>価格</th><th>評価</th><th></th></tr></thead>
       <tbody>${items.map(it => {
@@ -2859,8 +2879,9 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
 " title="${faved?'お気に入りから削除':'お気に入りに追加'}">★</button>
         </td>
       </tr>`;}).join("")}</tbody>
-    </table>
-    <p style="font-size:0.72rem;color:#aaa;margin-top:8px;padding:0 2px">ランキング入賞商品を上位表示／圏外は楽天おすすめ順</p>`;
+    </table>`;
+  document.getElementById("shopModalBody").innerHTML = analysisHtml + itemsHtml +
+    `<p style="font-size:0.72rem;color:#aaa;margin-top:8px;padding:0 2px">ランキング入賞商品を上位表示／圏外は楽天おすすめ順</p>`;
 }
 function closeShopModal(e) {
   if (e.target === document.getElementById("shopModal"))
