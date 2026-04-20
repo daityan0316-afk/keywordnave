@@ -1727,9 +1727,9 @@ function renderNiche(items, keyword) {
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
         <div style="padding:10px 12px;border-bottom:1px solid #e0e4ef">
-          <div style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:4px">● 結論（参入すべきか）</div>
+          <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 結論（参入すべきか）</div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};white-space:nowrap">${ma.entryJudge}</span>
+            <span style="font-size:1.05rem;font-weight:900;color:${ma.entryColor};white-space:nowrap;text-shadow:0 0 8px ${ma.entryColor}44">${ma.entryJudge}</span>
           </div>
           <div style="margin-bottom:4px">
             <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${{'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4}[ma.entryJudge]||5}/10</span></div>
@@ -1738,8 +1738,8 @@ function renderNiche(items, keyword) {
           <div style="font-size:0.73rem;color:#555;line-height:1.55">${ma.entryAdvice}</div>
         </div>
         <div style="padding:10px 12px">
-          <div style="font-size:0.7rem;font-weight:700;color:#888;letter-spacing:0.05em;margin-bottom:4px">● 月商予測（シェア約${sharePct}%想定）</div>
-          <div style="font-size:1.25rem;font-weight:800;color:${ma.entryColor};letter-spacing:0.02em">${monthlyLabel}</div>
+          <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 月商予測（シェア約${sharePct}%想定）</div>
+          <div style="font-size:1.5rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.02em;text-shadow:0 0 8px ${ma.entryColor}44">${monthlyLabel}</div>
         </div>
       </div>`;
       })() : ''}
