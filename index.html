@@ -3603,7 +3603,7 @@ function renderFavModal() {
     <div class="fav-list">
       ${Object.entries(groups).map(([kw, items]) => `
         <div style="margin-bottom:16px">
-          <div style="font-size:0.78rem;font-weight:700;color:#1a3a5c;background:#eef3fb;border-left:3px solid #2563eb;padding:5px 10px;border-radius:0 6px 6px 0;margin-bottom:6px">🔍 ${kw} <span style="font-weight:400;color:#888;font-size:0.72rem">（${items.length}件）</span></div>
+          <div style="font-size:0.78rem;font-weight:700;color:#1a3a5c;background:#fff;border-left:3px solid #2563eb;padding:5px 10px;border-radius:0 6px 6px 0;margin-bottom:6px">🔍 ${kw} <span style="font-weight:400;color:#888;font-size:0.72rem">（${items.length}件）</span></div>
           ${items.map(itemCard).join('')}
         </div>`).join('')}
     </div>

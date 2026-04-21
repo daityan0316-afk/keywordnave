@@ -1757,9 +1757,9 @@ td a:hover { text-decoration: underline; }
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid #f0e0e8;
+  border: 1px solid #e8edf4;
   border-radius: 10px;
-  background: #fffafe;
+  background: #fff;
   transition: box-shadow 0.15s;
 }
 .fav-item:hover { box-shadow: 0 2px 10px rgba(192,57,43,0.1); }
