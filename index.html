@@ -1877,7 +1877,7 @@ function renderNiche(items, keyword) {
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              return `<div onclick="document.getElementById('filterMin').value=${pMin};document.getElementById('filterMax').value=${pMax};filterByShop(null)" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+              return `<div onclick="filterByPriceBand(${pMin},${pMax})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isBest?6:4}px">
                   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
@@ -3023,6 +3023,19 @@ function copyKw(btn, kw) {
 
 let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
 
+
+function filterByPriceBand(min, max) {
+  document.getElementById('filterMin').value = min;
+  document.getElementById('filterMax').value = max === 9999999 ? '' : max;
+  document.querySelectorAll('.shop-tag').forEach(el => el.classList.remove('active'));
+  document.getElementById('shopTagAll')?.classList.add('active');
+  const base = _selectedGenre ? _sortedItems.filter(it => it.genreId == _selectedGenre) : _sortedItems;
+  const filtered = base.filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max))
+                       .sort((a,b) => b.reviewCount - a.reviewCount)
+                       .slice(0, 10);
+  renderTable(filtered, _orderMap);
+  document.getElementById('filterCount').textContent = `売れ筋TOP10（¥${min.toLocaleString()}〜${max===9999999?'':('¥'+max.toLocaleString())}）`;
+}
 
 function applyFilter() {
   const min = parseFloat(document.getElementById("filterMin").value) || 0;
