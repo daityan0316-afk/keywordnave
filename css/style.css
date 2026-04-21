@@ -1326,6 +1326,12 @@ td a:hover { text-decoration: underline; }
 
 /* Genre filter */
 
+/* お気に入り管理表 */
+.fav-mgmt-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.fav-mgmt-table thead th { background: #f4f6fb; color: #555; font-size: 0.72rem; font-weight: 700; padding: 7px 8px; border-bottom: 2px solid #dce6f0; text-align: left; white-space: nowrap; }
+.fav-mgmt-table tbody tr { border-bottom: 1px solid #eef1f6; transition: background 0.1s; }
+.fav-mgmt-table tbody tr:hover { background: #f8faff; }
+
 /* お気に入り商品 トップグリッド */
 .fav-top-grid {
   display: grid;

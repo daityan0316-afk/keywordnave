@@ -3105,25 +3105,62 @@ function renderFavGrid() {
     el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">お気に入り商品はありません</div>`;
     return;
   }
-  el.innerHTML = `<div class="fav-top-grid">${list.map(f => `
-    <div class="fav-top-card">
-      <a href="${f.url||'#'}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:block">
-        ${f.image ? `<img src="${f.image}" class="fav-top-img">` : '<div class="fav-top-img" style="background:#f0f0f0"></div>'}
-        <div class="fav-top-info">
-          <div class="fav-top-name">${f.name}</div>
-          <div class="fav-top-price">¥${(f.price||0).toLocaleString()}</div>
-          <div class="fav-top-meta">
-            <span class="fav-top-rating">★${f.reviewAvg||0}　${f.reviewCount||0}件</span>
-            ${f.shopName ? `<span class="fav-top-shop">🏪 ${f.shopName}</span>` : ''}
-          </div>
-        </div>
-      </a>
-      <button class="fav-top-del" onclick="removeFavFromGrid('${(f.itemCode||'').replace(/'/g,"\\'")}')">×</button>
-    </div>`).join('')}</div>`;
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="fav-mgmt-table">
+      <thead>
+        <tr>
+          <th style="width:52px"></th>
+          <th>商品名</th>
+          <th style="width:80px">価格</th>
+          <th style="width:80px">評価</th>
+          <th style="width:120px">店舗</th>
+          <th>仕入先URL</th>
+          <th style="width:72px">保存日</th>
+          <th style="width:36px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.map(f => {
+          const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
+          const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+          return `<tr>
+            <td style="padding:6px 8px;text-align:center">
+              ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
+            </td>
+            <td style="padding:6px 8px">
+              <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
+            </td>
+            <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
+            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
+            <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
+            <td style="padding:6px 8px">
+              <input type="url" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
+                placeholder="https://..."
+                data-code="${codeAttr}"
+                onchange="saveSupplierUrl('${codeEsc}', this.value)"
+                style="width:100%;min-width:160px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
+                onfocus="this.style.borderColor='#2563eb'"
+                onblur="this.style.borderColor='#d0d8e8'">
+              ${f.supplierUrl ? `<a href="${f.supplierUrl}" target="_blank" style="font-size:0.7rem;color:#2563eb;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↗ 開く</a>` : ''}
+            </td>
+            <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
+            <td style="padding:6px 8px;text-align:center">
+              <button onclick="removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+function saveSupplierUrl(itemCode, url) {
+  let list = loadFavs();
+  const idx = list.findIndex(f => f.itemCode === itemCode);
+  if (idx >= 0) { list[idx].supplierUrl = url; saveFavs(list); renderFavGrid(); }
 }
 function removeFavFromGrid(itemCode) {
-  let list = loadFavs().filter(f => f.itemCode !== itemCode);
-  saveFavs(list);
+  saveFavs(loadFavs().filter(f => f.itemCode !== itemCode));
   renderFavGrid();
 }
 
