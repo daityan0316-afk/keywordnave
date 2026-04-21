@@ -3135,14 +3135,16 @@ function renderFavGrid() {
             <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
             <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
             <td style="padding:6px 8px">
-              <input type="url" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
-                placeholder="https://..."
-                data-code="${codeAttr}"
-                onchange="saveSupplierUrl('${codeEsc}', this.value)"
-                style="width:100%;min-width:160px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
-                onfocus="this.style.borderColor='#2563eb'"
-                onblur="this.style.borderColor='#d0d8e8'">
-              ${f.supplierUrl ? `<a href="${f.supplierUrl}" target="_blank" style="font-size:0.7rem;color:#2563eb;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↗ 開く</a>` : ''}
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
+                <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
+                  placeholder="https://..."
+                  onchange="saveSupplierUrl('${codeEsc}', this.value)"
+                  style="flex:1;min-width:140px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
+                  onfocus="this.style.borderColor='#2563eb'"
+                  onblur="this.style.borderColor='#d0d8e8'">
+                <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
+                  style="flex-shrink:0;padding:4px 10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap">↗ 開く</button>
+              </div>
             </td>
             <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
             <td style="padding:6px 8px;text-align:center">
