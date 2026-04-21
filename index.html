@@ -1877,7 +1877,7 @@ function renderNiche(items, keyword) {
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              return `<div onclick="document.getElementById('filterMin').value=${pMin};document.getElementById('filterMax').value=${pMax};applyFilter()" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+              return `<div onclick="document.getElementById('filterMin').value=${pMin};document.getElementById('filterMax').value=${pMax};filterByShop(null)" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isBest?6:4}px">
                   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
