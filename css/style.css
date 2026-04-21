@@ -1403,13 +1403,14 @@ td a:hover { text-decoration: underline; }
 .saved-kw-items {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0;
+  align-items: center;
+  gap: 2px 0;
+  row-gap: 4px;
 }
 .saved-kw-item {
   display: inline-flex; align-items: center;
   background: none; border: none;
-  padding: 0;
+  padding: 2px 0;
 }
 .saved-kw-item:not(:first-child)::before {
   content: "/";
