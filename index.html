@@ -2659,14 +2659,14 @@ function openMarketPopup() {
           <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden">
             <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
               <thead>
-                <tr style="background:#f0f4f8">
-                  <th style="padding:8px 10px;text-align:center;font-size:0.75rem;color:#888;font-weight:600;width:32px">#</th>
-                  <th style="padding:8px 10px;text-align:left;font-size:0.75rem;color:#888;font-weight:600">店舗名</th>
-                  <th style="padding:8px 10px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">推計月商</th>
-                  <th style="padding:8px 10px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">商品数</th>
-                  <th style="padding:8px 10px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">平均価格</th>
-                  <th style="padding:8px 10px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">レビュー</th>
-                  <th style="padding:8px 10px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">評価</th>
+                <tr style="background:#f0f4f8;position:sticky;top:0">
+                  <th style="padding:6px 8px;text-align:center;font-size:0.72rem;color:#888;font-weight:600;width:28px">#</th>
+                  <th style="padding:6px 8px;text-align:left;font-size:0.72rem;color:#888;font-weight:600">店舗名</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">推計月商</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">商品数</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">平均価格</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">レビュー</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">評価</th>
                 </tr>
               </thead>
               <tbody>
@@ -2674,18 +2674,18 @@ function openMarketPopup() {
                   const rankColor = i===0?'#f39c12':i===1?'#95a5a6':i===2?'#cd7f32':'#dde3ea';
                   const estLabel = s.estSales >= 1e8 ? `${(s.estSales/1e8).toFixed(1)}億` : s.estSales >= 1e4 ? `${Math.round(s.estSales/1e4)}万` : `${s.estSales.toLocaleString()}`;
                   const salesColor = i===0?'#e74c3c':i<3?'#e67e22':'#27ae60';
-                  return `<tr style="background:${i%2===0?'#fff':'#f8fafc'};border-top:1px solid #e8edf2">
-                    <td style="padding:9px 10px;text-align:center">
-                      <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.75rem;font-weight:800">${i+1}</span>
+                  return `<tr style="background:${i%2===0?'#fff':'#f8fafc'};border-top:1px solid #edf0f5">
+                    <td style="padding:6px 8px;text-align:center">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.7rem;font-weight:800">${i+1}</span>
                     </td>
-                    <td style="padding:9px 10px;max-width:160px">
-                      <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.9rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
+                    <td style="padding:6px 8px;max-width:150px">
+                      <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.88rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
                     </td>
-                    <td style="padding:9px 10px;text-align:right;font-size:1.05rem;font-weight:900;color:${salesColor};white-space:nowrap">${estLabel}円</td>
-                    <td style="padding:9px 10px;text-align:right;font-weight:700;color:#2563eb">${s.count}</td>
-                    <td style="padding:9px 10px;text-align:right;color:#555;white-space:nowrap">¥${s.avgPrice.toLocaleString()}</td>
-                    <td style="padding:9px 10px;text-align:right;color:#2980b9">${s.totalRev.toLocaleString()}</td>
-                    <td style="padding:9px 10px;text-align:right;color:#e67e22">${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</td>
+                    <td style="padding:6px 8px;text-align:right;font-size:0.95rem;font-weight:800;color:${salesColor};white-space:nowrap">${estLabel}円</td>
+                    <td style="padding:6px 8px;text-align:right;font-size:0.88rem;font-weight:700;color:#2563eb">${s.count}</td>
+                    <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#555;white-space:nowrap">¥${s.avgPrice.toLocaleString()}</td>
+                    <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#2980b9">${s.totalRev.toLocaleString()}</td>
+                    <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#e67e22">${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
