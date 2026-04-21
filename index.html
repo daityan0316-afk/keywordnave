@@ -1842,22 +1842,41 @@ function renderNiche(items, keyword) {
              </div>` : '';
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="padding:10px 14px;border-bottom:1px solid #e8edf4">
-          <div style="font-size:0.8rem;font-weight:700;color:#666;margin-bottom:4px">💰 １商品の月商目安（新規参入）</div>
-          <div style="font-size:1.8rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.04em;text-align:right">${monthlyDisplay}</div>
-        </div>
-        <div style="padding:8px 14px;border-bottom:1px solid #e8edf4;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-          <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};line-height:1">🏆 SEO ${seoVal} ／</span>
-          <span style="font-size:0.78rem;font-weight:700;color:${ma.entryColor};opacity:0.8;line-height:1">${ma.entryJudge}</span>
-        </div>
-        <div style="padding:10px 14px">
-          <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:6px">🛒 価格帯別・必要販売数/月</div>
-          ${salesRow('低価格帯', priceLo)}
-          ${salesRow('中価格帯', priceMid)}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-            <span style="font-size:0.82rem;color:#555">高価格帯 <span style="color:#444;font-size:0.82rem;font-weight:700">¥${priceHi.toLocaleString()}</span></span>
-            <span style="font-size:0.9rem;font-weight:800;color:${ma.entryColor}">${priceHi > 0 ? Math.ceil(monthlyRounded/priceHi) : '—'}個/月</span>
+        <div style="padding:10px 14px;border-bottom:1px solid #e8edf4;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:0.8rem;font-weight:700;color:#666">💰 月商目安（新規参入）</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor}">🏆 SEO ${seoVal}</span>
+            <span style="font-size:0.75rem;color:${ma.entryColor};opacity:0.85;font-weight:700">／ ${ma.entryJudge}</span>
           </div>
+        </div>
+        <div style="padding:8px 14px">
+          ${(()=>{
+            const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
+            const allItems = (ma.items||[]).filter(i=>i.price>0&&i.reviewCount>0);
+            const prices = allItems.map(i=>i.price).sort((a,b)=>a-b);
+            const p33 = prices[Math.floor(prices.length*0.33)]||0;
+            const p66 = prices[Math.floor(prices.length*0.66)]||0;
+            const bands = [
+              {label:'低価格帯', min:0,    max:p33+1,    color:'#27ae60'},
+              {label:'中価格帯', min:p33+1, max:p66+1,   color:'#e67e22'},
+              {label:'高価格帯', min:p66+1, max:Infinity, color:'#e74c3c'},
+            ];
+            return bands.map(b=>{
+              const its = allItems.filter(i=>i.price>=b.min&&i.price<b.max);
+              if(!its.length) return '';
+              const avgPrice = Math.round(its.reduce((s,i)=>s+i.price,0)/its.length);
+              const topItem = its.sort((a,z)=>z.reviewCount-a.reviewCount)[0];
+              const estMonthly = Math.round((topItem.reviewCount/REVIEW_RATE/AVG_MONTHS)*topItem.price);
+              const rounded = estMonthly>=1e5?Math.round(estMonthly/5e4)*5e4:Math.round(estMonthly/1e3)*1e3;
+              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f2f7">
+                <div>
+                  <span style="font-size:0.78rem;font-weight:700;color:${b.color}">${b.label}</span>
+                  <span style="font-size:0.75rem;color:#999;margin-left:5px">平均¥${avgPrice.toLocaleString()}</span>
+                </div>
+                <span style="font-size:1rem;font-weight:900;color:${b.color}">${rounded.toLocaleString()}円</span>
+              </div>`;
+            }).join('');
+          })()}
         </div>
       </div>`;
       })() : ''}
