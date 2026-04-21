@@ -276,8 +276,8 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 }
 .summary-card:hover { box-shadow: var(--shadow-md); }
 .card-icon  { font-size: 1.1rem; flex-shrink: 0; }
-.card-label { font-size: 0.68rem; color: var(--text-sub); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-.card-value { font-size: 0.95rem; font-weight: 800; color: var(--navy); word-break: break-all; }
+.card-label { font-size: 0.68rem; color: var(--text-sub); font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; }
+.card-value { font-size: 0.95rem; font-weight: 500; color: var(--navy); word-break: break-all; }
 
 .table-wrap { overflow-x: auto; }
 
