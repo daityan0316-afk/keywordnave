@@ -2865,7 +2865,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
         </div>
         <div style="background:#fef5f5;border:1px solid #f5c6c6;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;line-height:1.2">
           <div style="font-size:1.05rem;font-weight:900;color:#c0392b">${fmtMonthly(kwMonthly)}</div>
-          ${kwShare > 0 ? `<div style="font-size:0.62rem;color:#aaa">市場シェア約${kwShare}%</div>` : ''}
+          <div style="font-size:0.62rem;color:#aaa">${items.length}商品${kwShare > 0 ? `・シェア約${kwShare}%` : ''}</div>
         </div>
       </div>
     </div>`;
