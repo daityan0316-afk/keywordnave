@@ -2626,13 +2626,61 @@ function openMarketPopup() {
   document.getElementById("marketPopupTitle").textContent = `📊 商品分析レポート — ${d.keyword}`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
-      <button class="mp-tab active" onclick="mpTab(this,0)">🔍 SEO戦略</button>
-      <button class="mp-tab" onclick="mpTab(this,1)">📊 市場シェア</button>
+      <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場シェア</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">🔍 SEO戦略</button>
     </div>
     <div class="mp-panes">
 
-      <!-- タブ0: SEO戦略 -->
+      <!-- タブ0: 市場シェア -->
       <div class="mp-pane active">
+        ${(() => {
+          const shopMap = {};
+          items.forEach(it => {
+            if (!it.shopName) return;
+            if (!shopMap[it.shopName]) shopMap[it.shopName] = { code: (it.itemCode || "").split(":")[0], items: [] };
+            shopMap[it.shopName].items.push(it);
+          });
+          const allShopsRaw = Object.entries(shopMap).map(([name, v]) => {
+            const its = v.items;
+            const totalRev = its.reduce((s,i) => s + i.reviewCount, 0);
+            const avgPrice = Math.round(its.reduce((s,i) => s+i.price,0) / its.length);
+            const avgRev2 = its.filter(i=>i.reviewAvg>0).length ? (its.reduce((s,i)=>s+i.reviewAvg,0)/its.filter(i=>i.reviewAvg>0).length) : 0;
+            return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev: avgRev2, its };
+          });
+          const totalReviews2 = allShopsRaw.reduce((s,x) => s + x.totalRev, 0) || 1;
+          const monthRevTotal2 = d.totalMarketRevenue / 12;
+          const shops2 = allShopsRaw
+            .map(s => ({ ...s, estSales: Math.round(s.totalRev / totalReviews2 * monthRevTotal2) }))
+            .sort((a,b) => b.estSales - a.estSales).slice(0, 15);
+          const maxRev2 = shops2[0]?.estSales || 1;
+          return `
+          <div style="margin-bottom:8px;font-size:0.75rem;color:#aaa">🏆 上位${shops2.length}店舗（推計月商順）　※レビュー数比率で按分</div>
+          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden">
+            ${shops2.map((s, i) => {
+              const barW = Math.round(s.estSales / maxRev2 * 100);
+              const rankColor = i === 0 ? '#f39c12' : i === 1 ? '#95a5a6' : i === 2 ? '#cd7f32' : '#dde3ea';
+              const estLabel = s.estSales >= 1e8 ? `${(s.estSales/1e8).toFixed(1)}億` : s.estSales >= 1e4 ? `${Math.round(s.estSales/1e4)}万` : `${s.estSales.toLocaleString()}`;
+              const barColor = i === 0 ? '#e74c3c' : i < 3 ? '#e67e22' : '#3498db';
+              return `<div style="background:${i%2===0?'#fff':'#f8fafc'};border-bottom:${i<shops2.length-1?'1px solid #e8edf2':'none'};padding:7px 12px">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
+                  <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
+                  <span style="font-size:0.88rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${estLabel}円</span>
+                </div>
+                <div style="display:flex;gap:10px;font-size:0.72rem;color:#888;margin-bottom:4px">
+                  <span>📦${s.count}件</span><span>¥${s.avgPrice.toLocaleString()}</span><span>💬${s.totalRev.toLocaleString()}</span><span>★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
+                </div>
+                <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
+                  <div style="height:100%;width:${barW}%;background:${barColor};border-radius:2px"></div>
+                </div>
+              </div>`;
+            }).join("")}
+          </div>`;
+        })()}
+      </div>
+
+      <!-- タブ1: SEO戦略 -->
+      <div class="mp-pane">
         ${(()=>{
           const cs = d.competitionScore || 0;
           const seoColor = cs >= 4 ? '#c0392b' : cs >= 2 ? '#e67e22' : '#27ae60';
@@ -2692,54 +2740,6 @@ function openMarketPopup() {
                 </div>
               </div>
             </div>
-          </div>`;
-        })()}
-      </div>
-
-      <!-- タブ3: 市場シェア -->
-      <div class="mp-pane">
-        ${(() => {
-          const shopMap = {};
-          items.forEach(it => {
-            if (!it.shopName) return;
-            if (!shopMap[it.shopName]) shopMap[it.shopName] = { code: (it.itemCode || "").split(":")[0], items: [] };
-            shopMap[it.shopName].items.push(it);
-          });
-          const allShopsRaw = Object.entries(shopMap).map(([name, v]) => {
-            const its = v.items;
-            const totalRev = its.reduce((s,i) => s + i.reviewCount, 0);
-            const avgPrice = Math.round(its.reduce((s,i) => s+i.price,0) / its.length);
-            const avgRev2 = its.filter(i=>i.reviewAvg>0).length ? (its.reduce((s,i)=>s+i.reviewAvg,0)/its.filter(i=>i.reviewAvg>0).length) : 0;
-            return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev: avgRev2, its };
-          });
-          const totalReviews2 = allShopsRaw.reduce((s,x) => s + x.totalRev, 0) || 1;
-          const monthRevTotal2 = d.totalMarketRevenue / 12;
-          const shops2 = allShopsRaw
-            .map(s => ({ ...s, estSales: Math.round(s.totalRev / totalReviews2 * monthRevTotal2) }))
-            .sort((a,b) => b.estSales - a.estSales).slice(0, 15);
-          const maxRev2 = shops2[0]?.estSales || 1;
-          return `
-          <div style="margin-bottom:8px;font-size:0.75rem;color:#aaa">🏆 上位${shops2.length}店舗（推計月商順）　※レビュー数比率で按分</div>
-          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden">
-            ${shops2.map((s, i) => {
-              const barW = Math.round(s.estSales / maxRev2 * 100);
-              const rankColor = i === 0 ? '#f39c12' : i === 1 ? '#95a5a6' : i === 2 ? '#cd7f32' : '#dde3ea';
-              const estLabel = s.estSales >= 1e8 ? `${(s.estSales/1e8).toFixed(1)}億` : s.estSales >= 1e4 ? `${Math.round(s.estSales/1e4)}万` : `${s.estSales.toLocaleString()}`;
-              const barColor = i === 0 ? '#e74c3c' : i < 3 ? '#e67e22' : '#3498db';
-              return `<div style="background:${i%2===0?'#fff':'#f8fafc'};border-bottom:${i<shops2.length-1?'1px solid #e8edf2':'none'};padding:7px 12px">
-                <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
-                  <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
-                  <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
-                  <span style="font-size:0.88rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${estLabel}円</span>
-                </div>
-                <div style="display:flex;gap:10px;font-size:0.72rem;color:#888;margin-bottom:4px">
-                  <span>📦${s.count}件</span><span>¥${s.avgPrice.toLocaleString()}</span><span>💬${s.totalRev.toLocaleString()}</span><span>★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
-                </div>
-                <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
-                  <div style="height:100%;width:${barW}%;background:${barColor};border-radius:2px"></div>
-                </div>
-              </div>`;
-            }).join("")}
           </div>`;
         })()}
       </div>
