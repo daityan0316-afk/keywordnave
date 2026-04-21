@@ -2626,83 +2626,16 @@ function openMarketPopup() {
   document.getElementById("marketPopupTitle").textContent = `📊 商品分析レポート — ${d.keyword}`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
-      <button class="mp-tab active" onclick="mpTab(this,0)">🎯 サマリー</button>
-      <button class="mp-tab" onclick="mpTab(this,1)">🔍 SEO戦略</button>
-      <button class="mp-tab" onclick="mpTab(this,2)">📊 市場シェア</button>
-      <button class="mp-tab" onclick="mpTab(this,3)">📦 商品分析</button>
-      <button class="mp-tab" onclick="mpTab(this,4)">⚠️ リスク</button>
-      <button class="mp-tab" onclick="mpTab(this,5)">🔬 リサーチ</button>
+      <button class="mp-tab active" onclick="mpTab(this,0)">🔍 SEO戦略</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">📊 市場シェア</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">📦 商品分析</button>
+      <button class="mp-tab" onclick="mpTab(this,3)">⚠️ リスク</button>
+      <button class="mp-tab" onclick="mpTab(this,4)">🔬 リサーチ</button>
     </div>
     <div class="mp-panes">
 
-      <!-- タブ0: サマリー -->
+      <!-- タブ0: SEO戦略 -->
       <div class="mp-pane active">
-        ${(()=>{
-          const fmtY = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
-          const concLabel = d.topShopShare > 0.4 ? '集中型' : d.topShopShare > 0.2 ? '寡占型' : '分散型';
-          const cvLabel = d.cv > 0.9 ? '変動大' : d.cv > 0.5 ? 'やや変動' : '安定';
-          const monthRev2 = Math.round(d.totalMarketRevenue / 12);
-          return `
-          <div class="market-popup-grid">
-            <div class="market-popup-stat">
-              <span class="market-popup-stat-label">🏪 月間市場規模</span>
-              <span class="market-popup-stat-value">${fmtY(monthRev2)}</span>
-              <span class="market-popup-stat-sub">楽天市場 推計売上／月</span>
-            </div>
-            <div class="market-popup-stat">
-              <span class="market-popup-stat-label">📦 総出品数</span>
-              <span class="market-popup-stat-value">${d.totalCount.toLocaleString()}件</span>
-              <span class="market-popup-stat-sub">検索でヒットする商品数</span>
-            </div>
-            <div class="market-popup-stat">
-              <span class="market-popup-stat-label">🏬 競合店舗数</span>
-              <span class="market-popup-stat-value">${d.uniqueShops}店舗</span>
-              <span class="market-popup-stat-sub">市場集中度：${concLabel}</span>
-            </div>
-            <div class="market-popup-stat">
-              <span class="market-popup-stat-label">💴 中央価格</span>
-              <span class="market-popup-stat-value">¥${d.priceMedian.toLocaleString()}</span>
-              <span class="market-popup-stat-sub">平均 ¥${d.priceAvg.toLocaleString()}</span>
-            </div>
-            <div class="market-popup-stat">
-              <span class="market-popup-stat-label">📈 季節変動</span>
-              <span class="market-popup-stat-value">${cvLabel}</span>
-              <span class="market-popup-stat-sub">変動係数 ${d.cv.toFixed(2)}</span>
-            </div>
-          </div>
-          <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;margin-top:4px">
-            <div style="font-size:0.78rem;font-weight:700;color:#555;margin-bottom:8px">📌 市場トレンド（上位商品の共通キーワード）</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px">
-              ${topKws.map(w => `<span style="background:#e8f4fd;color:#2563eb;border:1px solid #bdd8f5;border-radius:20px;padding:3px 12px;font-size:0.86rem;font-weight:600">${w}</span>`).join("")}
-            </div>
-          </div>
-          <div style="background:#0f1f3d;border-radius:12px;padding:16px 18px;margin-top:8px">
-            <div style="font-size:0.78rem;font-weight:700;color:#93c5fd;letter-spacing:0.06em;margin-bottom:12px">🚀 参入アクションプラン</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;gap:10px;align-items:flex-start">
-                <span style="background:#2563eb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">1</span>
-                <div style="font-size:0.84rem;color:#e2e8f0;line-height:1.6"><b style="color:#fff">RPP広告で露出確保</b>　まず検索結果に表示されることが最優先。CPC入札でクリックを集め、購買データを積む。</div>
-              </div>
-              <div style="display:flex;gap:10px;align-items:flex-start">
-                <span style="background:#2563eb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">2</span>
-                <div style="font-size:0.84rem;color:#e2e8f0;line-height:1.6"><b style="color:#fff">レビュー獲得を最優先</b>　同梱カード・購入後フォローでレビュー率を上げる。上位商品の30%が当面の目標。</div>
-              </div>
-              <div style="display:flex;gap:10px;align-items:flex-start">
-                <span style="background:#2563eb;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">3</span>
-                <div style="font-size:0.84rem;color:#e2e8f0;line-height:1.6"><b style="color:#fff">タイトル最適化でSEO流入</b>　「${topKws.slice(0,3).join('」「')}」を商品タイトル前半に配置。</div>
-              </div>
-              <div style="display:flex;gap:10px;align-items:flex-start">
-                <span style="background:#0891b2;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">4</span>
-                <div style="font-size:0.84rem;color:#e2e8f0;line-height:1.6"><b style="color:#fff">差別化で広告依存を脱却</b>　${diffPoints[0] ? diffPoints[0].body : '価格・写真・説明文で他店との違いを明確にする。'}</div>
-              </div>
-            </div>
-          </div>
-          <div class="market-popup-note">※楽天APIから取得した商品データを元に推計しています。</div>`;
-        })()}
-      </div>
-
-      <!-- タブ2: SEO戦略 -->
-      <div class="mp-pane">
         ${(()=>{
           const cs = d.competitionScore || 0;
           const seoColor = cs >= 4 ? '#c0392b' : cs >= 2 ? '#e67e22' : '#27ae60';
