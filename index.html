@@ -2109,29 +2109,7 @@ function renderNiche(items, keyword) {
       </div>` : '';
     })() : ''}`;
 
-  // おすすめ価格帯をデフォルト適用
-  const _maItems = (window._marketAnalysis?.items || []).filter(i=>i.price>0&&i.reviewCount>0);
-  if (_maItems.length) {
-    const _prices = _maItems.map(i=>i.price).sort((a,b)=>a-b);
-    const _p33 = _prices[Math.floor(_prices.length*0.33)]||0;
-    const _p66 = _prices[Math.floor(_prices.length*0.66)]||0;
-    const _bands = [{min:0,max:_p33+1},{min:_p33+1,max:_p66+1},{min:_p66+1,max:Infinity}];
-    const RRATE=0.13,AMTHS=24;
-    const _best = _bands.map(b=>{
-      const its=_maItems.filter(i=>i.price>=b.min&&i.price<b.max);
-      if(!its.length) return {b,val:0};
-      const top=its.sort((a,z)=>z.reviewCount-a.reviewCount)[0];
-      return {b, val:Math.round((top.reviewCount/RRATE/AMTHS)*top.price)};
-    }).reduce((bx,r)=>r.val>bx.val?r:bx,{b:null,val:0});
-    if (_best.b) {
-      const bestBandIdx = _bands.indexOf(_best.b);
-      setTimeout(()=>filterByPriceBand(
-        Math.round(_best.b.min),
-        _best.b.max===Infinity?9999999:Math.round(_best.b.max-1),
-        bestBandIdx
-      ), 100);
-    }
-  }
+  window._currentBandLabel = '';
 }
 
 function renderSummary(items) {
