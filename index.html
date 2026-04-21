@@ -1842,11 +1842,9 @@ function renderNiche(items, keyword) {
              </div>` : '';
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="padding:10px 14px;border-bottom:1px solid #e8edf4;display:flex;align-items:center;justify-content:space-between">
+        <div style="padding:10px 14px;border-bottom:1px solid #e8edf4">
+          <div style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};margin-bottom:4px">🏆 SEO ${seoVal}</div>
           <div style="font-size:0.8rem;font-weight:700;color:#666">💰 月商目安（新規参入）</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor}">🏆 SEO ${seoVal}</span>
-          </div>
         </div>
         <div style="padding:8px 14px">
           ${(()=>{
