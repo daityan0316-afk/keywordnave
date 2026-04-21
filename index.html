@@ -3462,9 +3462,9 @@ function renderFavGrid() {
       </tr></thead>
       <tbody>
         ${Object.entries(groups).map(([kw, items]) => `
-          <tr><td colspan="8" style="padding:2px 8px;border-bottom:1px solid #e8edf4">
-            <span style="font-size:0.74rem;font-weight:700;color:#2563eb">🔍 ${kw}</span>
-            <span style="font-size:0.7rem;color:#aaa;font-weight:400;margin-left:4px">（${items.length}件）</span>
+          <tr style="line-height:1"><td colspan="8" style="padding:1px 8px;border-bottom:1px solid #e8edf4">
+            <span style="font-size:0.7rem;font-weight:700;color:#2563eb">🔍 ${kw}</span>
+            <span style="font-size:0.68rem;color:#aaa;font-weight:400;margin-left:4px">（${items.length}件）</span>
           </td></tr>
           ${makeRows(kw, items)}`).join('')}
       </tbody>
