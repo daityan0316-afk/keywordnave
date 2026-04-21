@@ -1934,7 +1934,7 @@ function renderShopTags(items) {
 
   el.innerHTML = `
     <div class="shop-tag-box">
-      <span class="shop-tag-label">検索結果表示数<small>${shops.length}店舗</small></span>
+      <span class="shop-tag-label">競合／検索結果数<small>${shops.length}店舗</small></span>
       <div class="shop-tag-row">
         <button class="shop-tag shop-tag-all active" id="shopTagAll" onclick="filterByShop(null)">すべて</button>
         ${shops.map(([name, d]) =>
