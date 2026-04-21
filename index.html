@@ -3173,7 +3173,7 @@ function renderFavGrid() {
                   onfocus="this.style.borderColor='#2563eb'"
                   onblur="this.style.borderColor='#d0d8e8'">
                 <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-                  style="flex-shrink:0;padding:4px 10px;background:#a0a8b8;color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap">↗ 開く</button>
+                  style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;letter-spacing:0.04em;box-shadow:0 2px 8px #764ba233;transition:opacity 0.15s" onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">↗ 開く</button>
               </div>
             </td>
             <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
