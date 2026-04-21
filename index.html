@@ -1877,7 +1877,7 @@ function renderNiche(items, keyword) {
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              return `<div onclick="filterByPriceBand(${pMin},${pMax})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)';const c=this.querySelector('.price-why-chip');if(c)c.style.display='inline-block'" onmouseout="this.style.boxShadow='none';const c=this.querySelector('.price-why-chip');if(c)c.style.display='none'">
+              return `<div onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)';const c=this.querySelector('.price-why-chip');if(c)c.style.display='inline-block'" onmouseout="this.style.boxShadow='none';const c=this.querySelector('.price-why-chip');if(c)c.style.display='none'">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isBest?6:4}px">
                   <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
@@ -1916,7 +1916,7 @@ function renderNiche(items, keyword) {
         const grp = its2.filter(i => i.price >= t.min && i.price < t.max && (i.reviewCount||0) > 0)
                         .sort((a,b) => (b.reviewCount||0) - (a.reviewCount||0))
                         .slice(0, 5);
-        if (!grp.length) return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
+        if (!grp.length) return `<div data-band-idx="${tiers2.indexOf(t)}" style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
           <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
             <span>${t.label}</span>
             <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
@@ -1953,7 +1953,7 @@ function renderNiche(items, keyword) {
             <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" style="flex-shrink:0;margin-right:6px" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
           </div>`;
         }).join('');
-        return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
+        return `<div data-band-idx="${tiers2.indexOf(t)}" style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
           <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
             <span>${t.label}</span>
             <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
@@ -1987,9 +1987,11 @@ function renderNiche(items, keyword) {
       return {b, val:Math.round((top.reviewCount/RRATE/AMTHS)*top.price)};
     }).reduce((bx,r)=>r.val>bx.val?r:bx,{b:null,val:0});
     if (_best.b) {
+      const bestBandIdx = _bands.indexOf(_best.b);
       setTimeout(()=>filterByPriceBand(
         Math.round(_best.b.min),
-        _best.b.max===Infinity?9999999:Math.round(_best.b.max-1)
+        _best.b.max===Infinity?9999999:Math.round(_best.b.max-1),
+        bestBandIdx
       ), 100);
     }
   }
@@ -3046,7 +3048,7 @@ function copyKw(btn, kw) {
 let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
 
 
-function filterByPriceBand(min, max) {
+function filterByPriceBand(min, max, bandIdx) {
   document.getElementById('filterMin').value = min;
   document.getElementById('filterMax').value = max === 9999999 ? '' : max;
   document.querySelectorAll('.shop-tag').forEach(el => el.classList.remove('active'));
@@ -3057,6 +3059,10 @@ function filterByPriceBand(min, max) {
                        .slice(0, 10);
   renderTable(filtered, _orderMap);
   document.getElementById('filterCount').textContent = `TOP10絞込中`;
+  // 売れ筋商品カードも絞り込む
+  document.querySelectorAll('[data-band-idx]').forEach(el => {
+    el.style.display = (bandIdx === undefined || el.dataset.bandIdx == bandIdx) ? '' : 'none';
+  });
 }
 
 function applyFilter() {
