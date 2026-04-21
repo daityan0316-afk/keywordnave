@@ -1754,9 +1754,8 @@ function renderNiche(items, keyword) {
             <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${(function(){var m={'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40};return m[ma.entryJudge]||50;})()}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
           </div>
           <div style="border-left:3px solid ${ma.entryColor};background:${ma.entryBg};border-radius:0 6px 6px 0;margin-bottom:6px;overflow:hidden">
-            <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.reason-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;cursor:pointer;user-select:none">
-              <span style="font-size:0.72rem;font-weight:700;color:${ma.entryColor};letter-spacing:0.05em">▼ なぜこの判定？</span>
-              <span class="reason-arrow" style="font-size:0.65rem;color:${ma.entryColor}"></span>
+            <div onclick="var b=this.nextElementSibling;var open=b.style.display==='none';b.style.display=open?'block':'none';this.querySelector('.reason-toggle').textContent=open?'▼ なぜこの判定？':'▶ なぜこの判定？（タップで開く）'" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;cursor:pointer;user-select:none">
+              <span class="reason-toggle" style="font-size:0.72rem;font-weight:700;color:${ma.entryColor};letter-spacing:0.05em">▼ なぜこの判定？</span>
             </div>
             <div style="padding:0 10px 8px;font-size:0.82rem;color:#444;line-height:1.6">
               <div style="margin-bottom:6px">${ma.entryReason}</div>
