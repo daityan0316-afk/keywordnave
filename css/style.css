@@ -2429,7 +2429,7 @@ td a:hover { text-decoration: underline; }
     background: linear-gradient(135deg,#1e3a8a,#2563eb); box-shadow: 0 2px 8px rgba(37,99,235,0.3);
   }
   .sp-btn-row { order: 3; display: flex; gap: 8px; width: 100%; }
-  #saveBtn { flex: 1; padding: 12px 0; font-size: 0.85rem; font-weight: 700; background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1; border-radius: 8px; white-space: nowrap; text-align: center; }
+  #saveBtn { flex: 1; padding: 12px 0; font-size: 0.85rem; font-weight: 700; background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1; border-radius: 8px; white-space: nowrap; justify-content: center; }
   #favBtn  { display: none; }
   .exclude-row { order: 5; width: 100%; flex-shrink: unset; }
   #keyword { font-size: 1rem; padding: 10px 12px; border-radius: 8px; border-color: #e2e8f0; background: #f8fafc; }
