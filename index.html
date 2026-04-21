@@ -1744,41 +1744,39 @@ function renderNiche(items, keyword) {
                            : `約${Math.round(monthly).toLocaleString()}円`;
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="padding:10px 12px;border-bottom:1px solid #e0e4ef">
-          <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 結論（参入すべきか）</div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:1.05rem;font-weight:900;color:${ma.entryColor};white-space:nowrap;text-shadow:0 0 8px ${ma.entryColor}44">${ma.entryJudge}</span>
+        <div style="padding:12px 14px;border-bottom:1px solid #e0e4ef">
+          <div style="font-size:0.7rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px">結論 — 参入すべきか？</div>
+          <div style="font-size:1.25rem;font-weight:900;color:${ma.entryColor};margin-bottom:8px;text-shadow:0 0 10px ${ma.entryColor}33">${ma.entryJudge}</div>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#aaa;margin-bottom:3px"><span>参入しやすさ</span><span style="color:${ma.entryColor};font-weight:700">${(function(){var m={'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4};return m[ma.entryJudge]||5;})()}/10</span></div>
+            <div style="height:7px;background:#e8eaf0;border-radius:4px;overflow:hidden"><div style="height:100%;width:${(function(){var m={'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40};return m[ma.entryJudge]||50;})()}%;background:${ma.entryColor};border-radius:4px;transition:width 0.8s ease"></div></div>
           </div>
-          <div style="margin-bottom:4px">
-            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${(function(){var m={'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4};return m[ma.entryJudge]||5;})()}/10</span></div>
-            <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${(function(){var m={'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40};return m[ma.entryJudge]||50;})()}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
-          </div>
-          <div style="border-left:3px solid ${ma.entryColor};background:${ma.entryBg};border-radius:0 6px 6px 0;margin-bottom:6px;overflow:hidden">
-            <div onclick="var b=this.nextElementSibling;var open=b.style.display==='none';b.style.display=open?'block':'none';this.querySelector('.reason-toggle').textContent=open?'▼ なぜこの判定？':'▶ なぜこの判定？（タップで開く）'" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;cursor:pointer;user-select:none">
-              <span class="reason-toggle" style="font-size:0.72rem;font-weight:700;color:${ma.entryColor};letter-spacing:0.05em">▼ なぜこの判定？</span>
+          <div style="border-left:3px solid ${ma.entryColor};background:${ma.entryBg};border-radius:0 8px 8px 0;overflow:hidden">
+            <div onclick="var b=this.nextElementSibling;var open=b.style.display==='none';b.style.display=open?'block':'none';this.querySelector('.reason-toggle').textContent=open?'▼ なぜこの判定？':'▶ なぜこの判定？（タップで開く）'" style="display:flex;align-items:center;padding:7px 10px;cursor:pointer;user-select:none">
+              <span class="reason-toggle" style="font-size:0.75rem;font-weight:700;color:${ma.entryColor}">▼ なぜこの判定？</span>
             </div>
-            <div style="padding:0 10px 8px;font-size:0.82rem;color:#444;line-height:1.6">
-              <div style="margin-bottom:6px">${ma.entryReason}</div>
-              <div style="padding:6px 8px;background:#fff;border-radius:5px;border:1px solid #e0e0e8;font-size:0.8rem;color:#555">💡 ${ma.entryAdvice}</div>
+            <div style="padding:0 12px 10px;font-size:0.84rem;color:#444;line-height:1.65">
+              <div style="margin-bottom:8px">${ma.entryReason}</div>
+              <div style="padding:7px 10px;background:#fff;border-radius:6px;border:1px solid #e0e0e8;font-size:0.82rem;color:#555;line-height:1.6">💡 ${ma.entryAdvice}</div>
             </div>
           </div>
         </div>
-        <div style="padding:10px 12px">
-          <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 月商目標（シェア約${sharePct}%獲得時の見込み）</div>
-          <div style="font-size:1.5rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.02em;text-shadow:0 0 8px ${ma.entryColor}44">${monthlyLabel}</div>
+        <div style="padding:12px 14px">
+          <div style="font-size:0.7rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px">月商目標 — シェア約${sharePct}%獲得時</div>
+          <div style="font-size:2rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.01em;line-height:1.1;margin-bottom:2px;text-shadow:0 0 10px ${ma.entryColor}33">${monthlyLabel}</div>
           ${(ma.priceMedian > 0 && ma.priceAvg > 0) ? (() => {
             const bot = ma.priceMin || Math.round(ma.priceMedian * 0.3);
             const lo  = Math.round(ma.priceMedian * 0.5);
             const md  = ma.priceMedian;
             const hi  = Math.round(ma.priceMedian * 2);
             const row = (label, price, bold) => price > 0 ? `
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="color:${bold?'#222':'#444'};font-weight:${bold?700:500};font-size:${bold?'0.82rem':'0.78rem'}">${label} ¥${price.toLocaleString()}</span>
-                <b style="color:${ma.entryColor};font-size:${bold?'0.88rem':'0.82rem'}">${Math.ceil(monthly/price)}個／月</b>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0">
+                <span style="color:${bold?'#222':'#555'};font-weight:${bold?700:400};font-size:${bold?'0.85rem':'0.8rem'}">${label} <span style="color:#888;font-size:0.78rem">¥${price.toLocaleString()}</span></span>
+                <b style="color:${ma.entryColor};font-size:${bold?'0.95rem':'0.85rem'};font-weight:800">${Math.ceil(monthly/price)}個／月</b>
               </div>` : '';
-            return `<div style="font-size:0.78rem;color:#666;margin-top:6px;border-top:1px solid #eee;padding-top:6px">
-              <div style="margin-bottom:4px;font-weight:600;color:#888;font-size:0.78rem">月商達成に必要な販売数</div>
-              <div style="display:flex;flex-direction:column;gap:3px">
+            return `<div style="margin-top:10px;border-top:1px solid #eee;padding-top:8px">
+              <div style="font-size:0.72rem;font-weight:700;color:#aaa;letter-spacing:0.05em;margin-bottom:6px">月商達成に必要な販売数</div>
+              <div style="display:flex;flex-direction:column;gap:1px">
                 ${row('高価格', hi, false)}
                 ${row('中価格', md, true)}
                 ${row('低価格', lo, false)}
