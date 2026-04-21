@@ -2387,7 +2387,7 @@ td a:hover { text-decoration: underline; }
     padding: 0;
     border-radius: 0 0 20px 20px;
     align-items: stretch;
-    background: linear-gradient(150deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
+    background: linear-gradient(150deg, #3b82f6 0%, #60a5fa 55%, #93c5fd 100%);
     border: none;
     box-shadow: 0 6px 24px rgba(15,35,84,0.28);
     overflow: hidden;
