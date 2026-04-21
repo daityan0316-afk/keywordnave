@@ -1861,39 +1861,32 @@ function renderSummary(items) {
   const _capLabel = _capMonthly === Infinity ? null : fmtYen(Math.round(_capMonthly));
   const _opsLabel = `${_ops.people === 1 ? '1人' : _ops.people === 2 ? '2人' : _ops.people <= 5 ? '3〜5人' : '6人+'}・${_ops.shipping === 'self' ? '自己発送' : '外注発送'}`;
   const _monthlyEst = Math.round(yearlyEstimate / 12);
-  // 規模チェック：推計月商が対応可能月商を超えているか
-  const _overCapacity = _capMonthly !== Infinity && _monthlyEst > _capMonthly * 0.8;
-  const _capNote = _capMonthly === Infinity ? '' :
-    _overCapacity
-      ? `\n\n⚠️ 対応可能月商目安は${_capLabel}ほど。売上が伸びた際は注文量が発送対応を超える可能性があります。外注・倉庫の活用も視野に。`
-      : `\n\n自己発送2名での対応目安（月${_capLabel}）の範囲内です。`;
-
   let entryJudge, entryColor, entryBg, entryReason, entryAdvice;
   if (yearlyEstimate < 30e4) {
     entryJudge = "🚫 参入困難"; entryColor = "#888"; entryBg = "#f0f0f0";
-    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元にほぼ残らない水準です。${_capNote}`;
+    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元にほぼ残らない水準です。`;
     entryAdvice = "別のキーワードを探しましょう。もっと需要がある市場の方が稼ぎやすいです。";
   } else if (yearlyEstimate < 100e4) {
     entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea";
-    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元に残りにくい規模です。${_capNote}`;
+    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元に残りにくい規模です。`;
     entryAdvice = "まず少量だけ試してみるのがおすすめ。売れるか確認してから本格的に動きましょう。";
   } else if (yearlyEstimate < 300e4) {
     entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7";
-    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。小さな市場ですが競合も少なく、工夫すれば新規参入でも目立てます。${_capNote}`;
+    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。小さな市場ですが競合も少なく、工夫すれば新規参入でも目立てます。`;
     entryAdvice = "写真・タイトル・レビューで他店より少し上を目指せば、月数万〜十数万円の売上は狙えます。";
   } else if (yearlyEstimate < 1000e4) {
     entryJudge = "✅ 参入推奨"; entryColor = "#1e8449"; entryBg = "#eafaf1";
-    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。市場規模と競合数のバランスがよく、しっかり取り組めば売上を伸ばしやすい環境です。${_capNote}`;
+    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。市場規模と競合数のバランスがよく、しっかり取り組めば売上を伸ばしやすい環境です。`;
     entryAdvice = "早めにレビューを集めて検索順位を上げるのが近道。広告は最初は少額で試しながら調整を。";
   } else if (yearlyEstimate < 5000e4) {
     entryJudge = "🏆 積極参入"; entryColor = "#1a5276"; entryBg = "#eaf4fb";
     const _perShop2 = fmtYen(Math.round(totalMarketRevenue / Math.max(_shopCnt, 1) / 12));
-    entryReason = `競合${_shopCnt}店舗が参入する大型市場で、既存店は1店舗あたり月${_perShop2}ほど売り上げています。うまく差別化できれば、あなたの月商見込み${_moLabel}以上も十分狙えます。${_capNote}`;
+    entryReason = `競合${_shopCnt}店舗が参入する大型市場で、既存店は1店舗あたり月${_perShop2}ほど売り上げています。うまく差別化できれば、あなたの月商見込み${_moLabel}以上も十分狙えます。`;
     entryAdvice = "写真・広告・レビュー獲得に積極的に投資する価値がある市場です。早めの参入が有利です。";
   } else {
     entryJudge = "🔴 激戦区"; entryColor = "#c0392b"; entryBg = "#fdedec";
     const _perShop = fmtYen(Math.round(totalMarketRevenue / Math.max(_shopCnt, 1) / 12));
-    entryReason = `競合${_shopCnt}店舗が参入する超大型市場で、既存店は1店舗あたり月${_perShop}ほど売り上げる強者ばかり。レビューも豊富で地盤が固く、新規参入は埋もれやすい環境です。${_capNote}`;
+    entryReason = `競合${_shopCnt}店舗が参入する超大型市場で、既存店は1店舗あたり月${_perShop}ほど売り上げる強者ばかり。レビューも豊富で地盤が固く、新規参入は埋もれやすい環境です。`;
     entryAdvice = "参入するなら「価格」「デザイン」「セット内容」など、明確に違う点が必要です。真似るだけでは勝てません。";
   }
 
