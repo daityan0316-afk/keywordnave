@@ -2666,7 +2666,7 @@ function openMarketPopup() {
                   <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">商品数</th>
                   <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">平均価格</th>
                   <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">レビュー</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:0.72rem;color:#888;font-weight:600">評価</th>
+                  <th style="padding:6px 8px;text-align:center;font-size:0.72rem;color:#888;font-weight:600">評価</th>
                 </tr>
               </thead>
               <tbody>
@@ -2685,7 +2685,7 @@ function openMarketPopup() {
                     <td style="padding:6px 8px;text-align:right;font-size:0.88rem;font-weight:700;color:#2563eb">${s.count}</td>
                     <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#555;white-space:nowrap">¥${s.avgPrice.toLocaleString()}</td>
                     <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#2980b9">${s.totalRev.toLocaleString()}</td>
-                    <td style="padding:6px 8px;text-align:right;font-size:0.88rem;color:#e67e22">${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</td>
+                    <td style="padding:6px 8px;text-align:center;font-size:0.88rem;color:#e67e22">${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</td>
                   </tr>`;
                 }).join('')}
               </tbody>
