@@ -1843,24 +1843,25 @@ function renderSummary(items) {
   let entryJudge, entryColor, entryBg, entryReason, entryAdvice;
   if (yearlyEstimate < 30e4) {
     entryJudge = "🚫 参入困難"; entryColor = "#888"; entryBg = "#f0f0f0";
-    entryReason = `年間推計売上が${_yrLabel}と非常に小さく、参入しても収益化が難しい水準です。`;
-    entryAdvice = "市場規模が小さすぎるか、競合が極めて強い状況です。別のキーワードや商品カテゴリの検討を推奨します。";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場全体の売上が30万円未満と極めて小さく、広告費・仕入れ費を回収できない可能性が高い水準です。`;
+    entryAdvice = "このキーワードでの参入は推奨しません。より需要のある別キーワードや商品カテゴリへの転換を検討してください。";
   } else if (yearlyEstimate < 100e4) {
     entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea";
-    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。規模が小さく競争に勝つ差別化が必要です。`;
-    entryAdvice = "副業レベルなら挑戦可能ですが、本業での参入はリスクが高めです。独自の差別化ポイントが必須です。";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場規模が小さいため、全売上をひとりで取っても年間${_yrLabel}どまり。利益を出すには強い差別化が必要です。`;
+    entryAdvice = "副業・小ロット試験販売なら挑戦可能。本格参入の前に少量仕入れでニーズを確かめましょう。";
   } else if (yearlyEstimate < 300e4) {
     entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7";
-    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。ニッチ市場として戦える規模感があります。`;
-    entryAdvice = "差別化できれば年商100〜300万円圏内が狙えます。商品コンセプトや写真クオリティで勝負しましょう。";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場規模はニッチですが、競合店舗も少ないため、うまく差別化すれば一定のシェアを取れる余地があります。`;
+    entryAdvice = "商品コンセプト・写真・タイトルで他店との違いを出せれば年商100〜300万円圏内が狙えます。";
   } else if (yearlyEstimate < 1000e4) {
     entryJudge = "✅ 参入推奨"; entryColor = "#1e8449"; entryBg = "#eafaf1";
-    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場規模・競合数ともに新規参入に適しています。`;
-    entryAdvice = "新規参入でも売上が見込める健全な市場です。SEO対策と口コミ獲得を早期に進めましょう。";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場規模が十分大きく、競合数も過密ではないため、新規参入でもシェアを獲得しやすい健全な市場です。`;
+    entryAdvice = "早期にレビューを積み上げてSEO順位を上げることが重要。広告は少額から試して効果を測りましょう。";
   } else if (yearlyEstimate < 5000e4) {
     entryJudge = "🏆 積極参入"; entryColor = "#1a5276"; entryBg = "#eaf4fb";
-    entryReason = `年間推計売上${_yrLabel}の大型市場。上位${Math.round(_share*100)}%の店舗が売上を独占しており参入余地があります。`;
-    entryAdvice = "年商1,000万円超が狙える魅力的な市場です。差別化戦略と広告投資があれば大きく稼げます。";
+    const _perShop2 = fmtYen(Math.round(yearlyEstimate / Math.max(_shopCnt, 1)));
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗（1店舗あたり推計${_perShop2}/年）。大型市場で1店舗あたりの取り分も大きく、差別化さえできれば高い売上が期待できます。`;
+    entryAdvice = "広告・写真・レビュー獲得に積極投資する価値がある市場。差別化ポイントを明確にして早期参入を。";
   } else {
     entryJudge = "🔴 激戦区"; entryColor = "#c0392b"; entryBg = "#fdedec";
     const _perShop = fmtYen(Math.round(yearlyEstimate / Math.max(_shopCnt, 1)));
