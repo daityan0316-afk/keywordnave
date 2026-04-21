@@ -1753,7 +1753,8 @@ function renderNiche(items, keyword) {
             <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#999;margin-bottom:2px"><span>参入度</span><span style="color:${ma.entryColor};font-weight:700">${(function(){var m={'🚫 参入困難':1,'⚠️ 慎重に検討':3,'🟡 可能性あり':5,'✅ 参入推奨':7,'🏆 積極参入':10,'🔴 激戦区':4};return m[ma.entryJudge]||5;})()}/10</span></div>
             <div style="height:5px;background:#e0e0e8;border-radius:3px;overflow:hidden"><div style="height:100%;width:${(function(){var m={'🚫 参入困難':10,'⚠️ 慎重に検討':30,'🟡 可能性あり':50,'✅ 参入推奨':70,'🏆 積極参入':100,'🔴 激戦区':40};return m[ma.entryJudge]||50;})()}%;background:${ma.entryColor};border-radius:3px;transition:width 0.8s ease"></div></div>
           </div>
-          <div style="font-size:0.82rem;color:#444;line-height:1.6">${ma.entryAdvice}</div>
+          <div style="font-size:0.75rem;color:#888;line-height:1.5;margin-bottom:4px;background:#f7f8fa;border-radius:6px;padding:5px 8px">${ma.entryReason}</div>
+          <div style="font-size:0.8rem;color:#444;line-height:1.6">${ma.entryAdvice}</div>
         </div>
         <div style="padding:10px 12px">
           <div style="font-size:0.75rem;font-weight:700;color:#444;letter-spacing:0.03em;margin-bottom:4px;border-left:2px solid #aaa;padding-left:6px">● 月商予測（シェア約${sharePct}%想定）</div>
@@ -1836,19 +1837,41 @@ function renderSummary(items) {
                     : v >= 1e4 ? `約${Math.round(v/1e4)}万円`
                     : `約${Math.round(v).toLocaleString()}円`;
   const yearlyLabel = fmtYen(yearlyEstimate);
-  let entryJudge, entryColor, entryBg, entryAdvice;
-  if (yearlyEstimate < 30e4)       { entryJudge = "🚫 参入困難";    entryColor = "#888";    entryBg = "#f0f0f0"; entryAdvice = "市場が小さすぎるか、競合が極めて強い状況です。別のキーワードや商品カテゴリの検討を推奨します。"; }
-  else if (yearlyEstimate < 100e4) { entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea"; entryAdvice = "副業レベルなら挑戦可能ですが、本業での参入はリスクが高めです。独自の差別化ポイントが必須です。"; }
-  else if (yearlyEstimate < 300e4) { entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7"; entryAdvice = "差別化できれば年商100〜300万円圏内が狙えます。商品コンセプトや写真クオリティで勝負しましょう。"; }
-  else if (yearlyEstimate < 1000e4){ entryJudge = "✅ 参入推奨";   entryColor = "#1e8449"; entryBg = "#eafaf1"; entryAdvice = "新規参入でも売上が見込める健全な市場です。SEO対策と口コミ獲得を早期に進めましょう。"; }
-  else if (yearlyEstimate < 5000e4){ entryJudge = "🏆 積極参入";   entryColor = "#1a5276"; entryBg = "#eaf4fb"; entryAdvice = "年商1,000万円超が狙える魅力的な市場です。差別化戦略と広告投資があれば大きく稼げます。"; }
-  else                             { entryJudge = "🔴 激戦区";     entryColor = "#c0392b"; entryBg = "#fdedec"; entryAdvice = "市場は巨大ですが競合も強力です。資金力・ブランド力・独自性がなければ埋もれるリスクがあります。"; }
+  const _yrLabel = fmtYen(yearlyEstimate);
+  const _shopCnt = uniqueShops;
+  const _share   = topShopShare;
+  let entryJudge, entryColor, entryBg, entryReason, entryAdvice;
+  if (yearlyEstimate < 30e4) {
+    entryJudge = "🚫 参入困難"; entryColor = "#888"; entryBg = "#f0f0f0";
+    entryReason = `年間推計売上が${_yrLabel}と非常に小さく、参入しても収益化が難しい水準です。`;
+    entryAdvice = "市場規模が小さすぎるか、競合が極めて強い状況です。別のキーワードや商品カテゴリの検討を推奨します。";
+  } else if (yearlyEstimate < 100e4) {
+    entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。規模が小さく競争に勝つ差別化が必要です。`;
+    entryAdvice = "副業レベルなら挑戦可能ですが、本業での参入はリスクが高めです。独自の差別化ポイントが必須です。";
+  } else if (yearlyEstimate < 300e4) {
+    entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。ニッチ市場として戦える規模感があります。`;
+    entryAdvice = "差別化できれば年商100〜300万円圏内が狙えます。商品コンセプトや写真クオリティで勝負しましょう。";
+  } else if (yearlyEstimate < 1000e4) {
+    entryJudge = "✅ 参入推奨"; entryColor = "#1e8449"; entryBg = "#eafaf1";
+    entryReason = `年間推計売上${_yrLabel}・競合${_shopCnt}店舗。市場規模・競合数ともに新規参入に適しています。`;
+    entryAdvice = "新規参入でも売上が見込める健全な市場です。SEO対策と口コミ獲得を早期に進めましょう。";
+  } else if (yearlyEstimate < 5000e4) {
+    entryJudge = "🏆 積極参入"; entryColor = "#1a5276"; entryBg = "#eaf4fb";
+    entryReason = `年間推計売上${_yrLabel}の大型市場。上位${Math.round(_share*100)}%の店舗が売上を独占しており参入余地があります。`;
+    entryAdvice = "年商1,000万円超が狙える魅力的な市場です。差別化戦略と広告投資があれば大きく稼げます。";
+  } else {
+    entryJudge = "🔴 激戦区"; entryColor = "#c0392b"; entryBg = "#fdedec";
+    entryReason = `年間推計売上${_yrLabel}の超大型市場。競合${_shopCnt}店舗以上が参入済みで、資金力なしでは埋もれるリスクが高い。`;
+    entryAdvice = "市場は巨大ですが競合も強力です。資金力・ブランド力・独自性がなければ埋もれるリスクがあります。";
+  }
 
   // ポップアップ用データをグローバルに保持
   window._marketAnalysis = {
     yearlyEstimate, yearlyLabel, totalMarketRevenue, marketLabel,
     uniqueShops, topShopShare, entrantShare,
-    entryJudge, entryColor, entryBg, entryAdvice, seasonNote, cv,
+    entryJudge, entryColor, entryBg, entryAdvice, entryReason, seasonNote, cv,
     priceMedian: median, priceAvg: Math.round(avg), priceMin: prices[0]||0,
     totalCount: _totalCount,
     keyword: document.getElementById("keyword").value.trim()
