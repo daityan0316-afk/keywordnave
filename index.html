@@ -1763,7 +1763,7 @@ function renderNiche(items, keyword) {
         </div>
         <div style="padding:12px 14px">
           <div style="font-size:0.7rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px">月商目標 — シェア約${sharePct}%獲得時</div>
-          <div style="font-size:2rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.01em;line-height:1.1;margin-bottom:2px;text-shadow:0 0 10px ${ma.entryColor}33">${monthlyLabel}</div>
+          <div style="font-size:1.5rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.01em;line-height:1.1;margin-bottom:2px;text-shadow:0 0 8px ${ma.entryColor}33">${monthlyLabel}</div>
           ${(ma.priceMedian > 0 && ma.priceAvg > 0) ? (() => {
             const bot = ma.priceMin || Math.round(ma.priceMedian * 0.3);
             const lo  = Math.round(ma.priceMedian * 0.5);
