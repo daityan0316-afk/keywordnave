@@ -7,6 +7,30 @@
   <title>キーワードなび</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHhvzNn2xDYy00KmwBb-JDsMf4PCOchfg",
+      authDomain: "keywordnavi-bfde7.firebaseapp.com",
+      databaseURL: "https://keywordnavi-bfde7-default-rtdb.firebaseio.com",
+      projectId: "keywordnavi-bfde7",
+      storageBucket: "keywordnavi-bfde7.firebasestorage.app",
+      messagingSenderId: "780400811512",
+      appId: "1:780400811512:web:602fd03cb5df06c06b0a0d"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const _db = firebase.database();
+    const _favsRef = _db.ref('favItems');
+    let _favsCache = [];
+    _favsRef.on('value', snapshot => {
+      _favsCache = snapshot.val() || [];
+      if (typeof updateFavCount === 'function') updateFavCount();
+      if (typeof renderFavGrid === 'function') renderFavGrid();
+      if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
+    });
+  </script>
 </head>
 <body>
 <div class="container">
@@ -3166,12 +3190,11 @@ function removeFavFromGrid(itemCode) {
   renderFavGrid();
 }
 
-// ── お気に入り ────────────────────────────────────────────
-function loadFavs() {
-  try { return JSON.parse(localStorage.getItem("favItems") || "[]"); } catch { return []; }
-}
+// ── お気に入り（Firebase同期） ────────────────────────────
+function loadFavs() { return _favsCache; }
 function saveFavs(list) {
-  localStorage.setItem("favItems", JSON.stringify(list));
+  _favsCache = list;
+  _favsRef.set(list.length ? list : null);
   updateFavCount();
   renderFavGrid();
 }
