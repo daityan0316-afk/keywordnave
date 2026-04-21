@@ -2390,9 +2390,9 @@ function openMarketPopup() {
   document.getElementById("marketPopupTitle").textContent = `📊 市場分析レポート`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
-      <button class="mp-tab active" onclick="mpTab(this,0)">① 市場概要</button>
-      <button class="mp-tab" onclick="mpTab(this,1)">② 需要</button>
-      <button class="mp-tab" onclick="mpTab(this,2)">③ 競合</button>
+      <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場分析</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">📅 年間規模</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">🏪 月間規模</button>
       <button class="mp-tab" onclick="mpTab(this,3)">④ 商品分析</button>
       <button class="mp-tab" onclick="mpTab(this,4)">⑤ リスク</button>
       <button class="mp-tab" onclick="mpTab(this,5)">⑥ 商品概要</button>
@@ -2429,7 +2429,7 @@ function openMarketPopup() {
           </div>
           <div class="market-popup-stat">
             <span class="market-popup-stat-label">📈 季節変動</span>
-            <span class="market-popup-stat-value" style="font-size:0.82rem">${cvLabel}</span>
+            <span class="market-popup-stat-value">${cvLabel}</span>
             <span class="market-popup-stat-sub">変動係数 ${d.cv.toFixed(2)}</span>
           </div>
         </div>
@@ -2443,8 +2443,15 @@ function openMarketPopup() {
         <div class="market-popup-note">※楽天APIから取得した商品データを元に推計しています。</div>
       </div>
 
-      <!-- タブ1: ②需要分析 -->
+      <!-- タブ1: 年間市場規模 -->
       <div class="mp-pane">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.72rem;color:#22c55e;font-weight:700;letter-spacing:0.04em">📅 年間市場規模</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#15803d">${fmtYen(d.totalMarketRevenue)}<span style="font-size:0.78rem;font-weight:500;color:#4ade80;margin-left:6px">／年（推計）</span></div>
+          </div>
+          <div style="font-size:0.78rem;color:#555">月間規模 ${fmtYen(monthRev)} × 12ヶ月の推計</div>
+        </div>
         <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px">
           <div style="font-size:0.78rem;font-weight:700;color:#555;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
             <span>📅 月ごとの需要カレンダー（いつ売れる？）</span>
@@ -2479,7 +2486,7 @@ function openMarketPopup() {
         <div class="market-popup-note">※需要カレンダーはキーワード・商品名から自動判定。楽天・Googleトレンドの実データと異なる場合があります。</div>
       </div>
 
-      <!-- タブ2: ③競合分析 -->
+      <!-- タブ2: 月間市場規模（競合内訳） -->
       <div class="mp-pane">
         ${(() => {
           const shopMap = {};
@@ -2501,9 +2508,16 @@ function openMarketPopup() {
             .slice(0, 15);
           const maxRev = shops[0]?.estSales || 1;
           return `
-          <div style="margin-bottom:12px;display:flex;gap:16px;font-size:0.88rem;color:#555;flex-wrap:wrap">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:0.72rem;color:#60a5fa;font-weight:700;letter-spacing:0.04em">🏪 月間市場規模の内訳</div>
+              <div style="font-size:1.2rem;font-weight:800;color:#1d4ed8">${fmtYen(monthRev)}<span style="font-size:0.78rem;font-weight:500;color:#60a5fa;margin-left:6px">／月（推計）</span></div>
+            </div>
+            <div style="font-size:0.78rem;color:#555">各店舗の推計月商を積み上げた内訳です</div>
+          </div>
+          <div style="margin-bottom:10px;display:flex;gap:16px;font-size:0.82rem;color:#888;flex-wrap:wrap">
             <span>🏆 上位${shops.length}店舗の比較（推計月商順）</span>
-            <span style="color:#888">※推計月商 = レビュー数÷3%÷24ヶ月×平均単価</span>
+            <span>※推計月商 = レビュー数÷3%÷24ヶ月×平均単価</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:7px">
             ${shops.map((s, i) => {
