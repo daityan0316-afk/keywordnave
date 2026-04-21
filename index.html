@@ -1967,7 +1967,7 @@ function renderNiche(items, keyword) {
       }).join('');
       return cards2 ? `<div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
         <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
-          <span style="font-size:0.78rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase">📦 価格帯別 売れ筋商品</span>
+          <span id="bestsellerCardTitle" style="font-size:0.78rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase">📦 価格帯別 売れ筋商品</span>
           <span class="collapse-btn">▲</span>
         </div>
         <div class="card-body" style="width:100%">
@@ -3053,6 +3053,8 @@ let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
 
 
 function resetPriceBand() {
+  const titleEl = document.getElementById('bestsellerCardTitle');
+  if (titleEl) titleEl.textContent = '📦 価格帯別 売れ筋商品';
   clearFilter();
   renderShopTags(_sortedItems);
   document.querySelectorAll('[data-band-idx]').forEach(el => el.style.display = '');
@@ -3087,6 +3089,10 @@ function filterByPriceBand(min, max, bandIdx) {
                        .slice(0, 10);
   renderTable(filtered, _orderMap);
   document.getElementById('filterCount').textContent = `TOP10絞込中`;
+  // 売れ筋ランキングタイトルを更新
+  const bandLabels = ['低価格帯', '中価格帯', '高価格帯'];
+  const titleEl = document.getElementById('bestsellerCardTitle');
+  if (titleEl && bandIdx !== undefined) titleEl.textContent = `📦 ${bandLabels[bandIdx] ?? ''}売れ筋ランキング`;
   // 競合店舗タグも価格帯内の店舗のみ表示
   const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
   renderShopTags(bandItems);
