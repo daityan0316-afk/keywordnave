@@ -2424,7 +2424,7 @@ function openMarketPopup() {
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場分析</button>
-      <button class="mp-tab" onclick="mpTab(this,1)">🏪 月間規模</button>
+      <button class="mp-tab" onclick="mpTab(this,1)">🏆 競合比較</button>
       <button class="mp-tab" onclick="mpTab(this,2)">② 商品分析</button>
       <button class="mp-tab" onclick="mpTab(this,3)">③ リスク</button>
       <button class="mp-tab" onclick="mpTab(this,4)">④ 商品概要</button>
@@ -2439,11 +2439,7 @@ function openMarketPopup() {
             <span class="market-popup-stat-value">${fmtYen(d.totalMarketRevenue)}</span>
             <span class="market-popup-stat-sub">楽天市場 推計売上／年</span>
           </div>
-          <div class="market-popup-stat">
-            <span class="market-popup-stat-label">🏪 月間市場規模</span>
-            <span class="market-popup-stat-value">${fmtYen(monthRev)}</span>
-            <span class="market-popup-stat-sub">楽天市場 推計売上／月</span>
-          </div>
+
           <div class="market-popup-stat">
             <span class="market-popup-stat-label">📦 総出品数</span>
             <span class="market-popup-stat-value">${d.totalCount.toLocaleString()}件</span>
