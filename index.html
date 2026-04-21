@@ -1634,6 +1634,8 @@ function showWelcome() {
   history.replaceState(null, "", location.pathname);
   document.getElementById("marketSideBtn")?.classList.add("hidden");
   document.getElementById("result").classList.add("hidden");
+  const _ffb = document.getElementById("fixedFavBtn");
+  if (_ffb) _ffb.style.display = "none";
   const tc = document.getElementById("topContent");
   if (tc) tc.classList.remove("hidden");
   document.getElementById("nicheBar").innerHTML = "";
@@ -1772,6 +1774,8 @@ async function doSearch(searchGenreId) {
     document.getElementById("tableContent").classList.remove("hidden");
     _movePriceFilter();
     document.getElementById("status").className = "status hidden";
+    const _ffb = document.getElementById("fixedFavBtn");
+    if (_ffb) _ffb.style.display = "";
   } catch(e) {
     setStatus("error", "エラー: " + e.message);
   } finally {
@@ -3109,6 +3113,8 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
       </div>
     </div>`;
 
+  const itemsLabelHtml = `<div style="padding:10px 16px 6px;font-size:0.75rem;font-weight:700;color:#888;letter-spacing:0.04em;border-top:1px solid #f0f2f7">「${kwLabel}」の検索中</div>`;
+
   const itemsHtml = isMobileSM
     ? `<div style="display:flex;flex-direction:column;gap:8px;padding:8px 0">` +
       items.map(it => {
@@ -3154,7 +3160,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
         </td>
       </tr>`;}).join("")}</tbody>
     </table>`;
-  document.getElementById("shopModalBody").innerHTML = analysisHtml + itemsHtml +
+  document.getElementById("shopModalBody").innerHTML = analysisHtml + itemsLabelHtml + itemsHtml +
     `<p style="font-size:0.72rem;color:#aaa;margin-top:8px;padding:0 2px">ランキング入賞商品を上位表示／圏外は楽天おすすめ順</p>`;
 }
 function closeShopModal(e) {

@@ -2528,8 +2528,11 @@ td a:hover { text-decoration: underline; }
 
   /* お気に入りセクション */
   #spFavBtn2 { display: block !important; }
-  #fixedFavBtn { display: block; }
-  .top-section { border-radius: 14px; margin: 0 10px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+  #fixedFavBtn { display: none; }
+  .top-section { border-radius: 14px; margin: 0 8px 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+  .top-section-header { padding: 8px 12px 6px; }
+  .top-section-title { font-size: 0.88rem; }
+  #topContent { padding-top: 2px; }
   .top-section-header { padding: 10px 14px 8px; }
 
   /* 市場分析レポートモーダル */
