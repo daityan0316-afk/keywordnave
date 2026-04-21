@@ -2480,27 +2480,29 @@ td a:hover { text-decoration: underline; }
   .result-title-bottom { font-size: 0.9rem; }
 
   /* 登録キーワード */
-  .saved-kw-box { padding: 8px; flex-direction: column; align-items: stretch; gap: 4px; }
-  .saved-kw-items { flex-direction: column; gap: 4px; }
+  .saved-kw-box { padding: 6px 8px; flex-direction: column; align-items: stretch; gap: 0; }
+  .saved-kw-items { flex-direction: column; gap: 0; }
   .saved-kw-item {
     display: flex;
     align-items: center;
-    background: #f4f8fd;
-    border: 1px solid #dae4f0;
-    border-radius: 8px;
-    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #eef1f6;
+    border-radius: 0;
+    padding: 6px 4px;
   }
+  .saved-kw-item:last-child { border-bottom: none; }
   .saved-kw-item:not(:first-child)::before { display: none; }
   .saved-kw-main { flex: 1; }
-  .saved-kw-text { font-size: 0.9rem; white-space: normal; }
+  .saved-kw-text { font-size: 0.85rem; white-space: normal; }
   .saved-kw-del {
-    font-size: 0.85rem;
-    color: #bbb;
-    padding: 2px 6px;
-    background: #fff;
+    font-size: 0.75rem;
+    color: #ccc;
+    padding: 1px 5px;
+    background: none;
     border: 1px solid #e0e0e0 !important;
     border-radius: 50%;
-    width: 24px; height: 24px;
+    width: 20px; height: 20px;
     display: flex; align-items: center; justify-content: center;
   }
 }
