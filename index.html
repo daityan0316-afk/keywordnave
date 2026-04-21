@@ -117,6 +117,7 @@
         <div class="sidebar-sticky">
           <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 商品分析レポート</button>
           <div id="summaryGrid" class="summary-grid"></div>
+          <button id="spFavBtn2" onclick="openFavModal()" style="display:none;width:100%;padding:11px 0;font-size:0.85rem;font-weight:700;background:#fffbeb;color:#92400e;border:1.5px solid #fde68a;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px">★ お気に入り商品 <span id="spFavCount2">0</span></button>
           <div id="nicheBar"></div>
           <div class="sidebar-price-filter hidden" id="priceFilterBox">
             <span class="price-filter-label">価格帯（最安〜最高）</span>
@@ -3560,7 +3561,7 @@ function toggleFavorite(itemCode) {
 }
 function updateFavCount() {
   const n = loadFavs().length;
-  document.querySelectorAll("#favCount, #spFavCount").forEach(el => el && (el.textContent = n));
+  document.querySelectorAll("#favCount, #spFavCount, #spFavCount2").forEach(el => el && (el.textContent = n));
 }
 function openFavModal() {
   document.getElementById("favModal").classList.add("open");
