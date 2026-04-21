@@ -2508,13 +2508,6 @@ function openMarketPopup() {
             .slice(0, 15);
           const maxRev = shops[0]?.estSales || 1;
           return `
-          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:0.72rem;color:#60a5fa;font-weight:700;letter-spacing:0.04em">🏪 月間市場規模の内訳</div>
-              <div style="font-size:1.2rem;font-weight:800;color:#1d4ed8">${fmtYen(monthRev)}<span style="font-size:0.78rem;font-weight:500;color:#60a5fa;margin-left:6px">／月（推計）</span></div>
-            </div>
-            <div style="font-size:0.78rem;color:#555">各店舗の推計月商を積み上げた内訳です</div>
-          </div>
           <div style="margin-bottom:10px;display:flex;gap:16px;font-size:0.82rem;color:#888;flex-wrap:wrap">
             <span>🏆 上位${shops.length}店舗の比較（推計月商順）</span>
             <span>※推計月商 = レビュー数÷3%÷24ヶ月×平均単価</span>
