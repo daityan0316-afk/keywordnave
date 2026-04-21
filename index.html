@@ -2665,10 +2665,13 @@ function openMarketPopup() {
                 <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
                   <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
                   <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
-                  <span style="font-size:0.88rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${estLabel}円</span>
+                  <span style="font-size:1.05rem;font-weight:900;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${estLabel}円</span>
                 </div>
-                <div style="display:flex;gap:10px;font-size:0.72rem;color:#888;margin-bottom:4px;align-items:center">
-                  <span style="background:#eef2fb;color:#2563eb;border-radius:4px;padding:1px 6px;font-weight:700">📦 ${s.count}商品</span><span>¥${s.avgPrice.toLocaleString()}</span><span>💬${s.totalRev.toLocaleString()}</span><span>★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
+                <div style="display:flex;gap:8px;font-size:0.78rem;margin-bottom:4px;align-items:center;flex-wrap:wrap">
+                  <span style="background:#eef2fb;color:#2563eb;border-radius:4px;padding:2px 7px;font-weight:700">📦 ${s.count}商品</span>
+                  <span style="color:#555;font-weight:600">¥${s.avgPrice.toLocaleString()}</span>
+                  <span style="color:#2980b9;font-weight:600">💬${s.totalRev.toLocaleString()}件</span>
+                  <span style="color:#e67e22;font-weight:600">★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
                 </div>
                 <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${barColor};border-radius:2px"></div>
@@ -2688,7 +2691,7 @@ function openMarketPopup() {
                   <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
                     <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor2};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
                     <span style="font-size:0.82rem;font-weight:${i<3?700:500};color:#1a3a5c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
-                    <span style="font-size:0.88rem;font-weight:800;color:#2563eb;flex-shrink:0">${s.count}商品</span>
+                    <span style="font-size:1.05rem;font-weight:900;color:#2563eb;flex-shrink:0">${s.count}商品</span>
                   </div>
                   <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
                     <div style="height:100%;width:${barW2}%;background:linear-gradient(to right,#2563eb,#60a5fa);border-radius:2px"></div>
