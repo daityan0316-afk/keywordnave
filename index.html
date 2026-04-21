@@ -3188,15 +3188,15 @@ function resetPriceBand() {
     const idx = parseInt(el.dataset.priceRow);
     if (idx === -1) {
       el.style.background = '#f0f4fa';
-      el.style.border = '1.5px solid #2563eb';
+      el.style.borderLeft = '3px solid #2563eb';
       el.style.boxShadow = 'none';
     } else {
       const rows = window._priceBandRows || [];
       const r = rows[idx];
       const isBest = idx === (window._priceBandBestIdx ?? -1);
       if (r) {
-        el.style.background = '#fafbfc';
-        el.style.border = '1px solid #edf0f5';
+        el.style.background = '#fff';
+        el.style.borderLeft = '3px solid #e8edf2';
       }
       el.style.boxShadow = 'none';
     }
