@@ -29,9 +29,15 @@
           <input type="text" id="excludeInput" placeholder="除外キーワードをいれてください" maxlength="200">
         </div>
       </div>
-      <button id="searchBtn" onclick="doSearch()">調査する</button>
-      <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">★ 登録</button>
-      <button id="favBtn" onclick="openFavModal()" title="お気に入り一覧">★ <span id="favCount">0</span></button>
+      <button id="searchBtn" onclick="doSearch()">調査開始</button>
+      <div class="sub-btns">
+        <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">
+          <span class="btn-icon">＋</span><span class="btn-label">保存</span>
+        </button>
+        <button id="favBtn" onclick="openFavModal()" title="お気に入り一覧">
+          <span class="btn-icon">★</span><span class="btn-label" id="favCount">0</span>
+        </button>
+      </div>
       <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
     </div>
   </div>

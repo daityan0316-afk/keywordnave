@@ -118,26 +118,51 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 .search-box input:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px var(--blue-lt); }
 
 .search-box button {
-  padding: 9px 22px; font-size: 0.88rem; font-weight: 700;
   font-family: inherit; border: none; border-radius: 10px;
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  font-weight: 700; letter-spacing: 0.02em;
 }
 #searchBtn {
-  background: linear-gradient(135deg, var(--blue) 0%, var(--accent) 100%);
-  color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+  padding: 0 24px;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+  align-self: stretch;
 }
-#searchBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.45); }
+#searchBtn:hover:not(:disabled) { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
 #searchBtn:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
-#saveBtn {
-  background: var(--surface); color: var(--text-sub);
-  border: 1.5px solid var(--border); font-size: 0.82rem; padding: 9px 14px;
+
+.sub-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-self: stretch;
 }
-#saveBtn:hover { background: #f1f5f9; border-color: #94a3b8; }
-#favBtn {
-  background: #fefce8; color: #a16207;
-  border: 1.5px solid #fde68a; font-size: 0.82rem; padding: 9px 14px;
+#saveBtn, #favBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
-#favBtn:hover { background: #fef9c3; }
+#saveBtn:hover { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+#favBtn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+#favBtn:hover { background: #fef3c7; border-color: #fbbf24; }
+.btn-icon { font-size: 0.82rem; line-height: 1; }
+.btn-label { font-size: 0.75rem; }
 .market-side-btn {
   display: flex;
   align-items: center;
@@ -1297,8 +1322,6 @@ td a:hover { text-decoration: underline; }
 
 
 /* Genre filter */
-#saveBtn { padding: 9px 14px; font-size: 0.88rem; font-family: inherit; background: #fff; color: #2980b9; border: 1.5px solid #2980b9; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
-#saveBtn:hover { background: #2980b9; color: #fff; }
 
 /* お気に入り商品 トップグリッド */
 .fav-top-grid {
@@ -1648,25 +1671,10 @@ td a:hover { text-decoration: underline; }
 .ts-stars { font-size: 0.72rem; color: #e67e22; font-weight: 700; }
 .ts-reviews { font-size: 0.65rem; color: #888; }
 
-/* ── お気に入りボタン（ヘッダー） ───────────────────────── */
-#favBtn {
-  position: relative;
-  background: #fffbe6;
-  color: #b7770d;
-  border: 1.5px solid #f5dfa0;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
-  transition: background 0.15s, border-color 0.15s;
-}
-#favBtn:hover { background: #fff3cc; border-color: #e67e22; }
+/* ── favCount バッジ ────────────────────────────── */
 #favCount {
   display: inline-block;
-  background: #e67e22;
+  background: #f59e0b;
   color: #fff;
   font-size: 0.65rem;
   font-weight: 800;
@@ -1674,7 +1682,6 @@ td a:hover { text-decoration: underline; }
   padding: 0 5px;
   min-width: 16px;
   text-align: center;
-  margin-left: 2px;
   vertical-align: middle;
 }
 
@@ -2385,8 +2392,9 @@ td a:hover { text-decoration: underline; }
   .search-inputs { width: 100%; }
   #keyword { font-size: 1rem; padding: 10px 12px; }
   #excludeInput { font-size: 0.85rem; }
-  #searchBtn { padding: 10px; font-size: 0.95rem; }
-  #saveBtn, #favBtn { padding: 6px 10px; font-size: 0.8rem; }
+  #searchBtn { padding: 12px; font-size: 0.95rem; align-self: auto; }
+  .sub-btns { flex-direction: row; align-self: auto; }
+  #saveBtn, #favBtn { padding: 8px 14px; font-size: 0.8rem; flex: 1; }
   #proxyBadge { display: none; }
 
   /* メインレイアウト */
