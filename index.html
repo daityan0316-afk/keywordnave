@@ -2850,24 +2850,22 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
   const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
   const analysisHtml = `
     <div class="shop-analysis">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:6px;margin-bottom:2px;align-items:stretch">
-        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:0.63rem;color:#2563eb;font-weight:700;margin-bottom:3px">💬 レビュー</div>
-          <div style="font-size:1.05rem;font-weight:900;color:#1a3a5c;line-height:1">${totalReviews.toLocaleString()}<span style="font-size:0.65rem;font-weight:400">件</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;grid-template-rows:auto auto;gap:0 6px;margin-bottom:2px">
+        <!-- ラベル行 -->
+        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#2563eb;font-weight:700">💬 レビュー</div>
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#ea580c;font-weight:700">⭐ 評価</div>
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#555;font-weight:700">💴 価格帯</div>
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#c0392b;font-weight:700">📊 推計月商（「${kwLabel}」検索分）</div>
+        <!-- 数値行 -->
+        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;font-size:1.05rem;font-weight:900;color:#1a3a5c;line-height:1.2">${totalReviews.toLocaleString()}<span style="font-size:0.65rem;font-weight:400">件</span></div>
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;font-size:1.05rem;font-weight:900;color:#e67e22;line-height:1.2">★${avgReview.toFixed(1)}</div>
+        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;line-height:1.2">
+          <div style="font-size:1.05rem;font-weight:900;color:#333">${fmtYen(minPrice)}</div>
+          <div style="font-size:0.62rem;color:#aaa">〜${fmtYen(maxPrice)}</div>
         </div>
-        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:0.63rem;color:#ea580c;font-weight:700;margin-bottom:3px">⭐ 評価</div>
-          <div style="font-size:1.05rem;font-weight:900;color:#e67e22;line-height:1">★${avgReview.toFixed(1)}</div>
-        </div>
-        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:0.63rem;color:#555;font-weight:700;margin-bottom:3px">💴 価格帯</div>
-          <div style="font-size:1.05rem;font-weight:900;color:#333;line-height:1">${fmtYen(minPrice)}</div>
-          <div style="font-size:0.62rem;color:#aaa;margin-top:2px">〜${fmtYen(maxPrice)}</div>
-        </div>
-        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:0.63rem;color:#c0392b;font-weight:700;margin-bottom:3px">📊 推計月商（「${kwLabel}」検索分）</div>
-          <div style="font-size:1.05rem;font-weight:900;color:#c0392b;line-height:1">${fmtMonthly(kwMonthly)}</div>
-          ${kwShare > 0 ? `<div style="font-size:0.62rem;color:#aaa;margin-top:2px">市場シェア約${kwShare}%</div>` : ''}
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;line-height:1.2">
+          <div style="font-size:1.05rem;font-weight:900;color:#c0392b">${fmtMonthly(kwMonthly)}</div>
+          ${kwShare > 0 ? `<div style="font-size:0.62rem;color:#aaa">市場シェア約${kwShare}%</div>` : ''}
         </div>
       </div>
     </div>`;
