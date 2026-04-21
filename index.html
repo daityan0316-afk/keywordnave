@@ -3009,15 +3009,15 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
         <div style="background:#f0faf4;border:1px solid #a8d5b8;border-radius:8px 8px 0 0;padding:8px 8px 5px;font-size:0.62rem;color:#1e8449;font-weight:700">📦 商品数</div>
         <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px 8px 0 0;padding:8px 8px 5px;font-size:0.62rem;color:#c0392b;font-weight:700">📊 月商</div>
         <!-- 数値行 -->
-        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.3rem;font-weight:900;color:#1a3a5c;line-height:1.2">${totalReviews.toLocaleString()}<span style="font-size:0.65rem;font-weight:400">件</span></div>
-        <div style="background:#fff8f0;border:1px solid #fddcb5;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.3rem;font-weight:900;color:#e67e22;line-height:1.2">★${avgReview.toFixed(1)}</div>
+        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.6rem;font-weight:900;color:#1a3a5c;line-height:1.2;letter-spacing:-0.02em">${totalReviews.toLocaleString()}<span style="font-size:0.65rem;font-weight:400">件</span></div>
+        <div style="background:#fff8f0;border:1px solid #fddcb5;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.6rem;font-weight:900;color:#e67e22;line-height:1.2;letter-spacing:-0.02em">★${avgReview.toFixed(1)}</div>
         <div style="background:#fafbfc;border:1px solid #e0e8f0;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;line-height:1.2">
-          <div style="font-size:1rem;font-weight:900;color:#333">${fmtYen(minPrice)}</div>
+          <div style="font-size:1.2rem;font-weight:900;color:#333;letter-spacing:-0.02em">${fmtYen(minPrice)}</div>
           <div style="font-size:0.65rem;color:#aaa">〜${fmtYen(maxPrice)}</div>
         </div>
-        <div style="background:#f0faf4;border:1px solid #a8d5b8;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.3rem;font-weight:900;color:#1e8449;line-height:1.2">${items.length}<span style="font-size:0.65rem;font-weight:400">件</span></div>
+        <div style="background:#f0faf4;border:1px solid #a8d5b8;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;font-size:1.6rem;font-weight:900;color:#1e8449;line-height:1.2;letter-spacing:-0.02em">${items.length}<span style="font-size:0.65rem;font-weight:400">件</span></div>
         <div style="background:#fef5f5;border:1px solid #f5c6c6;border-top:none;border-radius:0 0 8px 8px;padding:5px 8px 10px;line-height:1.2">
-          <div style="font-size:1.1rem;font-weight:900;color:#c0392b">${fmtMonthly(kwMonthly)}</div>
+          <div style="font-size:1.4rem;font-weight:900;color:#c0392b;letter-spacing:-0.02em">${fmtMonthly(kwMonthly)}</div>
           <div style="font-size:0.7rem;color:#888;margin-top:2px">${kwShare > 0 ? `シェア約${kwShare}%` : ''}</div>
         </div>
       </div>
