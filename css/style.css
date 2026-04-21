@@ -10,7 +10,7 @@
   --teal:      #0891b2;
   --red:       #dc2626;
   --text:      #1e293b;
-  --text-sub:  #64748b;
+  --text-sub:  #475569;
   --radius:    12px;
   --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 20px rgba(0,0,0,0.10);
@@ -62,32 +62,33 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 }
 .logo:hover { background: #f0f4f8; opacity: 1; }
 .logo-icon {
-  font-size: 2rem;
   line-height: 1;
-  animation: radar-pulse 3s ease-in-out infinite;
-  filter: drop-shadow(0 1px 3px #2563eb33);
+  filter: drop-shadow(0 2px 8px rgba(37,99,235,0.3));
+  transition: transform 0.2s ease;
 }
-@keyframes radar-pulse {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  50%       { transform: rotate(12deg) scale(1.08); }
-}
-.logo-text-wrap { display: flex; flex-direction: column; gap: 3px; line-height: 1; }
+.logo:hover .logo-icon { transform: scale(1.07); }
+.logo-text-wrap { display: flex; flex-direction: column; gap: 2px; line-height: 1; }
 .logo-title {
-  font-size: 1.3rem;
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--navy);
+  white-space: nowrap;
+}
+.logo-title-accent {
   font-weight: 900;
-  letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 50%, var(--teal) 100%);
+  background: linear-gradient(120deg, #2563eb 0%, #0891b2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  white-space: nowrap;
 }
 .logo-sub {
-  font-size: 0.62rem;
-  font-weight: 600;
+  font-size: 0.58rem;
+  font-weight: 500;
   color: var(--text-sub);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
+  opacity: 0.8;
 }
 
 /* ── 検索ボックス ────────────────────────────────────────────── */
@@ -2380,6 +2381,8 @@ td a:hover { text-decoration: underline; }
 ══════════════════════════════════════════════ */
 @media (max-width: 640px) {
   body { padding: 8px; }
+  .top-section-body { padding: 12px; overflow-x: hidden; }
+  #favItemGrid { max-width: 100%; overflow-x: hidden; }
 
   /* ヘッダー */
   .header-row {
