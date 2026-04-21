@@ -3417,38 +3417,8 @@ function renderFavGrid() {
     if (!groups[kw]) groups[kw] = [];
     groups[kw].push(f);
   });
-  const makeRows = (kw, items) => items.map(f => {
-    const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
-    const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
-    return `<tr>
-      <td style="padding:6px 8px;text-align:center">
-        ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
-      </td>
-      <td style="padding:6px 8px">
-        <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
-      </td>
-      <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
-      <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
-      <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
-      <td style="padding:6px 8px">
-        <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
-          <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
-            placeholder="🔗 仕入先URLを貼り付け"
-            onchange="saveSupplierUrl('${codeEsc}', this.value)"
-            style="flex:1;min-width:140px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#2563eb'"
-            onblur="this.style.borderColor='#d0d8e8'">
-          <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-            style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
-        </div>
-      </td>
-      <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
-      <td style="padding:6px 8px;text-align:center">
-        <button onclick="if(confirm('削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
-      </td>
-    </tr>`;
-  }).join('');
-  el.innerHTML = `<div style="overflow-x:auto">
+  const kwKeys = Object.keys(groups);
+  const makeTable = items => `<div style="overflow-x:auto">
     <table class="fav-mgmt-table">
       <thead><tr>
         <th style="width:52px"></th>
@@ -3461,15 +3431,61 @@ function renderFavGrid() {
         <th style="width:36px"></th>
       </tr></thead>
       <tbody>
-        ${Object.entries(groups).map(([kw, items]) => `
-          <tr style="line-height:1"><td colspan="8" style="padding:1px 8px;border-bottom:1px solid #e8edf4">
-            <span style="font-size:0.7rem;font-weight:700;color:#2563eb">🔍 ${kw}</span>
-            <span style="font-size:0.68rem;color:#aaa;font-weight:400;margin-left:4px">（${items.length}件）</span>
-          </td></tr>
-          ${makeRows(kw, items)}`).join('')}
+        ${items.map(f => {
+          const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
+          const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+          return `<tr>
+            <td style="padding:6px 8px;text-align:center">
+              ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
+            </td>
+            <td style="padding:6px 8px">
+              <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
+            </td>
+            <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
+            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
+            <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
+            <td style="padding:6px 8px">
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
+                <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
+                  placeholder="🔗 仕入先URLを貼り付け"
+                  onchange="saveSupplierUrl('${codeEsc}', this.value)"
+                  style="flex:1;min-width:140px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
+                  onfocus="this.style.borderColor='#2563eb'"
+                  onblur="this.style.borderColor='#d0d8e8'">
+                <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
+                  style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
+              </div>
+            </td>
+            <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
+            <td style="padding:6px 8px;text-align:center">
+              <button onclick="if(confirm('削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
+            </td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
   </div>`;
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
+      ${kwKeys.map((kw, i) => `
+        <button onclick="favKwTab(this,${i})"
+          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid ${i===0?'#2563eb':'#d0d8e8'};background:${i===0?'#2563eb':'#fff'};color:${i===0?'#fff':'#555'};cursor:pointer;font-family:inherit;transition:all 0.15s">
+          🔍 ${kw} <span style="font-size:0.7rem;opacity:0.7">${groups[kw].length}</span>
+        </button>`).join('')}
+    </div>
+    ${kwKeys.map((kw, i) => `
+      <div class="fav-kw-pane" style="display:${i===0?'block':'none'}">
+        ${makeTable(groups[kw])}
+      </div>`).join('')}`;
+}
+function favKwTab(btn, idx) {
+  const wrap = btn.closest('#favItemGrid');
+  wrap.querySelectorAll('[onclick^="favKwTab"]').forEach((b,i) => {
+    b.style.background = i===idx ? '#2563eb' : '#fff';
+    b.style.color = i===idx ? '#fff' : '#555';
+    b.style.borderColor = i===idx ? '#2563eb' : '#d0d8e8';
+  });
+  wrap.querySelectorAll('.fav-kw-pane').forEach((p,i) => p.style.display = i===idx ? 'block' : 'none');
 }
 function saveSupplierUrl(itemCode, url) {
   let list = loadFavs();
