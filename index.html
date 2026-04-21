@@ -1872,7 +1872,16 @@ function renderNiche(items, keyword) {
             const bestIdx = rows.reduce((bi,r,i)=>r.rounded>rows[bi].rounded?i:bi,0);
             window._priceBandRows = rows;
             window._priceBandBestIdx = bestIdx;
-            return rows.map((r,i)=>{
+            const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:#f0f4fa;border:1.5px solid #2563eb;cursor:pointer;transition:all 0.15s" onmouseover="this.style.boxShadow='0 2px 6px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563eb;flex-shrink:0"></span>
+                  <span style="font-size:0.85rem;font-weight:700;color:#1a3a5c">全価格帯</span>
+                </div>
+                <span style="font-size:0.72rem;color:#2563eb;font-weight:600">リセット</span>
+              </div>
+            </div>`;
+            return allRows + rows.map((r,i)=>{
               const barW = Math.round(r.rounded/maxRounded*100);
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
@@ -3046,6 +3055,30 @@ function copyKw(btn, kw) {
 
 let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
 
+
+function resetPriceBand() {
+  clearFilter();
+  renderShopTags(_sortedItems);
+  document.querySelectorAll('[data-band-idx]').forEach(el => el.style.display = '');
+  document.querySelectorAll('[data-price-row]').forEach(el => {
+    const idx = parseInt(el.dataset.priceRow);
+    if (idx === -1) {
+      el.style.background = '#f0f4fa';
+      el.style.border = '1.5px solid #2563eb';
+      el.style.boxShadow = 'none';
+    } else {
+      const rows = window._priceBandRows || [];
+      const r = rows[idx];
+      const isBest = idx === (window._priceBandBestIdx ?? -1);
+      if (r) {
+        el.style.background = isBest ? r.b.color+'0f' : '#fafbfc';
+        el.style.border = isBest ? `1.5px solid ${r.b.color}50` : '1px solid #edf0f5';
+      }
+      el.style.boxShadow = 'none';
+    }
+  });
+  document.getElementById('filterCount').textContent = `(${_sortedItems.length}件)`;
+}
 
 function filterByPriceBand(min, max, bandIdx) {
   document.getElementById('filterMin').value = min;
