@@ -1863,8 +1863,9 @@ function renderSummary(items) {
     entryAdvice = "年商1,000万円超が狙える魅力的な市場です。差別化戦略と広告投資があれば大きく稼げます。";
   } else {
     entryJudge = "🔴 激戦区"; entryColor = "#c0392b"; entryBg = "#fdedec";
-    entryReason = `年間推計売上${_yrLabel}の超大型市場。競合${_shopCnt}店舗以上が参入済みで、資金力なしでは埋もれるリスクが高い。`;
-    entryAdvice = "市場は巨大ですが競合も強力です。資金力・ブランド力・独自性がなければ埋もれるリスクがあります。";
+    const _perShop = fmtYen(Math.round(yearlyEstimate / Math.max(_shopCnt, 1)));
+    entryReason = `年間推計売上${_yrLabel}の超大型市場（1店舗あたり推計${_perShop}/年）。競合${_shopCnt}店舗と少なくても、各店舗の売上規模が大きくレビュー数も多いため、新規参入で埋もれやすい激戦状態です。`;
+    entryAdvice = "市場は巨大ですが既存店舗が強固です。資金力・ブランド力・独自性がなければ埋もれるリスクがあります。";
   }
 
   // ポップアップ用データをグローバルに保持
