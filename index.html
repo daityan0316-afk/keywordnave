@@ -3467,14 +3467,21 @@ function renderFavGrid() {
   </div>`;
   el.innerHTML = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
+      <button onclick="favKwTab(this,-1)"
+        style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s">
+        全て <span style="font-size:0.7rem;opacity:0.7">${list.length}</span>
+      </button>
       ${kwKeys.map((kw, i) => `
         <button onclick="favKwTab(this,${i})"
-          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid ${i===0?'#93b4e0':'#d0d8e8'};background:${i===0?'#dbeafe':'#fff'};color:${i===0?'#1a3a5c':'#888'};cursor:pointer;font-family:inherit;transition:all 0.15s">
+          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#888;cursor:pointer;font-family:inherit;transition:all 0.15s">
           🔍 ${kw} <span style="font-size:0.7rem;opacity:0.7">${groups[kw].length}</span>
         </button>`).join('')}
     </div>
-    ${kwKeys.map((kw, i) => `
-      <div class="fav-kw-pane" style="display:${i===0?'block':'none'}">
+    <div class="fav-kw-pane">
+      ${makeTable(list)}
+    </div>
+    ${kwKeys.map((kw) => `
+      <div class="fav-kw-pane" style="display:none">
         ${makeTable(groups[kw])}
       </div>`).join('')}`;
 }
