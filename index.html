@@ -89,8 +89,8 @@
   <!-- 株価バナー -->
   <div id="stockWidget" class="stock-banner"></div>
 
-  <!-- トップコンテンツ（検索前のみ表示） -->
-  <div id="topContent">
+  <!-- トップコンテンツ（非表示） -->
+  <div id="topContent" class="hidden">
 
     <!-- お気に入り商品グリッド -->
     <section class="top-section" id="favGridSection">
@@ -1563,8 +1563,7 @@ function showWelcome() {
   history.replaceState(null, "", location.pathname);
   document.getElementById("marketSideBtn")?.classList.add("hidden");
   document.getElementById("result").classList.add("hidden");
-  const tc = document.getElementById("topContent");
-  if (tc) tc.classList.remove("hidden");
+  // topContent は非表示のまま
   document.getElementById("nicheBar").innerHTML = "";
   document.getElementById("shopTagList").innerHTML = "";
   document.getElementById("priceFilterBox").classList.add("hidden");
