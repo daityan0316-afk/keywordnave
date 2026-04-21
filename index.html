@@ -109,6 +109,10 @@
               <tbody></tbody>
             </table>
           </div>
+          <div class="pg-bottom-row">
+            <span id="resultTitleBottom" class="result-title-bottom"></span>
+            <div id="paginationBottom"></div>
+          </div>
         </div>
       </div><!-- /.result-main -->
 
@@ -1610,9 +1614,12 @@ async function doSearch(searchGenreId) {
       return pa - pb;
     });
     document.getElementById("filterCount").textContent = `(${_sortedItems.length}件)`;
-    document.getElementById("resultTitle").textContent = keyword
+    const _rtitle = keyword
       ? `検索結果「${keyword}」${_sortedItems.length}件`
       : `カテゴリ検索結果 ${_sortedItems.length}件`;
+    document.getElementById("resultTitle").textContent = _rtitle;
+    const _rtBot = document.getElementById("resultTitleBottom");
+    if (_rtBot) _rtBot.textContent = _rtitle;
     renderTable(_sortedItems, _orderMap);
 
 
@@ -2060,15 +2067,24 @@ function renderTablePage() {
 function renderPagination() {
   const total = _tableItems.length;
   const pages = Math.ceil(total / PAGE_SIZE);
-  const el = document.getElementById("pagination");
-  if (pages <= 1) { el.innerHTML = ""; return; }
+  const elTop = document.getElementById("pagination");
+  const elBot = document.getElementById("paginationBottom");
+  const isMobile = window.innerWidth <= 640;
+  if (pages <= 1) {
+    if (elTop) elTop.innerHTML = "";
+    if (elBot) elBot.innerHTML = "";
+    return;
+  }
   const btns = [];
   btns.push(`<button class="pg-btn${_currentPage===1?" pg-disabled":""}" onclick="goPage(${_currentPage-1})">‹</button>`);
   for (let i = 1; i <= pages; i++) {
     btns.push(`<button class="pg-btn${i===_currentPage?" pg-active":""}" onclick="goPage(${i})">${i}</button>`);
   }
   btns.push(`<button class="pg-btn${_currentPage===pages?" pg-disabled":""}" onclick="goPage(${_currentPage+1})">›</button>`);
-  el.innerHTML = `<div class="pg-row">${btns.join("")}</div>`;
+  const html = `<div class="pg-row">${btns.join("")}</div>`;
+  // スマホは上部非表示・下部のみ表示
+  if (elTop) elTop.innerHTML = isMobile ? "" : html;
+  if (elBot) elBot.innerHTML = html;
 }
 
 function goPage(p) {
