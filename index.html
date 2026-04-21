@@ -1706,6 +1706,14 @@ function extractKeywords(items, searchKeyword) {
 }
 
 
+// ── 運営規模（固定：2名・自己発送） ───────────────────────
+function getOperatorSettings() { return { people: 2, shipping: "self" }; }
+function calcCapacityMonthly(ops, priceMedian) {
+  if (ops.shipping === 'warehouse') return Infinity;
+  const ordersPerDay = ops.people === 1 ? 30 : ops.people === 2 ? 50 : ops.people <= 5 ? 100 : 200;
+  return ordersPerDay * 22 * Math.max(priceMedian || 1000, 500);
+}
+
 function renderNiche(items, keyword) {
   const total   = _totalCount;
   const avgRev  = items.reduce((s,i) => s + i.reviewCount, 0) / items.length;
@@ -1846,32 +1854,46 @@ function renderSummary(items) {
   const _moLabel = fmtYen(Math.round(yearlyEstimate / 12));
   const _shopCnt = uniqueShops;
   const _share   = topShopShare;
+
+  // 運営規模に基づく対応可能月商
+  const _ops = getOperatorSettings();
+  const _capMonthly = calcCapacityMonthly(_ops, median);
+  const _capLabel = _capMonthly === Infinity ? null : fmtYen(Math.round(_capMonthly));
+  const _opsLabel = `${_ops.people === 1 ? '1人' : _ops.people === 2 ? '2人' : _ops.people <= 5 ? '3〜5人' : '6人+'}・${_ops.shipping === 'self' ? '自己発送' : '外注発送'}`;
+  const _monthlyEst = Math.round(yearlyEstimate / 12);
+  // 規模チェック：推計月商が対応可能月商を超えているか
+  const _overCapacity = _capMonthly !== Infinity && _monthlyEst > _capMonthly * 0.8;
+  const _capNote = _capMonthly === Infinity ? '' :
+    _overCapacity
+      ? `\n\n⚠️ あなたの規模（${_opsLabel}）での対応可能月商目安は${_capLabel}ほど。目標達成時は注文量が増え、発送が追いつかない可能性があります。外注・倉庫の活用も視野に入れましょう。`
+      : `\n\nあなたの規模（${_opsLabel}）では、この市場での目標月商は無理なく対応できる範囲です（目安：月${_capLabel}まで対応可）。`;
+
   let entryJudge, entryColor, entryBg, entryReason, entryAdvice;
   if (yearlyEstimate < 30e4) {
     entryJudge = "🚫 参入困難"; entryColor = "#888"; entryBg = "#f0f0f0";
-    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元にほぼ残らない水準です。`;
+    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元にほぼ残らない水準です。${_capNote}`;
     entryAdvice = "別のキーワードを探しましょう。もっと需要がある市場の方が稼ぎやすいです。";
   } else if (yearlyEstimate < 100e4) {
     entryJudge = "⚠️ 慎重に検討"; entryColor = "#c0392b"; entryBg = "#fdecea";
-    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元に残りにくい規模です。`;
+    entryReason = `${_shopCnt}店舗が参入する中、あなたが取れる見込みの月商は推計${_moLabel}ほど。広告費・仕入れ・送料を引くと手元に残りにくい規模です。${_capNote}`;
     entryAdvice = "まず少量だけ試してみるのがおすすめ。売れるか確認してから本格的に動きましょう。";
   } else if (yearlyEstimate < 300e4) {
     entryJudge = "🟡 可能性あり"; entryColor = "#b7770d"; entryBg = "#fef9e7";
-    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。小さな市場ですが競合も少なく、工夫すれば新規参入でも目立てます。`;
+    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。小さな市場ですが競合も少なく、工夫すれば新規参入でも目立てます。${_capNote}`;
     entryAdvice = "写真・タイトル・レビューで他店より少し上を目指せば、月数万〜十数万円の売上は狙えます。";
   } else if (yearlyEstimate < 1000e4) {
     entryJudge = "✅ 参入推奨"; entryColor = "#1e8449"; entryBg = "#eafaf1";
-    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。市場規模と競合数のバランスがよく、しっかり取り組めば売上を伸ばしやすい環境です。`;
+    entryReason = `競合${_shopCnt}店舗の中で、あなたが取れる見込みの月商は推計${_moLabel}ほど。市場規模と競合数のバランスがよく、しっかり取り組めば売上を伸ばしやすい環境です。${_capNote}`;
     entryAdvice = "早めにレビューを集めて検索順位を上げるのが近道。広告は最初は少額で試しながら調整を。";
   } else if (yearlyEstimate < 5000e4) {
     entryJudge = "🏆 積極参入"; entryColor = "#1a5276"; entryBg = "#eaf4fb";
     const _perShop2 = fmtYen(Math.round(totalMarketRevenue / Math.max(_shopCnt, 1) / 12));
-    entryReason = `競合${_shopCnt}店舗が参入する大型市場で、既存店は1店舗あたり月${_perShop2}ほど売り上げています。うまく差別化できれば、あなたの月商見込み${_moLabel}以上も十分狙えます。`;
+    entryReason = `競合${_shopCnt}店舗が参入する大型市場で、既存店は1店舗あたり月${_perShop2}ほど売り上げています。うまく差別化できれば、あなたの月商見込み${_moLabel}以上も十分狙えます。${_capNote}`;
     entryAdvice = "写真・広告・レビュー獲得に積極的に投資する価値がある市場です。早めの参入が有利です。";
   } else {
     entryJudge = "🔴 激戦区"; entryColor = "#c0392b"; entryBg = "#fdedec";
     const _perShop = fmtYen(Math.round(totalMarketRevenue / Math.max(_shopCnt, 1) / 12));
-    entryReason = `競合${_shopCnt}店舗が参入する超大型市場で、既存店は1店舗あたり月${_perShop}ほど売り上げる強者ばかり。レビューも豊富で地盤が固く、新規参入は埋もれやすい環境です。`;
+    entryReason = `競合${_shopCnt}店舗が参入する超大型市場で、既存店は1店舗あたり月${_perShop}ほど売り上げる強者ばかり。レビューも豊富で地盤が固く、新規参入は埋もれやすい環境です。${_capNote}`;
     entryAdvice = "参入するなら「価格」「デザイン」「セット内容」など、明確に違う点が必要です。真似るだけでは勝てません。";
   }
 
@@ -2773,33 +2795,18 @@ function openShopModal(shopCode, shopName, fromReport = false) {
     });
   }
 
-  // ① まず店舗商品を表示
-  fetchShopItems().then(({ items: shopItems, total: shopTotal }) => {
-    if (!shopItems.length) {
-      document.getElementById("shopModalBody").innerHTML = '<p class="suggest-none">商品が見つかりませんでした</p>';
-      return;
-    }
-    const items = shopItems.map(i => ({
-      name: i.itemName||"", price: i.itemPrice||0,
-      reviewCount: i.reviewCount||0, reviewAvg: i.reviewAverage||0,
-      url: i.itemUrl||"#", itemCode: i.itemCode||"", rank: null,
-      image: (i.mediumImageUrls && i.mediumImageUrls[0]) ? (typeof i.mediumImageUrls[0] === "string" ? i.mediumImageUrls[0] : i.mediumImageUrls[0].imageUrl) : ""
-    }));
-    renderShopModal(items, shopTotal, shopCode);
-
-    // ② ランキング照合（後から更新）
-    const genreFreq = {};
-    (_allItems||[]).forEach(it => { if(it.genreId) genreFreq[it.genreId]=(genreFreq[it.genreId]||0)+1; });
-    const topGenre = Object.entries(genreFreq).sort((a,b)=>b[1]-a[1])[0]?.[0];
-
-    fetchRank(topGenre || null).then(rankItems => {
-      const rankMap = {};
-      rankItems.forEach((it,i) => { if(it.itemCode) rankMap[it.itemCode] = i+1; });
-      items.forEach(it => { it.rank = rankMap[it.itemCode] || null; });
-      items.sort((a,b) => (a.rank||999)-(b.rank||999));
-      renderShopModal(items, shopTotal, shopCode);
-    });
-  });
+  // 検索結果から該当店舗の商品のみ抽出（API呼び出し不要）
+  const kwItems = (_allItems || []).filter(it => (it.itemCode || "").split(":")[0] === shopCode);
+  if (!kwItems.length) {
+    document.getElementById("shopModalBody").innerHTML = '<p class="suggest-none">この店舗の商品が検索結果に見つかりませんでした</p>';
+    const badgeEl = document.getElementById("shopStrengthBadge");
+    if (badgeEl) badgeEl.innerHTML = '';
+    return;
+  }
+  // _orderMap の順位（検索順位）をランクとして付与
+  const items = kwItems.map(it => ({ ...it, rank: _orderMap ? (_orderMap[it.itemCode] || null) : null }));
+  items.sort((a, b) => (a.rank || 9999) - (b.rank || 9999));
+  renderShopModal(items, kwItems.length, shopCode);
 }
 
 function renderShopModal(items, shopTotal = 0, shopCode = "") {
@@ -2819,23 +2826,18 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
   const top3Items  = items.filter(i => i.rank && i.rank <= 3);
   const fmtYen = v => `¥${Math.round(v).toLocaleString()}`;
 
-  // 推計月商：上位20件から全商品へ√スケールアップ
-  const REVIEW_RATE = 0.06, AVG_MONTHS = 24;
-  const sampledMonthly = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
-  const shopScaleUp = shopTotal > items.length ? Math.sqrt(shopTotal / items.length) : 1;
-  const monthlyEst = sampledMonthly * shopScaleUp;
-  const shopTotalLabel = shopTotal > 0 ? `全${shopTotal.toLocaleString()}商品から推計` : `上位${items.length}件から推計`;
   const fmtMonthly = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
 
-  // キーワード内での推計月商 — 競合比較タブと同じ「市場規模をレビュー比率で按分」方式
+  // 推計月商 — 検索結果のレビュー比率で市場月商を按分（競合比較タブと同じ計算）
   const mkt = window._marketAnalysis || _marketAnalysis;
   const marketMonthly = mkt ? mkt.totalMarketRevenue / 12 : 0;
+  const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
   const allKwItems = _allItems || [];
   const totalKwReviews = allKwItems.reduce((s, i) => s + (i.reviewCount || 0), 0) || 1;
-  const shopKwReviews = allKwItems.filter(it => (it.itemCode || "").split(":")[0] === shopCode)
-                                  .reduce((s, i) => s + (i.reviewCount || 0), 0);
+  const shopKwReviews = items.reduce((s, i) => s + (i.reviewCount || 0), 0);
   const kwMonthly = Math.round(shopKwReviews / totalKwReviews * marketMonthly);
   const kwShare = marketMonthly > 0 ? Math.min(100, Math.round(kwMonthly / marketMonthly * 100)) : 0;
+  const shopTotalLabel = `検索結果${items.length}件から推計（「${kwLabel}」検索分）`;
 
   // 強さ判定
   const strength = totalReviews > 5000 ? { label:"💪 強力な店舗", color:"#1a5276", bg:"#eaf4fb" }
@@ -2845,9 +2847,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
 
   window._shopModalItems = items;
   const badgeEl = document.getElementById("shopStrengthBadge");
-  if (badgeEl) badgeEl.innerHTML = `<span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="color:${strength.color};font-size:0.85rem;font-weight:700;white-space:nowrap;flex-shrink:0">${strength.label}</span><span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="font-size:0.82rem;color:#888;white-space:nowrap;flex-shrink:0;align-self:center">${shopTotalLabel}</span>`;
-
-  const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
+  if (badgeEl) badgeEl.innerHTML = `<span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="color:${strength.color};font-size:0.85rem;font-weight:700;white-space:nowrap;flex-shrink:0">${strength.label}</span><span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="font-size:0.78rem;color:#888;flex-shrink:0;align-self:center">${shopTotalLabel}</span>`;
   const analysisHtml = `
     <div class="shop-analysis">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;grid-template-rows:auto auto;gap:0 6px;margin-bottom:2px">
@@ -2855,7 +2855,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
         <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#2563eb;font-weight:700">💬 レビュー</div>
         <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#ea580c;font-weight:700">⭐ 評価</div>
         <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#555;font-weight:700">💴 価格帯</div>
-        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#c0392b;font-weight:700">📊 推計月商（「${kwLabel}」検索分）</div>
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px 8px 0 0;padding:6px 10px 3px;font-size:0.63rem;color:#c0392b;font-weight:700">📊 推計月商</div>
         <!-- 数値行 -->
         <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;font-size:1.05rem;font-weight:900;color:#1a3a5c;line-height:1.2">${totalReviews.toLocaleString()}<span style="font-size:0.65rem;font-weight:400">件</span></div>
         <div style="background:#fff8f0;border:1px solid #fddcb5;border-top:none;border-radius:0 0 8px 8px;padding:3px 10px 8px;font-size:1.05rem;font-weight:900;color:#e67e22;line-height:1.2">★${avgReview.toFixed(1)}</div>
