@@ -2434,7 +2434,7 @@ td a:hover { text-decoration: underline; }
   #saveBtn { flex: 1; padding: 12px 0; font-size: 0.85rem; font-weight: 700; background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1; border-radius: 8px; white-space: nowrap; justify-content: center; }
   #favBtn  { display: none; }
   #spFavBtn {
-    order: 4; width: calc(100% - 24px); margin: 4px 12px 12px;
+    display: block; order: 4; width: calc(100% - 24px); margin: 4px 12px 12px;
     padding: 11px 0; font-size: 0.85rem; font-weight: 700;
     background: #fffbeb; color: #92400e;
     border: 1.5px solid #fde68a; border-radius: 10px;
