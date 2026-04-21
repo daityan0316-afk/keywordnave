@@ -2745,7 +2745,7 @@ function openShopModal(shopCode, shopName, fromReport = false) {
   const backBtn = document.getElementById("shopModalBack");
   if (backBtn) backBtn.style.display = fromReport ? "" : "none";
   const modal = document.getElementById("shopModal");
-  document.getElementById("shopModalTitle").innerHTML = `<span style="font-size:1rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏪 ${shopName}</span><span id="shopStrengthBadge"></span>`;
+  document.getElementById("shopModalTitle").innerHTML = `<a href="https://www.rakuten.co.jp/${shopCode}/" target="_blank" style="font-size:1rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;text-decoration:none" title="店舗トップページを開く">🏪 ${shopName} <span style="font-size:0.72rem;color:#2563eb;font-weight:500">↗</span></a><span id="shopStrengthBadge"></span>`;
   document.getElementById("shopModalBody").innerHTML = '<p class="suggest-loading">取得中…</p>';
   modal.classList.add("open");
 
