@@ -1841,15 +1841,13 @@ function renderNiche(items, keyword) {
              </div>` : '';
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="padding:10px 14px;border-bottom:1px solid #e8edf4;display:flex;justify-content:space-between;align-items:center">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};line-height:1">🏆 SEO ${seoVal} ／</span>
-            <span style="font-size:0.78rem;font-weight:700;color:${ma.entryColor};opacity:0.8;line-height:1">${ma.entryJudge}</span>
-          </div>
-        </div>
         <div style="padding:10px 14px;border-bottom:1px solid #e8edf4">
           <div style="font-size:0.8rem;font-weight:700;color:#666;margin-bottom:4px">💰 １商品の月商目安（新規参入）</div>
           <div style="font-size:1.8rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.04em">${monthlyDisplay}</div>
+        </div>
+        <div style="padding:8px 14px;border-bottom:1px solid #e8edf4;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:0.88rem;font-weight:800;color:${ma.entryColor};line-height:1">🏆 SEO ${seoVal} ／</span>
+          <span style="font-size:0.78rem;font-weight:700;color:${ma.entryColor};opacity:0.8;line-height:1">${ma.entryJudge}</span>
         </div>
         <div style="padding:10px 14px">
           <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:6px">🛒 価格帯別・必要販売数/月</div>
