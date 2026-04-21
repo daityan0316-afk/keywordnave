@@ -3469,7 +3469,7 @@ function renderFavGrid() {
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
       ${kwKeys.map((kw, i) => `
         <button onclick="favKwTab(this,${i})"
-          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid ${i===0?'#2563eb':'#d0d8e8'};background:${i===0?'#2563eb':'#fff'};color:${i===0?'#fff':'#555'};cursor:pointer;font-family:inherit;transition:all 0.15s">
+          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid ${i===0?'#93b4e0':'#d0d8e8'};background:${i===0?'#dbeafe':'#fff'};color:${i===0?'#1a3a5c':'#888'};cursor:pointer;font-family:inherit;transition:all 0.15s">
           🔍 ${kw} <span style="font-size:0.7rem;opacity:0.7">${groups[kw].length}</span>
         </button>`).join('')}
     </div>
@@ -3481,9 +3481,9 @@ function renderFavGrid() {
 function favKwTab(btn, idx) {
   const wrap = btn.closest('#favItemGrid');
   wrap.querySelectorAll('[onclick^="favKwTab"]').forEach((b,i) => {
-    b.style.background = i===idx ? '#2563eb' : '#fff';
-    b.style.color = i===idx ? '#fff' : '#555';
-    b.style.borderColor = i===idx ? '#2563eb' : '#d0d8e8';
+    b.style.background = i===idx ? '#dbeafe' : '#fff';
+    b.style.color = i===idx ? '#1a3a5c' : '#888';
+    b.style.borderColor = i===idx ? '#93b4e0' : '#d0d8e8';
   });
   wrap.querySelectorAll('.fav-kw-pane').forEach((p,i) => p.style.display = i===idx ? 'block' : 'none');
 }
