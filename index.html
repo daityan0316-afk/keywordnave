@@ -2193,16 +2193,19 @@ function analyzeSeasonalDemand(keyword, items) {
   return { scores, events: [...new Set(hitEvents)], isYearRound: false };
 }
 
-function renderSeasonChart(scores) {
+function renderSeasonChart(scores, isYearRound) {
   const months = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
   const max = Math.max(...scores, 1);
-  const now = new Date().getMonth(); // 現在月（0インデックス）
+  const now = new Date().getMonth();
   return `<div style="display:flex;align-items:flex-end;gap:3px;height:54px;padding:0 2px">
     ${scores.map((s, i) => {
       const pct = Math.round(s / max * 100);
-      const isPeak = s === max && s > 0;
+      const isPeak = !isYearRound && s === max && s > 0;
       const isCur  = i === now;
-      const barColor = isPeak ? "#e74c3c" : s > max * 0.5 ? "#f39c12" : s > 0 ? "#7fb3d3" : "#e8eef5";
+      const barColor = isYearRound ? "#5dbb7e"
+                     : isPeak ? "#e74c3c"
+                     : s > max * 0.5 ? "#f39c12"
+                     : s > 0 ? "#7fb3d3" : "#e8eef5";
       return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
         <div style="width:100%;background:${barColor};height:${Math.max(pct * 0.44, s > 0 ? 4 : 2)}px;border-radius:3px 3px 0 0;transition:height 0.4s ease;${isPeak?'box-shadow:0 0 6px rgba(231,76,60,0.5)':''}"></div>
         <span style="font-size:0.52rem;color:${isCur?'#2980b9':'#aaa'};font-weight:${isCur?700:400};white-space:nowrap">${months[i]}</span>
@@ -2221,7 +2224,7 @@ function openMarketPopup() {
   const shareDisp = `約${(d.entrantShare * 100).toFixed(1)}%`;
 
   const seasonal = analyzeSeasonalDemand(d.keyword || "", _allItems || []);
-  const seasonChart = renderSeasonChart(seasonal.scores);
+  const seasonChart = renderSeasonChart(seasonal.scores, seasonal.isYearRound);
   const peakMonths = seasonal.scores
     .map((s, i) => ({ m: i + 1, s }))
     .filter(x => x.s === Math.max(...seasonal.scores) && x.s > 0)
@@ -2462,7 +2465,7 @@ function openMarketPopup() {
         <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;margin-top:4px">
           <div style="font-size:0.78rem;font-weight:700;color:#555;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
             <span>📅 月ごとの需要カレンダー（いつ売れる？）</span>
-            ${peakMonths ? `<span style="font-size:0.7rem;background:#fdecea;color:#c0392b;padding:2px 8px;border-radius:10px;font-weight:600">ピーク：${peakMonths}</span>` : ""}
+            ${!seasonal.isYearRound && peakMonths ? `<span style="font-size:0.7rem;background:#fdecea;color:#c0392b;padding:2px 8px;border-radius:10px;font-weight:600">ピーク：${peakMonths}</span>` : seasonal.isYearRound ? `<span style="font-size:0.7rem;background:#eafaf1;color:#1e8449;padding:2px 8px;border-radius:10px;font-weight:600">✅ 通年型</span>` : ""}
           </div>
           ${seasonChart}
           ${seasonal.isYearRound
