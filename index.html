@@ -2857,9 +2857,19 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
           <div style="font-size:0.95rem;font-weight:800;color:#333">${fmtYen(minPrice)}</div>
           <div style="font-size:0.72rem;color:#888">〜 ${fmtYen(maxPrice)}</div>
         </div>
-        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:10px;padding:12px 14px">
-          <div style="font-size:0.78rem;color:#c0392b;font-weight:700;margin-bottom:4px">🏪 推計月商</div>
-          <div style="font-size:1.25rem;font-weight:900;color:#c0392b">${fmtMonthly(monthlyEst)}</div>
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:10px;padding:12px 14px;grid-column:span 2">
+          <div style="font-size:0.72rem;color:#c0392b;font-weight:700;margin-bottom:6px">🏪 推計月商</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #f5c6c6">
+              <div style="font-size:0.65rem;color:#aaa;margin-bottom:2px">店舗全体</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#c0392b">${fmtMonthly(monthlyEst)}</div>
+            </div>
+            <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #f5c6c6">
+              <div style="font-size:0.65rem;color:#aaa;margin-bottom:2px">「${mkt && mkt.keyword ? mkt.keyword : '検索キーワード'}」内</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#e67e22">${fmtMonthly(kwMonthly)}</div>
+              ${kwShare > 0 ? `<div style="font-size:0.65rem;color:#aaa">市場シェア約${kwShare}%</div>` : ''}
+            </div>
+          </div>
         </div>
       </div>
     </div>`;
