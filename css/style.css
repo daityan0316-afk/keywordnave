@@ -864,6 +864,9 @@ td a:hover { text-decoration: underline; }
 
 /* Shop analysis */
 .shop-analysis { margin-bottom: 12px; }
+@media (max-width: 640px) {
+  .shop-analysis > div { grid-template-columns: 1fr 1fr !important; }
+}
 /* Shop tag list in sidebar */
 .shop-tag-box {
   background: linear-gradient(135deg, #f9f9f9 0%, #f2f4f0 100%);
