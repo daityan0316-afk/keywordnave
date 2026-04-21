@@ -1779,10 +1779,10 @@ function renderNiche(items, keyword) {
             return `<div style="font-size:0.78rem;color:#666;margin-top:6px;border-top:1px solid #eee;padding-top:6px">
               <div style="margin-bottom:4px;font-weight:600;color:#888;font-size:0.78rem">月商達成に必要な販売数</div>
               <div style="display:flex;flex-direction:column;gap:3px">
-                ${row('底値', bot, false)}
-                ${row('低価格', lo, false)}
-                ${row('中価格', md, true)}
                 ${row('高価格', hi, false)}
+                ${row('中価格', md, true)}
+                ${row('低価格', lo, false)}
+                ${row('底値', bot, false)}
               </div>
             </div>`;
           })() : ''}
