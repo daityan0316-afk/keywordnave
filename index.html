@@ -112,7 +112,7 @@
       <!-- 左サイドバー -->
       <aside class="result-sidebar">
         <div class="sidebar-sticky">
-          <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 市場分析レポート</button>
+          <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 商品分析レポート</button>
           <div id="summaryGrid" class="summary-grid"></div>
           <div id="nicheBar"></div>
           <div class="sidebar-price-filter hidden" id="priceFilterBox">
@@ -1859,7 +1859,7 @@ function renderNiche(items, keyword) {
         </div>
       </div>`;
       })() : ''}
-      <button onclick="openMarketPopup()" style="width:100%;padding:9px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 市場分析レポート</button>
+      <button onclick="openMarketPopup()" style="width:100%;padding:9px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 商品分析レポート</button>
       </div>
     </div>
     ${ma.entryJudge ? (() => {
@@ -2621,7 +2621,7 @@ function openMarketPopup() {
   const riskBg   = { high:"#fdf0ef", mid:"#fef6ec", low:"#edfaf2" };
   const riskLabel = { high:"⚠️ 高", mid:"📊 中", low:"✅ 低" };
 
-  document.getElementById("marketPopupTitle").textContent = `📊 市場分析レポート — ${d.keyword}`;
+  document.getElementById("marketPopupTitle").textContent = `📊 商品分析レポート — ${d.keyword}`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">🎯 サマリー</button>
