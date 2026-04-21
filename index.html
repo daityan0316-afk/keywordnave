@@ -1869,24 +1869,22 @@ function renderNiche(items, keyword) {
             }).filter(Boolean);
             const maxRounded = Math.max(...rows.map(r=>r.rounded), 1);
             const bestIdx = rows.reduce((bi,r,i)=>r.rounded>rows[bi].rounded?i:bi,0);
-            const bestRow = rows[bestIdx];
-            const ratio = bestRow ? Math.round(bestRow.rounded / (rows.find((_,i)=>i!==bestIdx)?.rounded||1) * 10)/10 : 1;
-            const whyChip = ratio >= 3 ? `月商が他帯の${ratio}倍と圧倒的` : ratio >= 1.5 ? `月商が他帯より${ratio}倍高い` : `3帯中で月商が最も高い`;
+            window._priceBandRows = rows;
+            window._priceBandBestIdx = bestIdx;
             return rows.map((r,i)=>{
               const barW = Math.round(r.rounded/maxRounded*100);
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              return `<div onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:box-shadow 0.15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)';const c=this.querySelector('.price-why-chip');if(c)c.style.display='inline-block'" onmouseout="this.style.boxShadow='none';const c=this.querySelector('.price-why-chip');if(c)c.style.display='none'">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isBest?6:4}px">
-                  <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+              return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:all 0.15s" onmouseover="this.style.boxShadow='0 2px 6px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                  <div style="display:flex;align-items:center;gap:5px">
                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
                     <span style="font-size:0.85rem;font-weight:${isBest?800:600};color:${isBest?'#1a1a2e':'#555'}">${r.b.label}</span>
                     <span style="font-size:0.72rem;color:#bbb">平均¥${r.avgPrice.toLocaleString()}</span>
                   </div>
                   <span style="font-size:${isBest?'1.1':'0.95'}rem;font-weight:900;color:${isBest?r.b.color:'#888'}">${r.rounded.toLocaleString()}円</span>
                 </div>
-                ${isBest?`<div class="price-why-chip" style="font-size:0.72rem;color:${r.b.color};font-weight:700;margin-bottom:5px;padding:2px 8px;background:${r.b.color}18;border-radius:6px;display:none">💡 ${whyChip}</div>`:''}
                 <div style="height:4px;background:#e8edf2;border-radius:3px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${r.b.color};border-radius:3px;opacity:${isBest?0.85:0.3}"></div>
                 </div>
@@ -3062,6 +3060,18 @@ function filterByPriceBand(min, max, bandIdx) {
   // 売れ筋商品カードも絞り込む
   document.querySelectorAll('[data-band-idx]').forEach(el => {
     el.style.display = (bandIdx === undefined || el.dataset.bandIdx == bandIdx) ? '' : 'none';
+  });
+  // 選択中価格帯をハイライト
+  const rows = window._priceBandRows || [];
+  document.querySelectorAll('[data-price-row]').forEach(el => {
+    const idx = parseInt(el.dataset.priceRow);
+    const r = rows[idx];
+    if (!r) return;
+    const isSelected = idx === bandIdx;
+    const isBest = idx === (window._priceBandBestIdx ?? -1);
+    el.style.background = isSelected ? r.b.color + '22' : isBest ? r.b.color + '0f' : '#fafbfc';
+    el.style.border = isSelected ? `2px solid ${r.b.color}` : isBest ? `1.5px solid ${r.b.color}50` : '1px solid #edf0f5';
+    el.style.boxShadow = isSelected ? `0 2px 10px ${r.b.color}30` : 'none';
   });
 }
 
