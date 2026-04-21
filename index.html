@@ -532,6 +532,7 @@ function saveKeyword() {
   setTimeout(() => { btn.textContent = "★ 登録"; }, 1500);
 }
 function deleteSaved(kw) {
+  if (!confirm(`「${kw}」を削除しますか？`)) return;
   const list = loadSaved().filter(e => (e.kw||e) !== kw);
   localStorage.setItem("savedKeywords", JSON.stringify(list));
   renderSavedKeywords();
