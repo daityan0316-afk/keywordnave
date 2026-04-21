@@ -75,7 +75,7 @@
         <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">＋ キーワード保存</button>
       </div>
       <button id="spFavBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)">★ お気に入り一覧 <span id="spFavCount">0</span></button>
-      <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ お気に入り商品 <span id="favCount" style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;font-size:0.75rem;font-weight:800;background:#e67e22;color:#fff;border-radius:20px;margin-left:2px">0</span></button>
+      <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ お気に入り商品一覧へ</button>
       <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
     </div>
   </div>
@@ -117,7 +117,7 @@
         <div class="sidebar-sticky">
           <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 商品分析レポート</button>
           <div id="summaryGrid" class="summary-grid"></div>
-          <button id="spFavBtn2" onclick="openFavModal()" style="display:none;width:100%;padding:11px 0;font-size:0.85rem;font-weight:700;background:#fffbeb;color:#92400e;border:1.5px solid #fde68a;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px">★ お気に入り商品 <span id="spFavCount2" style="display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;font-size:0.75rem;font-weight:800;background:#e67e22;color:#fff;border-radius:20px;margin-left:2px">0</span></button>
+          <button id="spFavBtn2" onclick="openFavModal()" style="display:none;width:100%;padding:11px 0;font-size:0.85rem;font-weight:700;background:#fffbeb;color:#92400e;border:1.5px solid #fde68a;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px">★ お気に入り商品一覧へ</button>
           <div id="nicheBar"></div>
           <div class="sidebar-price-filter hidden" id="priceFilterBox">
             <span class="price-filter-label">価格帯（最安〜最高）</span>
