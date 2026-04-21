@@ -148,7 +148,7 @@
           </div>
           <div class="pg-bottom-row">
             <div id="paginationBottom"></div>
-            <div id="resultTitleBottom" class="result-title-bottom"></div>
+            <div id="resultTitleBottom" class="result-title-bottom sp-only"></div>
           </div>
         </div>
       </div><!-- /.result-main -->
@@ -355,7 +355,7 @@
 <div id="shopModal" class="shop-modal-overlay" onclick="closeShopModal(event)">
   <div class="shop-modal-box">
     <div class="shop-modal-header">
-      <button id="shopModalBack" onclick="document.getElementById('shopModal').classList.remove('open');document.getElementById('marketPopup').classList.remove('open')" style="display:none;width:100%;padding:11px 0;font-size:0.82rem;font-weight:600;color:#64748b;background:#f8fafc;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-family:inherit;letter-spacing:0.06em;text-transform:uppercase">‹‹ &nbsp;Report</button>
+      <button id="shopModalBack" onclick="document.getElementById('shopModal').classList.remove('open');document.getElementById('marketPopup').classList.remove('open')" style="width:100%;padding:11px 0;font-size:0.82rem;font-weight:600;color:#64748b;background:#f8fafc;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-family:inherit;letter-spacing:0.06em;text-transform:uppercase">‹‹ &nbsp;Report</button>
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 4px;gap:8px">
         <span id="shopModalTitle" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;font-size:1rem;font-weight:700;overflow:hidden"></span>
         <button onclick="document.getElementById('shopModal').classList.remove('open')" class="shop-modal-close" style="flex-shrink:0">✕</button>
@@ -1766,7 +1766,7 @@ async function doSearch(searchGenreId) {
       : `カテゴリ検索結果 ${_sortedItems.length}件`;
     document.getElementById("resultTitle").textContent = _rtitle;
     const _rtBot = document.getElementById("resultTitleBottom");
-    if (_rtBot) _rtBot.textContent = _rtitle;
+    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${keyword}」<br><span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>`; }
     renderTable(_sortedItems, _orderMap);
 
 
@@ -2959,7 +2959,7 @@ function mpTab(btn, idx) {
 function openShopModal(shopCode, shopName, fromReport = false) {
   if (!shopCode) return;
   const backBtn = document.getElementById("shopModalBack");
-  if (backBtn) backBtn.style.display = fromReport ? "" : "none";
+  if (backBtn) backBtn.style.display = "";
   const modal = document.getElementById("shopModal");
   document.getElementById("shopModalTitle").innerHTML = `<a href="https://www.rakuten.co.jp/${shopCode}/" target="_blank" style="font-size:1rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;text-decoration:none" title="店舗トップページを開く">🏪 ${shopName} <span style="font-size:0.72rem;color:#2563eb;font-weight:500">↗</span></a>`;
   document.getElementById("shopModalSubtitle").innerHTML = `<span id="shopStrengthBadge"></span>`;
@@ -3209,7 +3209,7 @@ function resetPriceBand() {
   const _kw0 = document.getElementById('keyword')?.value.trim() || _lastSearchKeyword || '';
   const _t0 = _kw0 ? `検索結果「${_kw0}」 全価格帯 ${_sortedItems.length}件` : `全価格帯 ${_sortedItems.length}件`;
   const _r0 = document.getElementById('resultTitle'); if (_r0) _r0.textContent = _t0;
-  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) _rb0.textContent = _t0;
+  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) { const _kw0b = document.getElementById('keyword')?.value.trim()||_lastSearchKeyword||''; _rb0.innerHTML = _kw0b ? `検索結果「${_kw0b}」<br><span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>` : `<span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>`; }
 }
 
 function filterByPriceBand(min, max, bandIdx) {
@@ -3234,7 +3234,7 @@ function filterByPriceBand(min, max, bandIdx) {
   const _rtEl = document.getElementById('resultTitle');
   if (_rtEl) _rtEl.textContent = _newTitle;
   const _rtBot = document.getElementById('resultTitleBottom');
-  if (_rtBot) _rtBot.textContent = _newTitle;
+  if (_rtBot) { _rtBot.innerHTML = _kw ? `検索結果「${_kw}」<br><span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>` : `<span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>`; }
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl && bandIdx !== undefined) titleEl.textContent = `📦 ${bandLabels[bandIdx] ?? ''}売れ筋ランキング`;
   const shopTitleEl = document.getElementById('shopRankCardTitle');

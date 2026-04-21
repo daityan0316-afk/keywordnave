@@ -311,7 +311,7 @@ td a:hover { color: var(--accent); text-decoration: underline; }
 .result-main > div:first-child { margin-top: 0; padding-top: 0; }
 .pg-header-row .filter-count { font-size: 0.78rem; color: #888; }
 .pg-bottom-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 6px 0; flex-wrap: wrap; gap: 6px; }
-.result-title-bottom { font-size: 0.85rem; font-weight: 700; color: #1a3a5c; }
+.result-title-bottom { font-size: 0.85rem; font-weight: 700; color: #1a3a5c; line-height: 1.6; }
 .pg-row { display: flex; gap: 4px; flex-wrap: wrap; }
 .pg-btn { min-width: 30px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--blue); font-size: 0.78rem; cursor: pointer; transition: all 0.15s; font-weight: 600; }
 .pg-btn:hover { background: var(--blue-lt); border-color: #93c5fd; }
@@ -2605,7 +2605,7 @@ td a:hover { text-decoration: underline; }
   /* 上部の件数・ページネーションを非表示、下部のみ表示 */
   .pg-header-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .pg-bottom-row { border-top: 1px solid #eef0f4; padding-top: 10px; }
-  .result-title-bottom { font-size: 0.9rem; }
+  .result-title-bottom { font-size: 0.9rem; display: block !important; }
 
   /* 登録キーワード */
   .sp-only { display: flex !important; }
