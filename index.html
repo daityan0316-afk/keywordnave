@@ -2824,11 +2824,14 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
   const shopTotalLabel = shopTotal > 0 ? `全${shopTotal.toLocaleString()}商品から推計` : `上位${items.length}件から推計`;
   const fmtMonthly = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
 
-  // キーワード内での推計月商（検索結果 _allItems 内のこの店舗分）
-  const kwItems = (_allItems || []).filter(it => (it.itemCode || "").split(":")[0] === shopCode);
-  const kwMonthly = kwItems.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
+  // キーワード内での推計月商 — 競合比較タブと同じ「市場規模をレビュー比率で按分」方式
   const mkt = window._marketAnalysis || _marketAnalysis;
   const marketMonthly = mkt ? mkt.totalMarketRevenue / 12 : 0;
+  const allKwItems = _allItems || [];
+  const totalKwReviews = allKwItems.reduce((s, i) => s + (i.reviewCount || 0), 0) || 1;
+  const shopKwReviews = allKwItems.filter(it => (it.itemCode || "").split(":")[0] === shopCode)
+                                  .reduce((s, i) => s + (i.reviewCount || 0), 0);
+  const kwMonthly = Math.round(shopKwReviews / totalKwReviews * marketMonthly);
   const kwShare = marketMonthly > 0 ? Math.min(100, Math.round(kwMonthly / marketMonthly * 100)) : 0;
 
   // 強さ判定
