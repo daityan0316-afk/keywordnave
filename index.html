@@ -1826,9 +1826,9 @@ function renderNiche(items, keyword) {
                            : `約${monthlyRounded.toLocaleString()}円`;
         const s = `font-size:0.75rem;font-weight:600;opacity:0.7`;
         const monthlyDisplay = monthly >= 1e8
-          ? `<span style="${s}">約</span>${(monthlyRounded/1e8).toFixed(1)}<span style="${s}">億円</span>`
+          ? `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`
           : monthly >= 1e4
-          ? `<span style="${s}">約</span>${Math.round(monthlyRounded/1e4)}<span style="${s}">万円</span>`
+          ? `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`
           : `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`;
         const cs = ma.compRank || 0;
         const seoVal = cs >= 3 ? '上位困難' : cs >= 2 ? 'やや難しい' : '上位狙える';
