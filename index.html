@@ -2841,34 +2841,35 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
   const badgeEl = document.getElementById("shopStrengthBadge");
   if (badgeEl) badgeEl.innerHTML = `<span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="color:${strength.color};font-size:0.85rem;font-weight:700;white-space:nowrap;flex-shrink:0">${strength.label}</span><span style="color:#ccc;font-size:1rem;flex-shrink:0">／</span><span style="font-size:0.82rem;color:#888;white-space:nowrap;flex-shrink:0;align-self:center">${shopTotalLabel}</span>`;
 
+  const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
   const analysisHtml = `
     <div class="shop-analysis">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative">
-        <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:10px;padding:12px 14px">
-          <div style="font-size:0.78rem;color:#2563eb;font-weight:700;margin-bottom:4px">💬 レビュー数</div>
-          <div style="font-size:1.25rem;font-weight:900;color:#1a3a5c">${totalReviews.toLocaleString()}<span style="font-size:0.78rem;font-weight:500;margin-left:2px">件</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;margin-bottom:2px">
+        <div style="display:flex;gap:6px;flex:1;min-width:0">
+          <div style="background:#f0f7ff;border:1px solid #c0d8f0;border-radius:8px;padding:7px 10px;flex:1;min-width:0">
+            <div style="font-size:0.65rem;color:#2563eb;font-weight:700">💬 レビュー</div>
+            <div style="font-size:1rem;font-weight:900;color:#1a3a5c">${totalReviews.toLocaleString()}<span style="font-size:0.68rem;font-weight:400">件</span></div>
+          </div>
+          <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:8px;padding:7px 10px;flex:1;min-width:0">
+            <div style="font-size:0.65rem;color:#ea580c;font-weight:700">⭐ 評価</div>
+            <div style="font-size:1rem;font-weight:900;color:#e67e22">★${avgReview.toFixed(1)}</div>
+          </div>
+          <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:8px;padding:7px 10px;flex:1;min-width:0">
+            <div style="font-size:0.65rem;color:#555;font-weight:700">💴 価格帯</div>
+            <div style="font-size:0.82rem;font-weight:800;color:#333">${fmtYen(minPrice)}</div>
+            <div style="font-size:0.65rem;color:#aaa">〜${fmtYen(maxPrice)}</div>
+          </div>
         </div>
-        <div style="background:#fff8f0;border:1px solid #fddcb5;border-radius:10px;padding:12px 14px">
-          <div style="font-size:0.78rem;color:#ea580c;font-weight:700;margin-bottom:4px">⭐ 平均評価</div>
-          <div style="font-size:1.25rem;font-weight:900;color:#e67e22">★${avgReview.toFixed(1)}</div>
-        </div>
-        <div style="background:#fafbfc;border:1px solid #e0e8f0;border-radius:10px;padding:12px 14px">
-          <div style="font-size:0.78rem;color:#555;font-weight:700;margin-bottom:4px">💴 価格帯</div>
-          <div style="font-size:0.95rem;font-weight:800;color:#333">${fmtYen(minPrice)}</div>
-          <div style="font-size:0.72rem;color:#888">〜 ${fmtYen(maxPrice)}</div>
-        </div>
-        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:10px;padding:12px 14px;grid-column:span 2">
-          <div style="font-size:0.72rem;color:#c0392b;font-weight:700;margin-bottom:6px">🏪 推計月商</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #f5c6c6">
-              <div style="font-size:0.65rem;color:#aaa;margin-bottom:2px">店舗全体</div>
-              <div style="font-size:1.1rem;font-weight:900;color:#c0392b">${fmtMonthly(monthlyEst)}</div>
-            </div>
-            <div style="background:#fff;border-radius:8px;padding:8px 10px;border:1px solid #f5c6c6">
-              <div style="font-size:0.65rem;color:#aaa;margin-bottom:2px">「${mkt && mkt.keyword ? mkt.keyword : '検索キーワード'}」内</div>
-              <div style="font-size:1.1rem;font-weight:900;color:#e67e22">${fmtMonthly(kwMonthly)}</div>
-              ${kwShare > 0 ? `<div style="font-size:0.65rem;color:#aaa">市場シェア約${kwShare}%</div>` : ''}
-            </div>
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:8px;padding:7px 10px;display:flex;gap:12px;align-items:center">
+          <div>
+            <div style="font-size:0.65rem;color:#aaa;white-space:nowrap">🏪 店舗全体</div>
+            <div style="font-size:1rem;font-weight:900;color:#c0392b">${fmtMonthly(monthlyEst)}</div>
+          </div>
+          <div style="width:1px;background:#f5c6c6;align-self:stretch"></div>
+          <div>
+            <div style="font-size:0.65rem;color:#aaa;white-space:nowrap">「${kwLabel}」内</div>
+            <div style="font-size:1rem;font-weight:900;color:#e67e22">${fmtMonthly(kwMonthly)}</div>
+            ${kwShare > 0 ? `<div style="font-size:0.62rem;color:#aaa">シェア約${kwShare}%</div>` : ''}
           </div>
         </div>
       </div>
