@@ -1887,13 +1887,13 @@ function renderNiche(items, keyword) {
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
               return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:9px 12px;margin-bottom:5px;border-radius:10px;background:${isBest?r.b.color+'0f':'#fafbfc'};border:${isBest?`1.5px solid ${r.b.color}50`:'1px solid #edf0f5'};cursor:pointer;transition:all 0.15s" onmouseover="this.style.boxShadow='0 2px 6px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                  <div style="display:flex;align-items:center;gap:5px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;gap:5px;min-width:0">
                     <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
-                    <span style="font-size:0.85rem;font-weight:${isBest?800:600};color:${isBest?'#1a1a2e':'#555'}">${r.b.label}</span>
-                    <span style="font-size:0.72rem;color:#bbb">平均¥${r.avgPrice.toLocaleString()}</span>
+                    <span style="font-size:0.85rem;font-weight:${isBest?800:600};color:${isBest?'#1a1a2e':'#555'};white-space:nowrap">${r.b.label}</span>
+                    <span style="font-size:0.72rem;color:#bbb;white-space:nowrap">平均¥${r.avgPrice.toLocaleString()}</span>
                   </div>
-                  <span style="font-size:${isBest?'1.1':'0.95'}rem;font-weight:900;color:${isBest?r.b.color:'#888'}">${r.rounded.toLocaleString()}円</span>
+                  <span style="font-size:0.95rem;font-weight:900;color:${isBest?r.b.color:'#888'};white-space:nowrap;flex-shrink:0">${r.rounded.toLocaleString()}円</span>
                 </div>
                 <div style="height:4px;background:#e8edf2;border-radius:3px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${r.b.color};border-radius:3px;opacity:${isBest?0.85:0.3}"></div>
