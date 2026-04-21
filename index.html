@@ -2654,7 +2654,7 @@ function openMarketPopup() {
             .sort((a,b) => b.estSales - a.estSales).slice(0, 15);
           const maxRev2 = shops2[0]?.estSales || 1;
           return `
-          <div style="margin-bottom:8px;font-size:0.75rem;color:#aaa">🏆 上位${shops2.length}店舗（推計月商順）　※レビュー数比率で按分</div>
+          <div style="margin-bottom:10px;font-size:0.88rem;font-weight:700;color:#1a3a5c">🏆 上位${shops2.length}店舗（推計月商順）<span style="font-size:0.72rem;font-weight:400;color:#aaa;margin-left:6px">※レビュー数比率で按分</span></div>
           <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden">
             ${shops2.map((s, i) => {
               const barW = Math.round(s.estSales / maxRev2 * 100);
@@ -2667,14 +2667,35 @@ function openMarketPopup() {
                   <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};font-size:0.82rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
                   <span style="font-size:0.88rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${estLabel}円</span>
                 </div>
-                <div style="display:flex;gap:10px;font-size:0.72rem;color:#888;margin-bottom:4px">
-                  <span>📦${s.count}件</span><span>¥${s.avgPrice.toLocaleString()}</span><span>💬${s.totalRev.toLocaleString()}</span><span>★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
+                <div style="display:flex;gap:10px;font-size:0.72rem;color:#888;margin-bottom:4px;align-items:center">
+                  <span style="background:#eef2fb;color:#2563eb;border-radius:4px;padding:1px 6px;font-weight:700">📦 ${s.count}商品</span><span>¥${s.avgPrice.toLocaleString()}</span><span>💬${s.totalRev.toLocaleString()}</span><span>★${s.avgRev > 0 ? s.avgRev.toFixed(1) : '-'}</span>
                 </div>
                 <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${barColor};border-radius:2px"></div>
                 </div>
               </div>`;
             }).join("")}
+          </div>
+
+          <div style="margin-top:14px">
+            <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 店舗別 出品数ランキング</div>
+            <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden">
+              ${allShopsRaw.sort((a,b)=>b.count-a.count).slice(0,10).map((s,i)=>{
+                const maxC = allShopsRaw[0]?.count || 1;
+                const barW2 = Math.round(s.count / Math.max(...allShopsRaw.map(x=>x.count)) * 100);
+                const rankColor2 = i===0?'#f39c12':i===1?'#95a5a6':i===2?'#cd7f32':'#dde3ea';
+                return `<div style="background:${i%2===0?'#fff':'#f8fafc'};border-bottom:${i<9?'1px solid #e8edf2':'none'};padding:7px 12px">
+                  <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor2};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
+                    <span style="font-size:0.82rem;font-weight:${i<3?700:500};color:#1a3a5c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+                    <span style="font-size:0.88rem;font-weight:800;color:#2563eb;flex-shrink:0">${s.count}商品</span>
+                  </div>
+                  <div style="height:4px;background:#e8edf2;border-radius:2px;overflow:hidden">
+                    <div style="height:100%;width:${barW2}%;background:linear-gradient(to right,#2563eb,#60a5fa);border-radius:2px"></div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
           </div>`;
         })()}
       </div>
