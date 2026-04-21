@@ -1865,8 +1865,8 @@ function renderSummary(items) {
   const _overCapacity = _capMonthly !== Infinity && _monthlyEst > _capMonthly * 0.8;
   const _capNote = _capMonthly === Infinity ? '' :
     _overCapacity
-      ? `\n\n⚠️ あなたの規模（${_opsLabel}）での対応可能月商目安は${_capLabel}ほど。目標達成時は注文量が増え、発送が追いつかない可能性があります。外注・倉庫の活用も視野に入れましょう。`
-      : `\n\nあなたの規模（${_opsLabel}）では、この市場での目標月商は無理なく対応できる範囲です（目安：月${_capLabel}まで対応可）。`;
+      ? `\n\n⚠️ 対応可能月商目安は${_capLabel}ほど。売上が伸びた際は注文量が発送対応を超える可能性があります。外注・倉庫の活用も視野に。`
+      : `\n\n自己発送2名での対応目安（月${_capLabel}）の範囲内です。`;
 
   let entryJudge, entryColor, entryBg, entryReason, entryAdvice;
   if (yearlyEstimate < 30e4) {
