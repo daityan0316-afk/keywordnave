@@ -24,8 +24,10 @@
     const _db = firebase.database();
     const _favsRef = _db.ref('favItems');
     let _favsCache = [];
+    let _favsLoaded = false;
     _favsRef.on('value', snapshot => {
       _favsCache = snapshot.val() || [];
+      _favsLoaded = true;
       if (typeof updateFavCount === 'function') updateFavCount();
       if (typeof renderFavGrid === 'function') renderFavGrid();
       if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
@@ -3125,6 +3127,10 @@ function renderFavGrid() {
   const el = document.getElementById("favItemGrid");
   if (!el) return;
   const list = loadFavs();
+  if (!_favsLoaded) {
+    el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">読み込み中…</div>`;
+    return;
+  }
   if (!list.length) {
     el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">お気に入り商品はありません</div>`;
     return;
