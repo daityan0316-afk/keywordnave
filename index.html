@@ -2821,7 +2821,8 @@ function renderShopModal(items, shopTotal = 0, shopCode = "") {
   const minPrice = prices[0] || 0;
   const maxPrice = prices[prices.length-1] || 0;
   const totalReviews = items.reduce((s,i) => s + i.reviewCount, 0);
-  const avgReview = items.reduce((s,i) => s + i.reviewAvg, 0) / items.length;
+  const ratedItems = items.filter(i => i.reviewAvg > 0);
+  const avgReview = ratedItems.length ? ratedItems.reduce((s,i) => s + i.reviewAvg, 0) / ratedItems.length : 0;
   const rankedItems = items.filter(i => i.rank !== null && i.rank !== undefined);
   const top3Items  = items.filter(i => i.rank && i.rank <= 3);
   const fmtYen = v => `¥${Math.round(v).toLocaleString()}`;
