@@ -3057,6 +3057,9 @@ function filterByPriceBand(min, max, bandIdx) {
                        .slice(0, 10);
   renderTable(filtered, _orderMap);
   document.getElementById('filterCount').textContent = `TOP10絞込中`;
+  // 競合店舗タグも価格帯内の店舗のみ表示
+  const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
+  renderShopTags(bandItems);
   // 売れ筋商品カードも絞り込む
   document.querySelectorAll('[data-band-idx]').forEach(el => {
     el.style.display = (bandIdx === undefined || el.dataset.bandIdx == bandIdx) ? '' : 'none';
