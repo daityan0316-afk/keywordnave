@@ -1858,19 +1858,30 @@ function renderNiche(items, keyword) {
               {label:'中価格帯', min:p33+1, max:p66+1,   color:'#e67e22'},
               {label:'高価格帯', min:p66+1, max:Infinity, color:'#e74c3c'},
             ];
-            return bands.map(b=>{
+            const rows = bands.map(b=>{
               const its = allItems.filter(i=>i.price>=b.min&&i.price<b.max);
-              if(!its.length) return '';
+              if(!its.length) return null;
               const avgPrice = Math.round(its.reduce((s,i)=>s+i.price,0)/its.length);
               const topItem = its.sort((a,z)=>z.reviewCount-a.reviewCount)[0];
               const estMonthly = Math.round((topItem.reviewCount/REVIEW_RATE/AVG_MONTHS)*topItem.price);
               const rounded = estMonthly>=1e5?Math.round(estMonthly/5e4)*5e4:Math.round(estMonthly/1e3)*1e3;
-              return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f2f7">
-                <div>
-                  <span style="font-size:0.78rem;font-weight:700;color:${b.color}">${b.label}</span>
-                  <span style="font-size:0.75rem;color:#999;margin-left:5px">平均¥${avgPrice.toLocaleString()}</span>
+              return {b, avgPrice, rounded};
+            }).filter(Boolean);
+            const maxRounded = Math.max(...rows.map(r=>r.rounded), 1);
+            return rows.map((r,i)=>{
+              const barW = Math.round(r.rounded/maxRounded*100);
+              return `<div style="padding:8px 0;${i<rows.length-1?'border-bottom:1px solid #f0f2f7':''}">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.b.color};flex-shrink:0"></span>
+                    <span style="font-size:0.82rem;font-weight:700;color:#444">${r.b.label}</span>
+                    <span style="font-size:0.75rem;color:#aaa">¥${r.avgPrice.toLocaleString()}</span>
+                  </div>
+                  <span style="font-size:1.05rem;font-weight:900;color:${r.b.color}">${r.rounded.toLocaleString()}円</span>
                 </div>
-                <span style="font-size:1rem;font-weight:900;color:${b.color}">${rounded.toLocaleString()}円</span>
+                <div style="height:5px;background:#f0f2f7;border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${barW}%;background:${r.b.color};border-radius:3px;opacity:0.7"></div>
+                </div>
               </div>`;
             }).join('');
           })()}
