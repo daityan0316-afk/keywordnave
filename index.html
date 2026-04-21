@@ -1965,6 +1965,40 @@ function renderNiche(items, keyword) {
           ${itemCards2}
         </div>`;
       }).join('');
+      // 店舗ランキングブロック
+      const RRATE2=0.13, AMTHS2=24;
+      const shopMap2={};
+      its2.forEach(it=>{
+        if(!it.shopName) return;
+        const code=(it.itemCode||'').split(':')[0];
+        if(!shopMap2[it.shopName]) shopMap2[it.shopName]={code,count:0,rev:0,prices:[]};
+        shopMap2[it.shopName].count++;
+        shopMap2[it.shopName].rev += (it.reviewCount/RRATE2/AMTHS2)*it.price;
+        shopMap2[it.shopName].prices.push(it.price);
+      });
+      const shopRanks = Object.entries(shopMap2)
+        .map(([name,v])=>({name,code:v.code,count:v.count,rev:Math.round(v.rev),avgPrice:Math.round(v.prices.reduce((s,p)=>s+p,0)/v.prices.length)}))
+        .sort((a,b)=>b.rev-a.rev).slice(0,5);
+      const maxShopRev = shopRanks[0]?.rev||1;
+      const shopRankHtml = shopRanks.map((s,i)=>{
+        const barW=Math.round(s.rev/maxShopRev*100);
+        const rankColor=i===0?'#f39c12':i===1?'#95a5a6':i===2?'#cd7f32':'#dde3ea';
+        const revLabel=s.rev>=1e8?`${(s.rev/1e8).toFixed(1)}億`:s.rev>=1e4?`${Math.round(s.rev/1e4)}万`:`${s.rev.toLocaleString()}`;
+        return `<div style="padding:7px 10px;border-bottom:${i<shopRanks.length-1?'1px solid #f0f2f7':'none'}">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
+            <a href="#" onclick="event.preventDefault();openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</a>
+            <span style="font-size:0.85rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${revLabel}円</span>
+          </div>
+          <div style="display:flex;gap:8px;font-size:0.72rem;color:#aaa;margin-bottom:3px">
+            <span>${s.count}商品</span><span>平均¥${s.avgPrice.toLocaleString()}</span>
+          </div>
+          <div style="height:3px;background:#f0f2f7;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:#3498db;border-radius:2px;opacity:0.6"></div>
+          </div>
+        </div>`;
+      }).join('');
+
       return cards2 ? `<div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
         <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
           <span id="bestsellerCardTitle" style="font-size:0.78rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase">📦 価格帯別 売れ筋商品</span>
@@ -1972,6 +2006,15 @@ function renderNiche(items, keyword) {
         </div>
         <div class="card-body" style="width:100%">
           ${cards2}
+        </div>
+      </div>
+      <div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
+          <span id="shopRankCardTitle" style="font-size:0.78rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase">🏪 価格帯別 店舗ランキング</span>
+          <span class="collapse-btn">▲</span>
+        </div>
+        <div id="shopRankCardBody" class="card-body" style="width:100%;padding:0">
+          <div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden">${shopRankHtml}</div>
         </div>
       </div>` : '';
     })() : ''}`;
@@ -3055,6 +3098,8 @@ let _sortedItems = [], _orderMap = {}, _selectedGenre = null;
 function resetPriceBand() {
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl) titleEl.textContent = '📦 価格帯別 売れ筋商品';
+  const shopTitleEl2 = document.getElementById('shopRankCardTitle');
+  if (shopTitleEl2) shopTitleEl2.textContent = '🏪 価格帯別 店舗ランキング';
   clearFilter();
   renderShopTags(_sortedItems);
   document.querySelectorAll('[data-band-idx]').forEach(el => el.style.display = '');
@@ -3093,6 +3138,8 @@ function filterByPriceBand(min, max, bandIdx) {
   const bandLabels = ['低価格帯', '中価格帯', '高価格帯'];
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl && bandIdx !== undefined) titleEl.textContent = `📦 ${bandLabels[bandIdx] ?? ''}売れ筋ランキング`;
+  const shopTitleEl = document.getElementById('shopRankCardTitle');
+  if (shopTitleEl && bandIdx !== undefined) shopTitleEl.textContent = `🏪 ${bandLabels[bandIdx] ?? ''}店舗ランキング`;
   // 競合店舗タグも価格帯内の店舗のみ表示
   const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
   renderShopTags(bandItems);
