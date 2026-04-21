@@ -2629,6 +2629,7 @@ function openMarketPopup() {
       <button class="mp-tab" onclick="mpTab(this,2)">📊 市場シェア</button>
       <button class="mp-tab" onclick="mpTab(this,3)">📦 商品分析</button>
       <button class="mp-tab" onclick="mpTab(this,4)">⚠️ リスク</button>
+      <button class="mp-tab" onclick="mpTab(this,5)">🔬 リサーチ</button>
     </div>
     <div class="mp-panes">
 
@@ -2874,6 +2875,112 @@ function openMarketPopup() {
             </div>`).join("")}
         </div>
         <div class="market-popup-note">※リスク評価は楽天市場データから自動算出しています。市場環境の変化により実際のリスクは異なります。</div>
+      </div>
+
+      <!-- タブ5: リサーチ -->
+      <div class="mp-pane">
+        ${(() => {
+          const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
+          const validItems = items.filter(i => i.price > 0 && i.reviewCount > 0)
+                                  .sort((a,b) => b.reviewCount - a.reviewCount);
+          const top10 = validItems.slice(0, 10);
+          const estMonthly = i => Math.round((i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price);
+          const fmtEst = v => v >= 1e6 ? `${Math.round(v/1e4)}万円` : v >= 1e4 ? `${Math.round(v/1000)}千円` : `${v.toLocaleString()}円`;
+
+          // 価格帯分布（件数 + 平均レビュー）
+          const allPrices = items.filter(i=>i.price>0).map(i=>i.price).sort((a,b)=>a-b);
+          const p25 = allPrices[Math.floor(allPrices.length*0.25)]||0;
+          const p75 = allPrices[Math.floor(allPrices.length*0.75)]||0;
+          const pMax = allPrices[allPrices.length-1]||0;
+          const bands = [
+            { label: `〜¥${Math.round(p25).toLocaleString()}`, min:0, max:p25+1 },
+            { label: `¥${Math.round(p25).toLocaleString()}〜¥${Math.round(p75).toLocaleString()}`, min:p25+1, max:p75+1 },
+            { label: `¥${Math.round(p75).toLocaleString()}〜`, min:p75+1, max:Infinity },
+          ].map(b => {
+            const its = validItems.filter(i => i.price >= b.min && i.price < b.max);
+            const allIts = items.filter(i => i.price >= b.min && i.price < b.max);
+            return { ...b, count: allIts.length,
+              avgRev: its.length ? Math.round(its.reduce((s,i)=>s+i.reviewCount,0)/its.length) : 0,
+              topItem: its[0] || null };
+          });
+          const maxCount = Math.max(...bands.map(b=>b.count), 1);
+
+          // 共通キーワード（上位10件タイトルから頻出語）
+          const stopWords = new Set(['の','と','で','を','に','は','が','も','・','【','】','（','）','「','」','送料無料','あす楽','楽天','レディース','メンズ']);
+          const wordFreq = {};
+          top10.forEach(it => {
+            (it.name||'').replace(/[【】（）「」・\s]/g,' ').split(/\s+/).forEach(w => {
+              if (w.length >= 2 && !stopWords.has(w)) wordFreq[w] = (wordFreq[w]||0) + 1;
+            });
+          });
+          const topWords = Object.entries(wordFreq).filter(([,c])=>c>=2).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([w])=>w);
+
+          return `
+          <div style="margin-bottom:14px">
+            <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+              📊 価格帯別の売れ行き<span style="font-size:0.7rem;font-weight:400;color:#888">（出品数・平均レビュー数）</span>
+            </div>
+            <div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden">
+              ${bands.map((b, bi) => `
+                <div style="padding:10px 12px;border-bottom:${bi<bands.length-1?'1px solid #f0f2f7':'none'};background:${bi%2===0?'#fff':'#fafbfc'}">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                    <span style="font-size:0.75rem;font-weight:700;color:#444;min-width:130px;flex-shrink:0">${b.label}</span>
+                    <div style="flex:1;height:10px;background:#e8edf4;border-radius:5px;overflow:hidden">
+                      <div style="height:100%;width:${Math.round(b.count/maxCount*100)}%;background:linear-gradient(to right,#2563eb,#60a5fa);border-radius:5px;transition:width 0.3s"></div>
+                    </div>
+                    <span style="font-size:0.72rem;color:#888;white-space:nowrap;min-width:80px;text-align:right">${b.count}件 / 💬${b.avgRev}件</span>
+                  </div>
+                  ${b.topItem ? `<div style="font-size:0.72rem;color:#2563eb;padding-left:2px">▶ 売れ筋例：<a href="${b.topItem.url||'#'}" target="_blank" style="color:#2563eb;text-decoration:none">${(b.topItem.name||'').slice(0,28)}…</a> ¥${b.topItem.price.toLocaleString()} / 💬${b.topItem.reviewCount.toLocaleString()}件</div>` : ''}
+                </div>`).join('')}
+            </div>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+              🏆 売れ筋商品TOP10<span style="font-size:0.7rem;font-weight:400;color:#888">（レビュー数＝購買実績エビデンス）</span>
+            </div>
+            <div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden">
+              ${top10.map((item, idx) => {
+                const est = estMonthly(item);
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx+1}`;
+                return `<div style="display:flex;gap:8px;padding:8px 10px;border-bottom:${idx<top10.length-1?'1px solid #f0f2f7':'none'};background:${idx%2===0?'#fff':'#fafbfc'}">
+                  <span style="font-size:${idx<3?'1rem':'0.8rem'};min-width:22px;text-align:center;flex-shrink:0;padding-top:${idx<3?'2':'6'}px">${medal}</span>
+                  ${item.image ? `<img src="${item.image}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:40px;height:40px;background:#eee;border-radius:5px;flex-shrink:0"></div>'}
+                  <div style="flex:1;min-width:0">
+                    <a href="${item.url||'#'}" target="_blank" style="font-size:0.8rem;color:#1a3a5c;text-decoration:none;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35">${item.name}</a>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;align-items:center">
+                      <span style="font-size:0.82rem;font-weight:800;color:#c0392b">¥${item.price.toLocaleString()}</span>
+                      <span style="font-size:0.75rem;color:#e67e22">★${item.reviewAvg>0?item.reviewAvg.toFixed(1):'-'}</span>
+                      <span style="font-size:0.75rem;color:#2980b9;font-weight:700">💬${item.reviewCount.toLocaleString()}件</span>
+                      <span style="font-size:0.7rem;color:#666;background:#f0f4fa;border-radius:3px;padding:1px 5px">推計月商 ${fmtEst(est)}</span>
+                    </div>
+                    <div style="font-size:0.7rem;color:#888;margin-top:2px">${item.shopName||''}</div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+
+          ${topWords.length ? `
+          <div style="margin-bottom:14px">
+            <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">🔑 売れ筋商品の共通キーワード</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${topWords.map(w => `<span style="background:#fff3e0;color:#ea580c;border:1px solid #fddcb5;border-radius:20px;padding:3px 12px;font-size:0.86rem;font-weight:600">${w}</span>`).join('')}
+            </div>
+            <div style="font-size:0.75rem;color:#888;margin-top:6px">売れ筋TOP10商品のタイトルに複数回登場するワードです。</div>
+          </div>` : ''}
+
+          <div style="background:#f0f7ff;border:1px solid #bdd8f5;border-radius:10px;padding:12px 14px">
+            <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:6px">📌 リサーチまとめ</div>
+            <div style="font-size:0.82rem;color:#444;line-height:1.9">
+              <div>・1位商品のレビュー数：<b>${top10[0]?.reviewCount.toLocaleString()||'-'}件</b>（購買証明エビデンス）</div>
+              <div>・新規参入の目標レビュー：<b>約${Math.ceil((top10[0]?.reviewCount||50)*0.3)}件</b>（1位の30%が目安）</div>
+              <div>・最も競争激しい価格帯：<b>${bands.sort((a,b)=>b.avgRev-a.avgRev)[0]?.label||'-'}</b>（平均レビュー最多）</div>
+              <div>・1位推計月商：<b>${fmtEst(estMonthly(top10[0]||{reviewCount:0,price:0}))}</b></div>
+            </div>
+          </div>
+          <div class="market-popup-note">※推計月商 = レビュー数 ÷ レビュー率(13%) ÷ 出品期間(24ヶ月) × 価格</div>`;
+        })()}
       </div>
 
     </div>
