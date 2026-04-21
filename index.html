@@ -3146,7 +3146,7 @@ function renderFavGrid() {
             </td>
             <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
             <td style="padding:6px 8px;text-align:center">
-              <button onclick="removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
+              <button onclick="if(confirm('この商品をお気に入りから削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
             </td>
           </tr>`;
         }).join('')}
