@@ -2493,22 +2493,25 @@ function openMarketPopup() {
             if (!shopMap[it.shopName]) shopMap[it.shopName] = { code: (it.itemCode || "").split(":")[0], items: [] };
             shopMap[it.shopName].items.push(it);
           });
-          const shops = Object.entries(shopMap)
+          const allShopsRaw = Object.entries(shopMap)
             .map(([name, v]) => {
               const its = v.items;
               const totalRev = its.reduce((s,i) => s + i.reviewCount, 0);
               const avgPrice = Math.round(its.reduce((s,i) => s+i.price,0) / its.length);
               const avgRev = (its.reduce((s,i)=>s+i.reviewAvg,0)/its.filter(i=>i.reviewAvg>0).length||0);
-              const estSales = Math.round(totalRev / 0.03 / 24 * avgPrice);
-              return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev, estSales, its };
-            })
+              return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev, its };
+            });
+          const totalReviews = allShopsRaw.reduce((s,x) => s + x.totalRev, 0) || 1;
+          const monthRevTotal = d.totalMarketRevenue / 12;
+          const shops = allShopsRaw
+            .map(s => ({ ...s, estSales: Math.round(s.totalRev / totalReviews * monthRevTotal) }))
             .sort((a,b) => b.estSales - a.estSales)
             .slice(0, 15);
           const maxRev = shops[0]?.estSales || 1;
           return `
           <div style="margin-bottom:10px;display:flex;gap:16px;font-size:0.82rem;color:#888;flex-wrap:wrap">
             <span>🏆 上位${shops.length}店舗の比較（推計月商順）</span>
-            <span>※推計月商 = レビュー数÷3%÷24ヶ月×平均単価</span>
+            <span>※推計月商 = 月間市場規模をレビュー数比率で按分</span>
           </div>
           <div style="display:flex;flex-direction:column;gap:7px">
             ${shops.map((s, i) => {
