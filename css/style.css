@@ -92,9 +92,10 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 }
 
 /* ── 検索ボックス ────────────────────────────────────────────── */
-.search-box { display: flex; gap: 8px; flex: 1; align-items: stretch; }
+.search-box { display: flex; gap: 8px; flex: 1; align-items: center; }
 .search-inputs { display: flex; flex-direction: column; gap: 5px; flex: 1; }
-.exclude-row { display: flex; align-items: center; gap: 6px; }
+.search-main-row { display: flex; gap: 6px; align-items: center; }
+.exclude-row { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .exclude-label {
   font-size: 0.65rem; font-weight: 700; color: var(--red);
   background: #fee2e2; border: 1px solid #fca5a5;
@@ -124,30 +125,23 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   font-weight: 700; letter-spacing: 0.02em;
 }
 #searchBtn {
-  padding: 0 24px;
+  padding: 9px 22px;
   font-size: 0.95rem;
   background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
   color: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(37,99,235,0.3);
-  align-self: stretch;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 #searchBtn:hover:not(:disabled) { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
 #searchBtn:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
-.sub-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  align-self: stretch;
-}
 #saveBtn, #favBtn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex: 1;
-  padding: 0 12px;
+  gap: 3px;
+  padding: 7px 10px;
   font-size: 0.78rem;
   border-radius: 8px;
   border: 1.5px solid var(--border);
@@ -158,6 +152,7 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 #saveBtn:hover { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
 #favBtn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
@@ -682,7 +677,7 @@ td a:hover { text-decoration: underline; }
 }
 
 .result-sidebar {
-  width: 280px;
+  width: 320px;
   flex-shrink: 0;
 }
 
@@ -816,7 +811,7 @@ td a:hover { text-decoration: underline; }
   border: 1px solid #e2eaf3;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   padding: 10px;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
 }
 .item-card-sp-top {
   display: flex;
@@ -2401,12 +2396,14 @@ td a:hover { text-decoration: underline; }
     flex-direction: column;
     gap: 6px;
   }
-  .search-inputs { width: 100%; }
+  .search-box { flex-wrap: wrap; }
+  .suggest-wrap { flex: 1; min-width: 0; order: 1; }
+  #searchBtn { order: 2; padding: 10px 16px; font-size: 0.95rem; }
+  #saveBtn { order: 3; padding: 8px 10px; font-size: 0.78rem; }
+  #favBtn { order: 4; padding: 8px 10px; font-size: 0.78rem; }
+  .exclude-row { order: 5; width: 100%; flex-shrink: unset; }
   #keyword { font-size: 1rem; padding: 10px 12px; }
   #excludeInput { font-size: 0.85rem; }
-  #searchBtn { padding: 12px; font-size: 0.95rem; align-self: auto; }
-  .sub-btns { flex-direction: row; align-self: auto; }
-  #saveBtn, #favBtn { padding: 8px 14px; font-size: 0.8rem; flex: 1; }
   #proxyBadge { display: none; }
 
   /* メインレイアウト */
@@ -2487,7 +2484,7 @@ td a:hover { text-decoration: underline; }
   .pagination-btn { padding: 5px 8px; font-size: 0.78rem; }
 
   /* 上部の件数・ページネーションを非表示、下部のみ表示 */
-  .pg-header-row { display: none; }
+  .pg-header-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .pg-bottom-row { border-top: 1px solid #eef0f4; padding-top: 10px; }
   .result-title-bottom { font-size: 0.9rem; }
 

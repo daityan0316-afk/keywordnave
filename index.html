@@ -62,25 +62,17 @@
       </div>
     </div>
     <div class="search-box">
-      <div class="search-inputs">
-        <div class="suggest-wrap">
-          <input type="text" id="keyword" placeholder="例：フラワーシャワー 造花" maxlength="50" autocomplete="off">
-          <div id="suggestDropdown" class="suggest-dropdown"></div>
-        </div>
-        <div class="exclude-row">
-          <span class="exclude-label">除外</span>
-          <input type="text" id="excludeInput" placeholder="除外キーワードをいれてください" maxlength="200">
-        </div>
+      <div class="suggest-wrap">
+        <input type="text" id="keyword" placeholder="例：フラワーシャワー 造花" maxlength="50" autocomplete="off">
+        <div id="suggestDropdown" class="suggest-dropdown"></div>
       </div>
-      <button id="searchBtn" onclick="doSearch()">調査開始</button>
-      <div class="sub-btns">
-        <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">
-          <span class="btn-icon">＋</span><span class="btn-label">保存</span>
-        </button>
-        <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">
-          <span class="btn-icon">★</span><span class="btn-label" id="favCount">0</span>
-        </button>
+      <div class="exclude-row" id="excludeRow">
+        <span class="exclude-label">除外</span>
+        <input type="text" id="excludeInput" placeholder="除外キーワードをいれてください" maxlength="200">
       </div>
+      <button id="searchBtn" onclick="doSearch()">調査する</button>
+      <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">＋ 保存</button>
+      <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ <span id="favCount">0</span></button>
       <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
     </div>
   </div>
@@ -160,7 +152,6 @@
             </table>
           </div>
           <div class="pg-bottom-row">
-            <span id="resultTitleBottom" class="result-title-bottom"></span>
             <div id="paginationBottom"></div>
           </div>
         </div>
@@ -1821,10 +1812,11 @@ function renderNiche(items, keyword) {
       <div class="card-body" style="width:100%">
       ${ma.entryJudge ? (() => {
         const monthly = ma.yearlyEstimate ? ma.yearlyEstimate / 12 : 0;
-        // 表示と計算で同じ丸め値を使う
-        const monthlyRounded = monthly >= 1e8 ? Math.round(monthly/1e7)*1e7
+        // 5万円単位で丸めて表示を安定化
+        const monthlyRounded = monthly >= 1e8 ? Math.round(monthly/5e7)*5e7
+                             : monthly >= 1e5 ? Math.round(monthly/5e4)*5e4
                              : monthly >= 1e4 ? Math.round(monthly/1e4)*1e4
-                             : Math.round(monthly);
+                             : Math.round(monthly/1000)*1000;
         const monthlyLabel = monthly >= 1e8 ? `約${(monthlyRounded/1e8).toFixed(1)}億円`
                            : monthly >= 1e4 ? `約${Math.round(monthlyRounded/1e4)}万円`
                            : `約${monthlyRounded.toLocaleString()}円`;
@@ -1853,86 +1845,93 @@ function renderNiche(items, keyword) {
           </div>
         </div>
         <div style="padding:10px 14px;border-bottom:1px solid #e8edf4">
-          <div style="font-size:0.8rem;font-weight:700;color:#666;margin-bottom:4px">💰 1商品の月商（参考）</div>
+          <div style="font-size:0.8rem;font-weight:700;color:#666;margin-bottom:4px">💰 １商品の月商目安（新規参入）</div>
           <div style="font-size:1.8rem;font-weight:900;color:${ma.entryColor};letter-spacing:0.04em">${monthlyDisplay}</div>
         </div>
         <div style="padding:10px 14px">
           <div style="font-size:0.78rem;font-weight:700;color:#888;margin-bottom:6px">🛒 価格帯別・必要販売数/月</div>
-          ${salesRow('高価格帯', priceHi)}
+          ${salesRow('低価格帯', priceLo)}
           ${salesRow('中価格帯', priceMid)}
           <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-            <span style="font-size:0.82rem;color:#555">低価格帯 <span style="color:#444;font-size:0.82rem;font-weight:700">¥${priceLo.toLocaleString()}</span></span>
-            <span style="font-size:0.9rem;font-weight:800;color:${ma.entryColor}">${priceLo > 0 ? Math.ceil(monthlyRounded/priceLo) : '—'}個/月</span>
+            <span style="font-size:0.82rem;color:#555">高価格帯 <span style="color:#444;font-size:0.82rem;font-weight:700">¥${priceHi.toLocaleString()}</span></span>
+            <span style="font-size:0.9rem;font-weight:800;color:${ma.entryColor}">${priceHi > 0 ? Math.ceil(monthlyRounded/priceHi) : '—'}個/月</span>
           </div>
         </div>
-        ${(() => {
-          const its = (ma.items || []).filter(i => i.price > 0);
-          if (!its.length) return '';
-          const noImgBox = `<div style="width:46px;height:46px;border-radius:5px;background:#e8edf4;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #d0d8e8"><span style="font-size:0.48rem;font-weight:800;color:#9aa;letter-spacing:0.08em;line-height:1.4">NO</span><span style="font-size:0.48rem;font-weight:800;color:#9aa;letter-spacing:0.08em;line-height:1.4">IMAGE</span></div>`;
-          const tiers = [
-            { label: '高価格帯', min: priceHi * 0.6, max: Infinity },
-            { label: '中価格帯', min: priceMid * 0.6, max: priceHi * 0.6 },
-            { label: '低価格帯', min: 0,              max: priceMid * 0.6 },
-          ];
-          const cards = tiers.map(t => {
-            const grp = its.filter(i => i.price >= t.min && i.price < t.max && (i.reviewCount||0) > 0)
-                           .sort((a,b) => (b.reviewCount||0) - (a.reviewCount||0))
-                           .slice(0, 3);
-            if (!grp.length) return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
-              <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
-                <span>${t.label}</span>
-                <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
-              </div>
-              <div style="display:flex;gap:10px;padding:12px;align-items:center">
-                ${noImgBox}
-                <div style="color:#bbb;font-size:0.85rem">この価格帯の商品データなし</div>
-              </div>
-            </div>`;
-            const itemCards = grp.map((top, idx) => {
-              const name = top.name ? top.name.slice(0,30)+'…' : '—';
-              const stars = '★'.repeat(Math.round(top.reviewAvg||0)) + '☆'.repeat(5-Math.round(top.reviewAvg||0));
-              const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
-              const codeEsc = (top.itemCode||'').replace(/'/g,"\\'");
-              const isFav = isFavorite(top.itemCode);
-              return `<div style="display:flex;align-items:center;border-bottom:1px solid #f0f2f7">
-                <a href="${top.url||'#'}" target="_blank" style="display:flex;gap:8px;padding:7px 8px;text-decoration:none;flex:1;min-width:0;transition:background 0.1s" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''">
-                  ${top.image && top.reviewCount > 0 ? `<img src="${top.image}" style="width:46px;height:46px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : noImgBox}
-                  <div style="flex:1;min-width:0">
-                    ${top.reviewCount > 0 ? `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
-                      <span style="font-size:0.82rem;font-weight:700;color:#778">${medal} ${idx+1}位</span>
-                      ${(_orderMap||{})[top.itemCode] ? `<span style="background:#e8f0fb;color:#2563eb;font-size:0.75rem;font-weight:700;border-radius:3px;padding:1px 6px">検索${(_orderMap||{})[top.itemCode]}位</span>` : ''}
-                    </div>` : ''}
-                    <div style="font-size:0.82rem;color:#333;font-weight:600;line-height:1.35;margin-bottom:4px">${name}</div>
-                    <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap">
-                      <span style="font-size:0.88rem;font-weight:900;color:#c0392b">¥${top.price.toLocaleString()}</span>
-                      ${top.reviewCount > 0
-                        ? `<span style="font-size:0.75rem;color:#e67e22">★${top.reviewAvg>0?top.reviewAvg.toFixed(1):'-'}</span>
-                           <span style="font-size:0.78rem;color:#2980b9;font-weight:700">${top.reviewCount.toLocaleString()}件</span>`
-                        : `<span style="font-size:0.78rem;color:#bbb;background:#f5f5f5;border-radius:4px;padding:1px 6px">データなし</span>`}
-                    </div>
-                  </div>
-                </a>
-                <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" style="flex-shrink:0;margin-right:6px" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
-              </div>`;
-            }).join('');
-            return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
-              <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
-                <span>${t.label}</span>
-                <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
-              </div>
-              ${itemCards}
-            </div>`;
-          }).join('');
-          return cards ? `<div style="padding:8px 14px 10px;border-top:1px solid #e8edf4">
-            <div style="font-size:0.88rem;font-weight:700;color:#666;margin-bottom:8px">📦 価格帯別 売れ筋商品</div>
-            ${cards}
-          </div>` : '';
-        })()}
       </div>`;
       })() : ''}
       <button onclick="openMarketPopup()" style="width:100%;padding:9px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#1a3a5c;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:background 0.15s" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#1a3a5c'">📊 市場分析レポート</button>
       </div>
-    </div>`;
+    </div>
+    ${ma.entryJudge ? (() => {
+      const its2 = (ma.items || []).filter(i => i.price > 0);
+      if (!its2.length) return '';
+      const priceMid2 = ma.priceMedian || 0;
+      const priceHi2 = ma.priceMedian > 0 ? Math.round(ma.priceMedian * 3) : 0;
+      const noImgBox2 = `<div style="width:46px;height:46px;border-radius:5px;background:#e8edf4;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #d0d8e8"><span style="font-size:0.48rem;font-weight:800;color:#9aa;letter-spacing:0.08em;line-height:1.4">NO</span><span style="font-size:0.48rem;font-weight:800;color:#9aa;letter-spacing:0.08em;line-height:1.4">IMAGE</span></div>`;
+      const tiers2 = [
+        { label: '低価格帯', min: 0,               max: priceMid2 * 0.6 },
+        { label: '中価格帯', min: priceMid2 * 0.6, max: priceHi2 * 0.6 },
+        { label: '高価格帯', min: priceHi2 * 0.6,  max: Infinity },
+      ];
+      const cards2 = tiers2.map(t => {
+        const grp = its2.filter(i => i.price >= t.min && i.price < t.max && (i.reviewCount||0) > 0)
+                        .sort((a,b) => (b.reviewCount||0) - (a.reviewCount||0))
+                        .slice(0, 5);
+        if (!grp.length) return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
+          <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
+            <span>${t.label}</span>
+            <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
+          </div>
+          <div style="display:flex;gap:10px;padding:12px;align-items:center">
+            ${noImgBox2}
+            <div style="color:#bbb;font-size:0.85rem">この価格帯の商品データなし</div>
+          </div>
+        </div>`;
+        const itemCards2 = grp.map((top, idx) => {
+          const name = top.name ? top.name.slice(0,30)+'…' : '—';
+          const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '';
+          const codeEsc = (top.itemCode||'').replace(/'/g,"\\'");
+          const isFav = isFavorite(top.itemCode);
+          return `<div style="display:flex;align-items:center;border-bottom:1px solid #f0f2f7">
+            <a href="${top.url||'#'}" target="_blank" style="display:flex;gap:8px;padding:7px 8px;text-decoration:none;flex:1;min-width:0;transition:background 0.1s" onmouseover="this.style.background='#f8faff'" onmouseout="this.style.background=''">
+              ${top.image && top.reviewCount > 0 ? `<img src="${top.image}" style="width:46px;height:46px;object-fit:cover;border-radius:5px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : noImgBox2}
+              <div style="flex:1;min-width:0">
+                ${top.reviewCount > 0 ? `<div style="margin-bottom:3px;display:flex;align-items:center;gap:6px">
+                  <span style="font-size:0.82rem;font-weight:700;color:#778">${medal ? medal+' ' : ''}${idx+1}位</span>
+                  ${(_orderMap||{})[top.itemCode] ? `<span style="background:#e8f0fb;color:#2563eb;font-size:0.75rem;font-weight:700;border-radius:3px;padding:1px 6px">検索${(_orderMap||{})[top.itemCode]}位</span>` : ''}
+                </div>` : ''}
+                <div style="font-size:0.82rem;color:#333;font-weight:600;line-height:1.35;margin-bottom:2px">${name}</div>
+                <div style="font-size:0.7rem;color:#888;margin-bottom:3px">${top.shopName||''}</div>
+                <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap">
+                  <span style="font-size:0.88rem;font-weight:900;color:#c0392b">¥${top.price.toLocaleString()}</span>
+                  ${top.reviewCount > 0
+                    ? `<span style="font-size:0.75rem;color:#e67e22">★${top.reviewAvg>0?top.reviewAvg.toFixed(1):'-'}</span>
+                       <span style="font-size:0.78rem;color:#2980b9;font-weight:700">${top.reviewCount.toLocaleString()}件</span>`
+                    : `<span style="font-size:0.78rem;color:#bbb;background:#f5f5f5;border-radius:4px;padding:1px 6px">データなし</span>`}
+                </div>
+              </div>
+            </a>
+            <button class="fav-btn${isFav?' fav-active':''}" onclick="toggleFavorite('${codeEsc}')" style="flex-shrink:0;margin-right:6px" title="${isFav?'お気に入りから削除':'お気に入りに追加'}">★</button>
+          </div>`;
+        }).join('');
+        return `<div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
+          <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
+            <span>${t.label}</span>
+            <span style="font-size:0.8rem;font-weight:700;color:#4a6fa5">${t.min > 0 ? `¥${Math.round(t.min).toLocaleString()}〜` : '〜'}${t.max === Infinity ? '' : `¥${Math.round(t.max).toLocaleString()}`}</span>
+          </div>
+          ${itemCards2}
+        </div>`;
+      }).join('');
+      return cards2 ? `<div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
+          <span style="font-size:0.78rem;font-weight:700;color:#999;letter-spacing:0.06em;text-transform:uppercase">📦 価格帯別 売れ筋商品</span>
+          <span class="collapse-btn">▲</span>
+        </div>
+        <div class="card-body" style="width:100%">
+          ${cards2}
+        </div>
+      </div>` : '';
+    })() : ''}`;
 }
 
 function renderSummary(items) {
@@ -1948,8 +1947,8 @@ function renderSummary(items) {
   const AVG_MONTHS = 24;
   // 各商品の推計月間売上 = (累積レビュー ÷ レビュー率 ÷ 出品月数) × 価格
   const sampledRevenue = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
-  // 上位90件は検索上位の高売上品。残り長尾はべき乗則で急減するため√で補正
-  const scaleUp = _totalCount > items.length ? Math.sqrt(_totalCount / items.length) : 1;
+  // 上位90件は検索上位の高売上品。残り長尾はべき乗則で急減するため√で補正（上限3倍）
+  const scaleUp = Math.min(_totalCount > items.length ? Math.sqrt(_totalCount / items.length) : 1, 3);
   const totalMarketRevenue = sampledRevenue * scaleUp * 12; // 月→年換算
 
   // ユニーク店舗数・市場集中度を計算
@@ -3280,7 +3279,7 @@ function renderFavGrid() {
       const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
       const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
       return `<div style="background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;position:relative;width:100%;box-sizing:border-box;overflow:hidden">
-        ${f.image ? `<img src="${f.image}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0">` : '<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
+        ${f.image ? `<img src="${f.image}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
         <div style="flex:1;min-width:0">
           <a href="${f.url||'#'}" target="_blank" style="font-size:0.83rem;color:#1a3a5c;text-decoration:none;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">${f.name}</a>
           <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">
@@ -3304,56 +3303,66 @@ function renderFavGrid() {
     }).join('');
     return;
   }
-  el.innerHTML = `
-    <div style="overflow-x:auto">
+  // キーワード別グループ化
+  const groups = {};
+  list.forEach(f => {
+    const kw = f.keyword || '（キーワード不明）';
+    if (!groups[kw]) groups[kw] = [];
+    groups[kw].push(f);
+  });
+  const makeRows = (kw, items) => items.map(f => {
+    const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
+    const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+    return `<tr>
+      <td style="padding:6px 8px;text-align:center">
+        ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
+      </td>
+      <td style="padding:6px 8px">
+        <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
+      </td>
+      <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
+      <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
+      <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
+      <td style="padding:6px 8px">
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
+          <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
+            placeholder="🔗 仕入先URLを貼り付け"
+            onchange="saveSupplierUrl('${codeEsc}', this.value)"
+            style="flex:1;min-width:140px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#2563eb'"
+            onblur="this.style.borderColor='#d0d8e8'">
+          <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
+            style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
+        </div>
+      </td>
+      <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="if(confirm('削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<div style="overflow-x:auto">
     <table class="fav-mgmt-table">
-      <thead>
-        <tr>
-          <th style="width:52px"></th>
-          <th>商品名</th>
-          <th style="width:80px">価格</th>
-          <th style="width:80px">評価</th>
-          <th style="width:120px">店舗</th>
-          <th>仕入先URL</th>
-          <th style="width:72px">保存日</th>
-          <th style="width:36px"></th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th style="width:52px"></th>
+        <th>商品名</th>
+        <th style="width:80px">価格</th>
+        <th style="width:80px">評価</th>
+        <th style="width:120px">店舗</th>
+        <th>仕入先URL</th>
+        <th style="width:72px">保存日</th>
+        <th style="width:36px"></th>
+      </tr></thead>
       <tbody>
-        ${list.map(f => {
-          const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
-          const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
-          return `<tr>
-            <td style="padding:6px 8px;text-align:center">
-              ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
-            </td>
-            <td style="padding:6px 8px">
-              <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
-            </td>
-            <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
-            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
-            <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
-            <td style="padding:6px 8px">
-              <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
-                <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
-                  placeholder="🔗 仕入先URLを貼り付け"
-                  onchange="saveSupplierUrl('${codeEsc}', this.value)"
-                  style="flex:1;min-width:140px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.78rem;color:#333;outline:none;box-sizing:border-box"
-                  onfocus="this.style.borderColor='#2563eb'"
-                  onblur="this.style.borderColor='#d0d8e8'">
-                <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-                  style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;letter-spacing:0.04em;box-shadow:0 2px 8px #764ba233;transition:opacity 0.15s" onmouseover="this.style.opacity='0.82'" onmouseout="this.style.opacity='1'">↗ 開く</button>
-              </div>
-            </td>
-            <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
-            <td style="padding:6px 8px;text-align:center">
-              <button onclick="if(confirm('この商品をお気に入りから削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
-            </td>
-          </tr>`;
-        }).join('')}
+        ${Object.entries(groups).map(([kw, items]) => `
+          <tr><td colspan="8" style="padding:8px 12px 4px;background:#eef3fb;border-left:3px solid #2563eb">
+            <span style="font-size:0.82rem;font-weight:700;color:#1a3a5c">🔍 ${kw}</span>
+            <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:6px">（${items.length}件）</span>
+          </td></tr>
+          ${makeRows(kw, items)}`).join('')}
       </tbody>
     </table>
-    </div>`;
+  </div>`;
 }
 function saveSupplierUrl(itemCode, url) {
   let list = loadFavs();
@@ -3403,9 +3412,11 @@ function toggleFavorite(itemCode) {
   if (list.some(f => f.itemCode === itemCode)) {
     list = list.filter(f => f.itemCode !== itemCode);
   } else {
+    const _kw = document.getElementById("keyword")?.value.trim() || '';
     list.unshift({ itemCode: item.itemCode, name: item.name, price: item.price,
       reviewCount: item.reviewCount, reviewAvg: item.reviewAvg,
       url: item.url, image: item.image, shopName: item.shopName,
+      keyword: _kw,
       savedAt: new Date().toLocaleDateString("ja-JP") });
   }
   saveFavs(list);
@@ -3435,23 +3446,35 @@ function renderFavModal() {
     body.innerHTML = '<p class="fav-empty">お気に入りに登録された商品はありません。<br>検索結果の ♥ ボタンで追加できます。</p>';
     return;
   }
+  // キーワード別グループ化
+  const groups = {};
+  list.forEach(it => {
+    const kw = it.keyword || '（キーワード不明）';
+    if (!groups[kw]) groups[kw] = [];
+    groups[kw].push(it);
+  });
+  const itemCard = it => `
+    <div class="fav-item">
+      <a href="${it.url}" target="_blank" class="fav-item-img-wrap">
+        ${it.image ? `<img src="${it.image}" class="fav-item-img" loading="lazy">` : '<div class="fav-item-img-ph">🛒</div>'}
+      </a>
+      <div class="fav-item-info">
+        <a href="${it.url}" target="_blank" class="fav-item-name">${it.name}</a>
+        <div class="fav-item-meta">
+          <span class="fav-item-price">¥${it.price.toLocaleString()}</span>
+          <span class="fav-item-shop">${it.shopName || ''}</span>
+          <span class="fav-item-date">${it.savedAt}</span>
+        </div>
+      </div>
+      <button class="fav-item-del" onclick="removeFav('${(it.itemCode||'').replace(/'/g,"\\'")}')">✕</button>
+    </div>`;
   body.innerHTML = `
     <div class="fav-list">
-      ${list.map(it => `
-        <div class="fav-item">
-          <a href="${it.url}" target="_blank" class="fav-item-img-wrap">
-            ${it.image ? `<img src="${it.image}" class="fav-item-img" loading="lazy">` : '<div class="fav-item-img-ph">🛒</div>'}
-          </a>
-          <div class="fav-item-info">
-            <a href="${it.url}" target="_blank" class="fav-item-name">${it.name}</a>
-            <div class="fav-item-meta">
-              <span class="fav-item-price">¥${it.price.toLocaleString()}</span>
-              <span class="fav-item-shop">${it.shopName || ''}</span>
-              <span class="fav-item-date">${it.savedAt}</span>
-            </div>
-          </div>
-          <button class="fav-item-del" onclick="removeFav('${(it.itemCode||'').replace(/'/g,"\\'")}')">✕</button>
-        </div>`).join("")}
+      ${Object.entries(groups).map(([kw, items]) => `
+        <div style="margin-bottom:16px">
+          <div style="font-size:0.78rem;font-weight:700;color:#1a3a5c;background:#eef3fb;border-left:3px solid #2563eb;padding:5px 10px;border-radius:0 6px 6px 0;margin-bottom:6px">🔍 ${kw} <span style="font-weight:400;color:#888;font-size:0.72rem">（${items.length}件）</span></div>
+          ${items.map(itemCard).join('')}
+        </div>`).join('')}
     </div>
     <div class="fav-footer">
       <button class="fav-clear-btn" onclick="if(confirm('お気に入りをすべて削除しますか？')){saveFavs([]);renderFavModal();}">すべて削除</button>
