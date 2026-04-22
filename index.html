@@ -3152,10 +3152,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
   const _bandDisp = window._currentBandLabel || '全価格帯';
   const shopTotalLabel = `<span style="font-size:0.8rem;color:#555;font-weight:600">「${_kw4shop}」で検索中、<span style="color:#2563eb">${_bandDisp}</span>を表示中</span>`;
 
-  // 店舗全体推計月商（レビュー数÷レビュー率÷24ヶ月×価格）
-  const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
-  const shopTotalMonthly = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS * i.price), 0);
-  const shopTotalMonthlyFmt = shopTotalMonthly >= 1e8 ? `約${(shopTotalMonthly/1e8).toFixed(1)}億円` : shopTotalMonthly >= 1e4 ? `約${Math.round(shopTotalMonthly/1e4)}万円` : `約${Math.round(shopTotalMonthly).toLocaleString()}円`;
+  const shopTotalMonthlyFmt = kwMonthly >= 1e8 ? `約${(kwMonthly/1e8).toFixed(1)}億円` : kwMonthly >= 1e4 ? `約${Math.round(kwMonthly/1e4)}万円` : `約${Math.round(kwMonthly).toLocaleString()}円`;
 
   // 強さ判定
   const strength = totalReviews > 5000 ? { label:"💪 強力な店舗", color:"#1a5276", bg:"#eaf4fb" }
@@ -3174,7 +3171,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
     <div style="margin-top:6px;display:flex;align-items:baseline;gap:6px">
       <span style="font-size:0.72rem;color:#aaa;font-weight:600">店舗全体の推計月商</span>
       <span style="font-size:1.3rem;font-weight:900;color:#1a3a5c;letter-spacing:-0.02em">${shopTotalMonthlyFmt}</span>
-      <span style="font-size:0.7rem;color:#aaa">（検索中のキーワード分のみ）</span>
+      <span style="font-size:0.7rem;color:#aaa">（全て）</span>
     </div>`;
   const analysisHtml = `
     <div class="shop-analysis">
