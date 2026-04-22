@@ -801,6 +801,25 @@ td a:hover { text-decoration: underline; }
   margin-bottom: 0;
 }
 
+.band-tip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  pointer-events: none;
+}
+.band-judge-tip:hover .band-tip-box { display: block; }
+
 .sidebar-price-filter {
   background: #ffffff;
   border-radius: 10px;

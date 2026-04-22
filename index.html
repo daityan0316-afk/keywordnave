@@ -1986,7 +1986,7 @@ function renderNiche(items, keyword) {
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:nowrap">
                   <div style="display:flex;flex-direction:column;gap:2px">
                     <span style="font-size:0.82rem;font-weight:600;color:#555;white-space:nowrap">${r.b.label}</span>
-                    <span style="font-size:0.68rem;font-weight:700;color:${_mj.color};background:${_mj.bg};border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-block">${_mj.text}</span>
+                    <span class="band-judge-tip" style="font-size:0.68rem;font-weight:700;color:${_mj.color};background:${_mj.bg};border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-block;position:relative;cursor:help">${_mj.text}<span class="band-tip-box">❌ 砂漠地帯：月商1万未満<br>⚠️ 市場が薄い：月商1〜3万<br>✅ ニッチ狙い目：小規模・競合少<br>✅ 狙い目：月商3万超・競合少<br>🏆 規模大・競合少！：大市場×少競合<br>🟡 規模大・競合多め：大市場×競合8店以上<br>🔴 激戦・参入困難：大市場×競合15店以上</span></span>
                   </div>
                   <span style="font-size:1.4rem;font-weight:900;color:${r.b.color};white-space:nowrap;flex-shrink:0;letter-spacing:-0.02em">${r.rounded.toLocaleString()}円</span>
                 </div>
