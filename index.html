@@ -546,7 +546,6 @@ function renderSuggest(stdItems, sellItems = [], amazonWords = [], baseKw = '', 
   }
   suggestDrop.innerHTML = html;
   suggestDrop.classList.add("open");
-  _lastSuggestCount = stdItems.length + sellItems.length;
 }
 
 // イベント委譲でサジェスト選択
@@ -1631,7 +1630,6 @@ function _initPage() {
   }
 }
 
-let _lastSuggestCount = null;
 
 function showWelcome() {
   history.replaceState(null, "", location.pathname);
