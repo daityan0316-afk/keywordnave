@@ -1961,15 +1961,27 @@ function renderNiche(items, keyword) {
             </div>`;
             return allRows + rows.map((r,i)=>{
               const barW = Math.round(r.rounded/maxRounded*100);
-              const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              const _mj = r.rounded >= 1000000 ? {text:'🔴 激戦区規模', color:'#c0392b', bg:'#fef2f2'}
-                         : r.rounded >= 300000  ? {text:'🟡 実力勝負', color:'#d97706', bg:'#fffbeb'}
-                         : r.rounded >= 150000  ? {text:'🏆 大チャンス', color:'#1a5276', bg:'#eaf4fb'}
-                         : r.rounded >= 30000   ? {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4'}
-                         : r.rounded >= 10000   ? {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5'}
-                         :                        {text:'❌ 砂漠地帯', color:'#aaa', bg:'#f5f5f5'};
+              // 価格帯内の競合店舗数
+              const _bandIts = allItems.filter(it=>it.price>=r.b.min&&it.price<r.b.max);
+              const _shopSet = new Set(_bandIts.map(it=>it.shopName).filter(Boolean));
+              const _shopCnt = _shopSet.size;
+              const _priceRange = _bandIts.length ? `¥${Math.min(..._bandIts.map(i=>i.price)).toLocaleString()}〜¥${Math.max(..._bandIts.map(i=>i.price)).toLocaleString()}` : '';
+              // 規模×競合数で総合判定
+              const _bigMkt = r.rounded >= 150000;
+              const _fewShops = _shopCnt <= 5;
+              const _mj = (() => {
+                if (r.rounded < 10000) return {text:'❌ 砂漠地帯', color:'#aaa', bg:'#f5f5f5'};
+                if (r.rounded < 30000) return {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5'};
+                if (_bigMkt && _shopCnt >= 15) return {text:'🔴 激戦・参入困難', color:'#c0392b', bg:'#fef2f2'};
+                if (_bigMkt && _shopCnt >= 8)  return {text:'🟡 規模大・競合多め', color:'#d97706', bg:'#fffbeb'};
+                if (_bigMkt && _fewShops)       return {text:'🏆 規模大・競合少！', color:'#1a5276', bg:'#eaf4fb'};
+                if (!_bigMkt && _fewShops)      return {text:'✅ ニッチ狙い目', color:'#16a34a', bg:'#f0fdf4'};
+                if (!_bigMkt && _shopCnt >= 10) return {text:'⚠️ 小規模・競合多', color:'#d97706', bg:'#fffbeb'};
+                return {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4'};
+              })();
+              const _shopColor = _shopCnt >= 15 ? '#c0392b' : _shopCnt >= 8 ? '#d97706' : '#16a34a';
               return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:8px 10px;margin-bottom:4px;border-radius:8px;background:#fff;border:1px solid #e8edf2;border-left:3px solid #e8edf2;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:nowrap">
                   <div style="display:flex;flex-direction:column;gap:2px">
@@ -1979,11 +1991,10 @@ function renderNiche(items, keyword) {
                   <span style="font-size:1.4rem;font-weight:900;color:${r.b.color};white-space:nowrap;flex-shrink:0;letter-spacing:-0.02em">${r.rounded.toLocaleString()}円</span>
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px">
-                  <span style="font-size:0.67rem;color:#888;white-space:nowrap">¥${(()=>{const _its=allItems.filter(i=>i.price>=r.b.min&&i.price<r.b.max);return Math.min(..._its.map(i=>i.price)).toLocaleString()+'〜¥'+Math.max(..._its.map(i=>i.price)).toLocaleString();})()}</span>
-                  <div style="display:flex;align-items:center;gap:4px">
-                    <span style="font-size:0.72rem;color:#555;background:#eef1f6;border-radius:4px;padding:1px 6px;white-space:nowrap;font-weight:600">¥${r.topPrice.toLocaleString()}</span>
-                    <span style="font-size:0.65rem;color:#888;font-weight:700">×</span>
-                    <span style="font-size:0.72rem;color:#555;background:#eef1f6;border-radius:4px;padding:1px 6px;white-space:nowrap;font-weight:600">${r.estSales}個/月</span>
+                  <span style="font-size:0.67rem;color:#888;white-space:nowrap">${_priceRange}</span>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:0.68rem;color:${_shopColor};font-weight:700;white-space:nowrap">競合${_shopCnt}店</span>
+                    <span style="font-size:0.72rem;color:#555;background:#eef1f6;border-radius:4px;padding:1px 6px;white-space:nowrap;font-weight:600">¥${r.topPrice.toLocaleString()}×${r.estSales}個</span>
                   </div>
                 </div>
                 <div style="height:3px;background:#f0f2f7;border-radius:3px;overflow:hidden">
