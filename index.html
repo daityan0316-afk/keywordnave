@@ -2603,73 +2603,73 @@ function renderSeasonChart(scores, isYearRound) {
 // ── 市場分析ポップアップ ──────────────────────────────────
 async function fetchSuggestForReport(q) {
   if (!q) return;
-  const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
-  const qTerms = q.split(/\s+/);
-  function rakutenSearch(params) {
+  // キーワードを単語分割して親キーワード候補を生成
+  const terms = q.trim().split(/\s+/);
+  // 評価対象：ビッグKW（先頭1語）〜現在のKW（全語）まで
+  const candidates = [];
+  for (let len = 1; len <= terms.length; len++) {
+    candidates.push(terms.slice(0, len).join(' '));
+  }
+  // 各キーワードの件数とサジェスト数（商品タイトルからの多様性）を取得
+  async function evalKw(kw) {
     return new Promise(resolve => {
-      const cb = `_rsg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const cb = `_rsgev_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const s = document.createElement("script");
       s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
-        new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: q, formatVersion: 2, callback: cb, ...params });
-      const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve(null); }, 5000);
-      window[cb] = d => { clearTimeout(timer); delete window[cb]; s.remove(); resolve(d); };
-      s.onerror = () => { s.remove(); resolve(null); };
+        new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: kw, hits: 30, formatVersion: 2, callback: cb, sort: 'standard' });
+      const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve({ kw, count: 0, variety: 0 }); }, 5000);
+      window[cb] = d => {
+        clearTimeout(timer); delete window[cb]; s.remove();
+        const count = d?.count || 0;
+        // タイトルの先頭語の多様性でサジェスト分散度を推計
+        const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
+        const kwTerms = new Set(kw.split(/\s+/));
+        const extraWords = new Set();
+        (d?.Items || []).forEach(i => {
+          (i.itemName || "").split(splitter)
+            .filter(w => w.length >= 2 && !kwTerms.has(w) && !/^[\d,]+$/.test(w))
+            .slice(0, 3).forEach(w => extraWords.add(w));
+        });
+        resolve({ kw, count, variety: extraWords.size });
+      };
+      s.onerror = () => { s.remove(); resolve({ kw, count: 0, variety: 0 }); };
       document.head.appendChild(s);
     });
   }
-  const [dStd, dSell] = await Promise.all([
-    rakutenSearch({ hits: 30, page: 1, sort: 'standard' }),
-    rakutenSearch({ hits: 30, page: 1, sort: '-reviewCount' })
-  ]);
-  function extractWords(items, limit) {
-    const freq = {};
-    (items || []).forEach(i => {
-      (i.itemName || "").split(splitter)
-        .filter(w => w.length >= 2 && !STOP_WORDS.has(w) && !qTerms.includes(w) && !/^[\d,]+$/.test(w))
-        .forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-    });
-    return Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, limit).map(([w]) => `${q} ${w}`);
-  }
-  const stdWords = (!dStd?.error && dStd?.Items?.length) ? extractWords(dStd.Items, 5) : [];
-  let sellWords = [];
-  if (!dSell?.error && dSell?.Items?.length) {
-    const sellFreq = {}, stdFreq = {};
-    dSell.Items.forEach(i => { (i.itemName||"").split(splitter).filter(w=>w.length>=2&&!STOP_WORDS.has(w)&&!qTerms.includes(w)&&!/^[\d,]+$/.test(w)).forEach(w=>{sellFreq[w]=(sellFreq[w]||0)+1;}); });
-    (dStd?.Items||[]).forEach(i => { (i.itemName||"").split(splitter).filter(w=>w.length>=2).forEach(w=>{stdFreq[w]=(stdFreq[w]||0)+1;}); });
-    sellWords = Object.entries(sellFreq).map(([w,n])=>({w,score:n-(stdFreq[w]||0)*0.5})).filter(({w,score})=>score>0&&!stdWords.includes(`${q} ${w}`)).sort((a,b)=>b.score-a.score).slice(0,5).map(({w})=>`${q} ${w}`);
-  }
-  const allWords = [...stdWords, ...sellWords];
-  if (!allWords.length) return;
-  function fetchCount(kw) {
-    return new Promise(resolve => {
-      const cb = `_rsgc_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const s = document.createElement("script");
-      s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
-        new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: kw, hits: 1, formatVersion: 2, callback: cb });
-      const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve(0); }, 4000);
-      window[cb] = d => { clearTimeout(timer); delete window[cb]; s.remove(); resolve(d.count||0); };
-      s.onerror = () => { s.remove(); resolve(0); };
-      document.head.appendChild(s);
-    });
-  }
-  const counts = await Promise.all(allWords.map(fetchCount));
-  window._lastSuggestItems = allWords.map((kw, i) => ({ kw, count: counts[i], isSell: i >= stdWords.length })).filter(it => it.count > 0);
-  // SEO戦略タブが開いていれば更新
+  const results = await Promise.all(candidates.map(evalKw));
+  window._lastSuggestItems = results.filter(r => r.count > 0);
   const _kwEl = document.getElementById('seoTargetKwList');
   if (_kwEl) _renderSeoKwList(_kwEl);
 }
 
 function _renderSeoKwList(el) {
-  const items = (window._lastSuggestItems || []).sort((a,b) => a.count - b.count).slice(0, 8);
-  if (!items.length) { el.innerHTML = '<div style="padding:10px 14px;font-size:0.78rem;color:#aaa">キーワード候補を取得中…</div>'; return; }
+  const items = window._lastSuggestItems || [];
+  if (!items.length) { el.innerHTML = '<div style="padding:10px 14px;font-size:0.78rem;color:#aaa">取得中…</div>'; return; }
   const fmtC = n => n >= 10000 ? `${Math.floor(n/10000)}万件` : n >= 1000 ? `${Math.floor(n/1000)}千件` : `${n}件`;
+  // 狙い目判定：件数が多すぎず（5万以下）、分散度が低いもの
+  const best = items.reduce((b, r) => {
+    const score = (r.count > 500 && r.count < 50000 && r.variety < 40) ? r.count : 0;
+    return (!b || score > b.score) ? { ...r, score } : b;
+  }, null);
   el.innerHTML = items.map((it, i) => {
-    const c = it.count < 500 ? '#16a34a' : it.count < 3000 ? '#d97706' : '#c0392b';
-    const lbl = it.count < 500 ? '✅ 穴場' : it.count < 3000 ? '🟡 普通' : '🔴 激戦';
-    return `<div style="padding:8px 12px;border-bottom:${i<items.length-1?'1px solid #f0f4f8':'none'};display:flex;align-items:center;gap:8px;cursor:pointer" onclick="document.getElementById('keyword').value='${it.kw.replace(/'/g,"\\'")}';document.getElementById('marketPopup').classList.remove('open');doSearch()">
-      <span style="font-size:0.72rem;font-weight:700;color:${c};background:${c}15;border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0">${lbl}</span>
-      <span style="font-size:0.8rem;color:#1a3a5c;font-weight:600;flex:1">${it.kw}</span>
-      <span style="font-size:0.72rem;color:#888;white-space:nowrap">${fmtC(it.count)}</span>
+    const isBest = best && it.kw === best.kw && best.score > 0;
+    const varColor = it.variety >= 50 ? '#c0392b' : it.variety >= 30 ? '#d97706' : '#16a34a';
+    const varLabel = it.variety >= 50 ? '分散大' : it.variety >= 30 ? '分散中' : '集中';
+    const termLen = it.kw.split(/\s+/).length;
+    const kwType = termLen === 1 ? 'ビッグKW' : termLen === 2 ? 'ミドルKW' : 'ロングKW';
+    const kwTypeColor = termLen === 1 ? '#7c3aed' : termLen === 2 ? '#2563eb' : '#16a34a';
+    return `<div style="padding:8px 12px;border-bottom:${i<items.length-1?'1px solid #f0f4f8':'none'};display:flex;align-items:center;gap:7px;cursor:pointer;background:${isBest?'#f0fdf4':'transparent'}" onclick="document.getElementById('keyword').value='${it.kw.replace(/'/g,"\\'")}';document.getElementById('marketPopup').classList.remove('open');doSearch()">
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-size:0.65rem;font-weight:700;color:${kwTypeColor};background:${kwTypeColor}15;border-radius:3px;padding:1px 5px;white-space:nowrap">${kwType}</span>
+          ${isBest ? '<span style="font-size:0.65rem;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:3px;padding:1px 5px">★ 狙い目</span>' : ''}
+        </div>
+        <span style="font-size:0.82rem;color:#1a3a5c;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.kw}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+        <span style="font-size:0.78rem;font-weight:700;color:#555">${fmtC(it.count)}</span>
+        <span style="font-size:0.65rem;color:${varColor};font-weight:600">${varLabel}</span>
+      </div>
     </div>`;
   }).join('');
 }
