@@ -546,6 +546,7 @@ function renderSuggest(stdItems, sellItems = [], amazonWords = [], baseKw = '', 
   }
   suggestDrop.innerHTML = html;
   suggestDrop.classList.add("open");
+  _lastSuggestCount = stdItems.length + sellItems.length;
 }
 
 // イベント委譲でサジェスト選択
@@ -1630,25 +1631,17 @@ function _initPage() {
   }
 }
 
-async function fetchSuggestCount(kw) {
-  try {
-    const url = `https://suggestqueries.google.com/complete/search?client=firefox&hl=ja&q=${encodeURIComponent(kw)}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    return Array.isArray(json[1]) ? json[1].length : 0;
-  } catch(e) { return null; }
-}
+let _lastSuggestCount = null;
 
-async function injectSuggestBadge(kw) {
+function injectSuggestBadge(kw) {
   const el = document.getElementById('suggestBadgeBar');
   if (!el) return;
-  el.innerHTML = `<span style="font-size:0.72rem;color:#aaa">サジェスト取得中…</span>`;
-  const count = await fetchSuggestCount(kw);
-  if (count === null) { el.innerHTML = ''; return; }
+  const count = _lastSuggestCount;
+  if (count === null || count === undefined) { el.innerHTML = ''; return; }
   const color = count >= 8 ? '#c0392b' : count >= 5 ? '#d97706' : '#16a34a';
   const bg    = count >= 8 ? '#fef2f2' : count >= 5 ? '#fffbeb' : '#f0fdf4';
   const dot   = count >= 8 ? '🔴' : count >= 5 ? '🟡' : '🟢';
-  const label = count >= 8 ? `サジェスト過多（${count}件）購買が分散しやすい` : count >= 5 ? `サジェストやや多（${count}件）` : `サジェスト少ない（${count}件）購買意図が一致しやすい`;
+  const label = count >= 8 ? `サジェスト過多（${count}件）購買が分散しやすい` : count >= 5 ? `サジェストやや多（${count}件）やや分散` : `サジェスト少ない（${count}件）購買意図が集中`;
   el.innerHTML = `<div style="background:${bg};border-bottom:1px solid ${color}25;padding:6px 14px;display:flex;align-items:center;gap:7px"><span style="font-size:0.85rem;line-height:1">${dot}</span><span style="font-size:0.75rem;font-weight:700;color:${color}">${label}</span></div>`;
 }
 
@@ -2137,8 +2130,7 @@ function renderNiche(items, keyword) {
     })() : ''}`;
 
   window._currentBandLabel = '';
-  const _skw = ma.keyword || document.getElementById('keyword')?.value.trim() || '';
-  if (_skw) injectSuggestBadge(_skw);
+  injectSuggestBadge();
 }
 
 function renderSummary(items) {
