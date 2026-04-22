@@ -3113,10 +3113,24 @@ function openShopModal(shopCode, shopName, fromReport = false) {
   window[cb] = res => {
     delete window[cb]; sc.remove();
     const shopAllCount = res.count || 0;
-    renderShopModal(items, kwItems.length, shopCode, shopAllCount);
+    renderShopModal(items, kwItems.length, shopCode, shopAllCount, null);
   };
-  sc.onerror = () => { sc.remove(); renderShopModal(items, kwItems.length, shopCode, 0); };
+  sc.onerror = () => { sc.remove(); renderShopModal(items, kwItems.length, shopCode, 0, null); };
   document.head.appendChild(sc);
+  // 全商品取得して月商計算（非同期）
+  fetchShopItems().then(res => {
+    const allShopItems = res.items.map(it => ({
+      price: it.itemPrice || 0,
+      reviewCount: it.reviewCount || 0
+    }));
+    const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
+    const total = allShopItems.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS * i.price), 0);
+    const el = document.getElementById('shopAllMonthly');
+    if (el) {
+      const fmt = total >= 1e8 ? `約${(total/1e8).toFixed(1)}億円` : total >= 1e4 ? `約${Math.round(total/1e4)}万円` : `約${Math.round(total).toLocaleString()}円`;
+      el.innerHTML = `<span style="font-size:1.3rem;font-weight:900;color:#1a3a5c;letter-spacing:-0.02em">${fmt}</span><span style="font-size:0.7rem;color:#aaa;margin-left:4px">全商品合計</span>`;
+    }
+  });
 }
 
 function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) {
@@ -3170,8 +3184,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
     </div>
     <div style="margin-top:6px;display:flex;align-items:baseline;gap:6px">
       <span style="font-size:0.72rem;color:#aaa;font-weight:600">店舗全体の推計月商</span>
-      <span style="font-size:1.3rem;font-weight:900;color:#1a3a5c;letter-spacing:-0.02em">${shopTotalMonthlyFmt}</span>
-      <span style="font-size:0.7rem;color:#aaa">（全て）</span>
+      <span id="shopAllMonthly" style="font-size:0.85rem;color:#aaa">取得中…</span>
     </div>`;
   const analysisHtml = `
     <div class="shop-analysis">
