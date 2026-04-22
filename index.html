@@ -1971,13 +1971,13 @@ function renderNiche(items, keyword) {
               const _fewShops = _shopCnt <= 5;
               const _mj = (() => {
                 if (r.rounded < 10000) return {text:'❌ 砂漠地帯', color:'#aaa', bg:'#f5f5f5'};
-                if (r.rounded < 30000) return {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5'};
-                if (_bigMkt && _shopCnt >= 15) return {text:'🔴 激戦・参入困難', color:'#c0392b', bg:'#fef2f2'};
-                if (_bigMkt && _shopCnt >= 8)  return {text:'🟡 規模大・競合多め', color:'#d97706', bg:'#fffbeb'};
-                if (_bigMkt && _fewShops)       return {text:'🏆 規模大・競合少！', color:'#1a5276', bg:'#eaf4fb'};
-                if (!_bigMkt && _fewShops)      return {text:'✅ ニッチ狙い目', color:'#16a34a', bg:'#f0fdf4'};
-                if (!_bigMkt && _shopCnt >= 10) return {text:'⚠️ 小規模・競合多', color:'#d97706', bg:'#fffbeb'};
-                return {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4'};
+                if (r.rounded < 30000) return {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5', tip:'販売数が少なく利益化が難しい価格帯です'};
+                if (_bigMkt && _shopCnt >= 15) return {text:'🔴 激戦・参入困難', color:'#c0392b', bg:'#fef2f2', tip:'競合が多く新規では埋もれやすい。差別化必須'};
+                if (_bigMkt && _shopCnt >= 8)  return {text:'🟡 規模大・競合多め', color:'#d97706', bg:'#fffbeb', tip:'市場は大きいが競合も多め。尖った商品で勝負'};
+                if (_bigMkt && _fewShops)       return {text:'🏆 規模大・競合少！', color:'#1a5276', bg:'#eaf4fb', tip:'売上規模が大きく競合が少ない絶好の狙い目'};
+                if (!_bigMkt && _fewShops)      return {text:'✅ ニッチ狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'競合が少なくレビューで差をつければ上位を狙える'};
+                if (!_bigMkt && _shopCnt >= 10) return {text:'⚠️ 小規模・競合多', color:'#d97706', bg:'#fffbeb', tip:'規模の割に競合が多い。参入は慎重に'};
+                return {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'バランスの良い価格帯。レビュー獲得で上位を狙える'};
               })();
               const _shopColor = _shopCnt >= 15 ? '#c0392b' : _shopCnt >= 8 ? '#d97706' : '#16a34a';
               return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:12px 12px;margin-bottom:6px;border-radius:8px;background:#fff;border:1px solid #e8edf2;border-left:3px solid #e8edf2;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
@@ -1995,6 +1995,7 @@ function renderNiche(items, keyword) {
                     <span style="font-size:0.75rem;color:#444;background:#eef1f6;border-radius:4px;padding:2px 7px;white-space:nowrap;font-weight:700">¥${r.topPrice.toLocaleString()}×${r.estSales}個</span>
                   </div>
                 </div>
+                <div style="font-size:0.7rem;color:#666;margin-bottom:5px;line-height:1.4">${_mj.tip}</div>
                 <div style="height:3px;background:#f0f2f7;border-radius:3px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${r.b.color};border-radius:3px;opacity:0.5"></div>
                 </div>
