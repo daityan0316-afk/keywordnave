@@ -5,8 +5,12 @@
 アクセス: http://localhost:8080
 """
 
-import re, time, json, threading
+import re, time, json, threading, os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
 try:
     import requests
     from bs4 import BeautifulSoup
@@ -15,6 +19,12 @@ try:
 except ImportError as e:
     DEPS_OK = False
     DEPS_ERR = str(e)
+
+try:
+    import anthropic
+    ANTHROPIC_OK = True
+except ImportError:
+    ANTHROPIC_OK = False
 
 POSITIVE_WORDS = [
     "良い","良かった","いい","よかった","綺麗","きれい","可愛い","かわいい","素敵","すてき",
@@ -216,6 +226,69 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:
                 print(f"[ERROR] /api/ranking-search: {e}")
                 self.send_json(500, {"error": str(e)})
+        elif p == "/api/generate-description":
+            if not ANTHROPIC_OK:
+                self.send_json(500, {"error": "anthropic ライブラリ未インストール。pip install anthropic を実行してください。"}); return
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if not api_key:
+                self.send_json(500, {"error": "ANTHROPIC_API_KEY が設定されていません。"}); return
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length))
+                keywords = body.get("keywords", "")
+                product_name = body.get("product_name", "")
+                extra = body.get("extra", "")
+
+                system_prompt = """あなたは楽天・Amazon向けの商品説明文を書く、実績豊富なプロのECコピーライターです。
+
+【あなたのスタイル】
+- 読者が「これ、自分のために作られた商品だ」と感じる書き出しを必ず考える
+- 機能の羅列ではなく「使う場面・感情・変化」を描写する
+- 競合との差別化を「なぜこれが選ばれるのか」という軸で表現する
+- 検索キーワードを不自然にならない位置に配置し、読み心地を損なわない
+
+【禁止表現】
+- 「最高品質」「最安値」「業界No.1」などの根拠のない最上級表現
+- 「ぜひ」「是非」「〜してみてください」などの押しつけがましい誘導
+- 「結論から言うと」「〜とは？」などの定型句・SEO記事的書き出し
+- 箇条書きだけで構成された文章（本文は流れる文章で書くこと）"""
+
+                user_message = f"""以下の情報をもとに、楽天・Amazon向けの商品説明文を作成してください。
+
+【商品名】
+{product_name if product_name else "（未指定）"}
+
+【検索キーワード（自然な形で本文に組み込むこと）】
+{keywords}
+
+【補足情報・セールスポイント】
+{extra if extra else "（なし）"}
+
+---
+
+【出力形式】
+- 本文：900〜1000文字（段落で構成、箇条書き不可）
+- 書き出し：商品の「使う瞬間」や「解決する悩み」から入る
+- 中盤：具体的な特徴・他商品との違いを感情に訴えかける形で描写
+- 末尾：必ず【ご注意点】セクションを設け、「＊」始まりの箇条書きで3〜4項目（デメリット＋対策をセットで）
+
+【ご注意点】は誠実さが伝わるよう書くこと。デメリットを正直に認めたうえで、使い方や選び方の補足を添える。"""
+
+                client = anthropic.Anthropic(api_key=api_key)
+                message = client.messages.create(
+                    model="claude-opus-4-7",
+                    max_tokens=2048,
+                    system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": user_message}]
+                )
+                result_text = message.content[0].text
+                cache_info = getattr(message.usage, "cache_creation_input_tokens", 0)
+                cache_hit = getattr(message.usage, "cache_read_input_tokens", 0)
+                print(f"[DESC] cache_create={cache_info} cache_hit={cache_hit}")
+                self.send_json(200, {"text": result_text})
+            except Exception as e:
+                print(f"[ERROR] /api/generate-description: {e}")
+                self.send_json(500, {"error": str(e)})
         elif p == "/api/reviews":
             if not DEPS_OK:
                 self.send_json(500, {"error": f"依存ライブラリ不足: {DEPS_ERR}。pip install requests beautifulsoup4 を実行してください。"})
@@ -244,7 +317,7 @@ if __name__ == "__main__":
     os.chdir(pathlib.Path(__file__).parent)
     print(f"配信フォルダ: {os.getcwd()}")
     port = 9090
-    server = HTTPServer(("", port), Handler)
+    server = ThreadedHTTPServer(("", port), Handler)
     print(f"サーバー起動: http://localhost:{port}")
     print("停止するには Ctrl+C")
     server.serve_forever()

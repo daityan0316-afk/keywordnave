@@ -1617,8 +1617,18 @@ function renderSnsTrends() {
 
 // URLに ?q= があれば自動検索（F5リロード対応）
 // ※ showWelcome/loadOtakara が全て定義された後に実行
+let _isFirstSearch = true;
+
 function _initPage() {
   checkProxy();
+
+  // Backキーで前の検索に戻れるよう popstate を監視
+  window.addEventListener("popstate", () => {
+    const kw = new URLSearchParams(location.search).get("q") || "";
+    document.getElementById("keyword").value = kw;
+    if (kw) { _isFirstSearch = true; doSearch(); }
+    else showWelcome();
+  });
 
   const _initKw = new URLSearchParams(location.search).get("q");
   if (_initKw && _initKw.trim()) {
@@ -1716,7 +1726,9 @@ async function doSearch(searchGenreId) {
   _currentGenreId = searchGenreId || null;
   // キーワードもジャンルもない場合はランキングを表示
   if (!keyword && searchGenreId == null) { loadRanking(); return; }
-  history.replaceState(null, "", keyword ? "?q=" + encodeURIComponent(keyword) : location.pathname);
+  const _nextUrl = keyword ? "?q=" + encodeURIComponent(keyword) : location.pathname;
+  if (_isFirstSearch) { history.replaceState({ q: keyword }, "", _nextUrl); _isFirstSearch = false; }
+  else { history.pushState({ q: keyword }, "", _nextUrl); }
 
   const btn = document.getElementById("searchBtn");
   btn.disabled = true;
@@ -1777,7 +1789,7 @@ async function doSearch(searchGenreId) {
     const _ffb = document.getElementById("fixedFavBtn");
     if (_ffb) _ffb.style.display = "";
   } catch(e) {
-    setStatus("error", "エラー: " + e.message);
+    setStatus("error", e.message);
   } finally {
     _searching = false;
     btn.disabled = false;
@@ -1801,7 +1813,15 @@ function fetchRakuten(keyword, genreId) {
       setStatus("info", `📦 商品データを取得中... (${page}/3ページ目)`);
       window[cb] = d => {
         delete window[cb]; s.remove();
-        if (d.error) { reject(new Error(d.error_description || d.error)); return; }
+        if (d.error) {
+          const raw = (d.error_description || d.error || '').toLowerCase();
+          const msg = raw.includes('exceeded')
+            ? 'アクセスが混雑しています。少し間を置いて再試行してください'
+            : raw.includes('invalid')
+            ? 'APIキーが無効です。管理者にお問い合わせください'
+            : 'データの取得に失敗しました';
+          reject(new Error(msg)); return;
+        }
         if (page === 1) _totalCount = d.count || 0;
         const items = (d.Items || []).map(i => ({
           name: i.itemName || "",
@@ -1927,7 +1947,6 @@ function renderNiche(items, keyword) {
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
         <div style="padding:8px 14px">
           ${(()=>{
-            const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
             const allItems = (ma.items||[]).filter(i=>i.price>0&&i.reviewCount>0);
             const prices = allItems.map(i=>i.price).sort((a,b)=>a-b);
             const p33 = prices[Math.floor(prices.length*0.33)]||0;
@@ -1942,7 +1961,9 @@ function renderNiche(items, keyword) {
               if(!its.length) return null;
               const avgPrice = Math.round(its.reduce((s,i)=>s+i.price,0)/its.length);
               const topItem = its.sort((a,z)=>z.reviewCount-a.reviewCount)[0];
-              const estSales = Math.round(topItem.reviewCount/REVIEW_RATE/AVG_MONTHS);
+              const _rr = topItem.price < 1000 ? 0.08 : topItem.price < 5000 ? 0.06 : topItem.price < 20000 ? 0.05 : 0.04;
+              const _mo = topItem.reviewCount > 1000 ? 48 : topItem.reviewCount > 300 ? 36 : topItem.reviewCount > 100 ? 24 : topItem.reviewCount > 30 ? 18 : 12;
+              const estSales = Math.round(topItem.reviewCount/_rr/_mo);
               const estMonthly = Math.round(estSales * topItem.price);
               const rounded = estMonthly>=1e5?Math.round(estMonthly/5e4)*5e4:Math.round(estMonthly/1e3)*1e3;
               return {b, avgPrice, rounded, estSales, topPrice: topItem.price};
@@ -2135,14 +2156,19 @@ function renderSummary(items) {
   const avgRev = items.reduce((s,i)=>s+i.reviewAvg,0) / items.length;
   const top    = items[0];
   // ── 市場規模推計 ──────────────────────────────────────────
-  // レビュー率：楽天は購入者の約5〜8%がレビューを書くとされる
-  const REVIEW_RATE = 0.13;
-  // 累積レビューを月次に換算（平均出品期間24ヶ月想定）
-  const AVG_MONTHS = 24;
+  // レビュー率：価格帯によって変動（安価品ほど投稿率が高い）
+  // 高額品は購入者が慎重で選択的にレビューを書くため率が下がる
+  const reviewRate = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+  // 出品期間：レビュー累積数から商品年齢を推定
+  // 大量レビューは長期販売の証拠。新商品ほど短く見積もる
+  const avgMonths = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
   // 各商品の推計月間売上 = (累積レビュー ÷ レビュー率 ÷ 出品月数) × 価格
-  const sampledRevenue = items.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS) * i.price, 0);
-  // 上位90件は検索上位の高売上品。残り長尾はべき乗則で急減するため√で補正（上限3倍）
-  const scaleUp = Math.min(_totalCount > items.length ? Math.sqrt(_totalCount / items.length) : 1, 3);
+  const sampledRevenue = items.reduce((s, i) => {
+    if (!i.reviewCount || !i.price) return s;
+    return s + (i.reviewCount / reviewRate(i.price) / avgMonths(i.reviewCount)) * i.price;
+  }, 0);
+  // 上位90件は検索上位の高売上品。残り長尾はべき乗則で急減するため√で補正（上限2.5倍）
+  const scaleUp = Math.min(_totalCount > items.length ? Math.sqrt(_totalCount / items.length) : 1, 2.5);
   const totalMarketRevenue = sampledRevenue * scaleUp * 12; // 月→年換算
 
   // ユニーク店舗数・市場集中度を計算
@@ -2299,14 +2325,15 @@ function renderShopTags(items) {
   if (!el) return;
 
   // 店舗ごとに商品数・推計売上を集計
-  const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
   const shopMap = {};
   items.forEach(it => {
     if (!it.shopName) return;
     const code = (it.itemCode || "").split(":")[0];
     if (!shopMap[it.shopName]) shopMap[it.shopName] = { code, count: 0, revenue: 0 };
     shopMap[it.shopName].count++;
-    shopMap[it.shopName].revenue += (it.reviewCount / REVIEW_RATE / AVG_MONTHS) * it.price;
+    const _rate = it.price < 1000 ? 0.08 : it.price < 5000 ? 0.06 : it.price < 20000 ? 0.05 : 0.04;
+    const _mo   = it.reviewCount > 1000 ? 48 : it.reviewCount > 300 ? 36 : it.reviewCount > 100 ? 24 : it.reviewCount > 30 ? 18 : 12;
+    shopMap[it.shopName].revenue += (it.reviewCount / _rate / _mo) * it.price;
   });
 
   const shops = Object.entries(shopMap)
@@ -2613,41 +2640,60 @@ function renderSeasonChart(scores, isYearRound) {
 // ── 市場分析ポップアップ ──────────────────────────────────
 async function fetchSuggestForReport(q) {
   if (!q) return;
-  // キーワードを単語分割して親キーワード候補を生成
+  const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
   const terms = q.trim().split(/\s+/);
-  // 評価対象：ビッグKW（先頭1語）〜現在のKW（全語）まで
-  const candidates = [];
-  for (let len = 1; len <= terms.length; len++) {
-    candidates.push(terms.slice(0, len).join(' '));
-  }
-  // 各キーワードの件数とサジェスト数（商品タイトルからの多様性）を取得
-  async function evalKw(kw) {
+  const bigKw = terms[0];
+
+  // bigKWを1回のAPI呼び出しで評価しつつ派生語も抽出（二重呼び出し不要）
+  function evalKwFull(kw, extractDerived) {
     return new Promise(resolve => {
       const cb = `_rsgev_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const s = document.createElement("script");
       s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
         new URLSearchParams({ applicationId: RAKUTEN_APP_ID, keyword: kw, hits: 30, formatVersion: 2, callback: cb, sort: 'standard' });
-      const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve({ kw, count: 0, variety: 0 }); }, 5000);
+      const timer = setTimeout(() => { delete window[cb]; s.remove(); resolve({ kw, count: 0, variety: 0, derived: [] }); }, 6000);
       window[cb] = d => {
         clearTimeout(timer); delete window[cb]; s.remove();
         const count = d?.count || 0;
-        // タイトルの先頭語の多様性でサジェスト分散度を推計
-        const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
         const kwTerms = new Set(kw.split(/\s+/));
-        const extraWords = new Set();
+        const variety = new Set();
+        const freq = {};
         (d?.Items || []).forEach(i => {
           (i.itemName || "").split(splitter)
             .filter(w => w.length >= 2 && !kwTerms.has(w) && !/^[\d,]+$/.test(w))
-            .slice(0, 3).forEach(w => extraWords.add(w));
+            .slice(0, 5)
+            .forEach(w => {
+              variety.add(w);
+              if (extractDerived && !STOP_WORDS.has(w)) freq[w] = (freq[w] || 0) + 1;
+            });
         });
-        resolve({ kw, count, variety: extraWords.size });
+        const derived = extractDerived
+          ? Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 8).map(([w]) => `${bigKw} ${w}`)
+          : [];
+        resolve({ kw, count, variety: variety.size, derived });
       };
-      s.onerror = () => { s.remove(); resolve({ kw, count: 0, variety: 0 }); };
+      s.onerror = () => { s.remove(); resolve({ kw, count: 0, variety: 0, derived: [] }); };
       document.head.appendChild(s);
     });
   }
-  const results = await Promise.all(candidates.map(evalKw));
-  window._lastSuggestItems = results.filter(r => r.count > 0);
+
+  // Step1: bigKWを評価しながら派生語を抽出
+  const bigResult = await evalKwFull(bigKw, true);
+
+  // Step2: 基本候補（bigKW除く）+ 派生候補を組み立て
+  const baseCandidates = [];
+  for (let len = 2; len <= terms.length; len++) {
+    baseCandidates.push(terms.slice(0, len).join(' '));
+  }
+  const seen = new Set([bigKw, ...baseCandidates]);
+  const derivedCandidates = bigResult.derived.filter(c => !seen.has(c));
+  const restCandidates = [...baseCandidates, ...derivedCandidates];
+
+  // Step3: 残り候補を並列評価
+  const restResults = await Promise.all(restCandidates.map(kw => evalKwFull(kw, false)));
+
+  const results = [bigResult, ...restResults].filter(r => r.count > 0);
+  window._lastSuggestItems = results;
   const _kwEl = document.getElementById('seoTargetKwList');
   if (_kwEl) _renderSeoKwList(_kwEl);
 }
@@ -2656,32 +2702,53 @@ function _renderSeoKwList(el) {
   const items = window._lastSuggestItems || [];
   if (!items.length) { el.innerHTML = '<div style="padding:10px 14px;font-size:0.78rem;color:#aaa">取得中…</div>'; return; }
   const fmtC = n => n >= 10000 ? `${Math.floor(n/10000)}万件` : n >= 1000 ? `${Math.floor(n/1000)}千件` : `${n}件`;
-  // 狙い目判定：件数が多すぎず（5万以下）、分散度が低いもの
-  const best = items.reduce((b, r) => {
-    const score = (r.count > 500 && r.count < 50000 && r.variety < 40) ? r.count : 0;
-    return (!b || score > b.score) ? { ...r, score } : b;
-  }, null);
-  el.innerHTML = items.map((it, i) => {
-    const isBest = best && it.kw === best.kw && best.score > 0;
+  // 狙い目スコア：件数が少なく（競合少）、分散度が低い（需要が集中）ほど高スコア
+  const targetScore = r => (r.count > 300 && r.count < 50000 && r.variety < 40)
+    ? Math.round((50000 - r.count) / 1000 + (40 - r.variety)) : 0;
+  const scored = items.map(r => ({ ...r, _score: targetScore(r) }));
+  // スコア上位3件を「狙い目」とする
+  const targetKws = new Set(
+    [...scored].filter(r => r._score > 0).sort((a,b) => b._score - a._score).slice(0, 3).map(r => r.kw)
+  );
+  el.innerHTML = scored.map((it, i) => {
+    const isTarget = targetKws.has(it.kw);
     const varColor = it.variety >= 50 ? '#c0392b' : it.variety >= 30 ? '#d97706' : '#16a34a';
     const varLabel = it.variety >= 50 ? '購買が分散' : it.variety >= 30 ? 'やや分散' : '購買が集中';
     const termLen = it.kw.split(/\s+/).length;
     const kwType = termLen === 1 ? 'ビッグKW' : termLen === 2 ? 'ミドルKW' : 'ロングKW';
     const kwTypeColor = termLen === 1 ? '#7c3aed' : termLen === 2 ? '#2563eb' : '#16a34a';
-    return `<div style="padding:8px 12px;border-bottom:${i<items.length-1?'1px solid #f0f4f8':'none'};display:flex;align-items:center;gap:7px;cursor:pointer;background:${isBest?'#f0fdf4':'transparent'}" onclick="document.getElementById('keyword').value='${it.kw.replace(/'/g,"\\'")}';document.getElementById('marketPopup').classList.remove('open');doSearch()">
+    const kwEsc = it.kw.replace(/'/g, "\\'");
+    return `<div style="padding:8px 12px;border-bottom:${i<scored.length-1?'1px solid #f0f4f8':'none'};display:flex;align-items:center;gap:7px;background:${isTarget?'#f0fdf4':'transparent'}">
       <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:5px">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           <span style="font-size:0.65rem;font-weight:700;color:${kwTypeColor};background:${kwTypeColor}15;border-radius:3px;padding:1px 5px;white-space:nowrap">${kwType}</span>
-          ${isBest ? '<span style="font-size:0.65rem;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:3px;padding:1px 5px">★ 狙い目</span>' : ''}
+          ${isTarget ? '<span style="font-size:0.65rem;font-weight:700;color:#16a34a;background:#dcfce7;border-radius:3px;padding:1px 5px">★ 狙い目</span>' : ''}
         </div>
-        <span style="font-size:0.82rem;color:#1a3a5c;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.kw}</span>
+        <span style="font-size:0.82rem;color:#1a3a5c;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all">${it.kw}</span>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <span style="font-size:0.78rem;font-weight:700;color:#555">${fmtC(it.count)}</span>
         <span style="font-size:0.65rem;color:${varColor};font-weight:600">${varLabel}</span>
+        <button onclick="copyKw('${kwEsc}',this)" style="font-size:0.65rem;padding:2px 8px;background:#f0f4ff;border:1px solid #c0d0f0;border-radius:4px;color:#2563eb;cursor:pointer;font-family:inherit;font-weight:600">コピー</button>
       </div>
     </div>`;
   }).join('');
+}
+
+function copyKw(kw, btn) {
+  navigator.clipboard.writeText(kw).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピー済';
+    btn.style.background = '#dcfce7';
+    btn.style.borderColor = '#86efac';
+    btn.style.color = '#16a34a';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = '#f0f4ff';
+      btn.style.borderColor = '#c0d0f0';
+      btn.style.color = '#2563eb';
+    }, 1500);
+  });
 }
 
 function openMarketPopup() {
@@ -3052,34 +3119,7 @@ function openShopModal(shopCode, shopName, fromReport = false) {
   document.getElementById("shopModalBody").innerHTML = '<p class="suggest-loading">取得中…</p>';
   modal.classList.add("open");
 
-  // ① 店舗商品を複数ページ取得（最大3ページ=90件）
-  function fetchShopItems() {
-    return new Promise(resolve => {
-      let all = [], total = 0, page = 1;
-      function next() {
-        const cb = `_sf_${Date.now()}_${page}`;
-        const s = document.createElement("script");
-        s.src = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?` +
-          new URLSearchParams({ applicationId: RAKUTEN_APP_ID, shopCode, hits: 30, page, sort: "-reviewCount", formatVersion: 2, callback: cb });
-        window[cb] = d => {
-          delete window[cb]; s.remove();
-          if (d.error) { resolve({ items: all, total }); return; }
-          if (page === 1) total = d.count || 0;
-          const items = d.Items || [];
-          all = all.concat(items);
-          page++;
-          if (items.length === 30 && page <= 3) setTimeout(next, 400);
-          else resolve({ items: all, total });
-        };
-        s.onerror = () => { s.remove(); resolve({ items: all, total }); };
-        setTimeout(() => { if(window[cb]){ delete window[cb]; s.remove(); resolve({ items: all, total }); } }, 8000);
-        document.head.appendChild(s);
-      }
-      next();
-    });
-  }
-
-  // ② ランキング取得
+  // ① ランキング取得
   function fetchRank(genreId) {
     return new Promise(resolve => {
       const cb = `_sm_${Date.now()}`;
@@ -3117,20 +3157,6 @@ function openShopModal(shopCode, shopName, fromReport = false) {
   };
   sc.onerror = () => { sc.remove(); renderShopModal(items, kwItems.length, shopCode, 0, null); };
   document.head.appendChild(sc);
-  // 全商品取得して月商計算（非同期）
-  fetchShopItems().then(res => {
-    const allShopItems = res.items.map(it => ({
-      price: it.itemPrice || 0,
-      reviewCount: it.reviewCount || 0
-    }));
-    const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
-    const total = allShopItems.reduce((s, i) => s + (i.reviewCount / REVIEW_RATE / AVG_MONTHS * i.price), 0);
-    const el = document.getElementById('shopAllMonthly');
-    if (el) {
-      const fmt = total >= 1e8 ? `約${(total/1e8).toFixed(1)}億円` : total >= 1e4 ? `約${Math.round(total/1e4)}万円` : `約${Math.round(total).toLocaleString()}円`;
-      el.innerHTML = `<span style="font-size:1.3rem;font-weight:900;color:#1a3a5c;letter-spacing:-0.02em">${fmt}</span><span style="font-size:0.7rem;color:#aaa;margin-left:4px">全商品合計</span>`;
-    }
-  });
 }
 
 function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) {
@@ -3153,11 +3179,12 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
 
   const fmtMonthly = v => v >= 1e8 ? `約${(v/1e8).toFixed(1)}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${Math.round(v).toLocaleString()}円`;
 
-  // 推計月商 — 検索結果のレビュー比率で市場月商を按分（競合比較タブと同じ計算）
+  // 推計月商 — 価格帯フィルタ中はその帯の市場月商・商品リストで按分
   const mkt = window._marketAnalysis || _marketAnalysis;
-  const marketMonthly = mkt ? mkt.totalMarketRevenue / 12 : 0;
+  const _bandMonthly = window._currentBandMonthly;
+  const marketMonthly = _bandMonthly != null ? _bandMonthly : (mkt ? mkt.totalMarketRevenue / 12 : 0);
   const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
-  const allKwItems = _allItems || [];
+  const allKwItems = (window._currentBandItems != null ? window._currentBandItems : _allItems) || [];
   const totalKwReviews = allKwItems.reduce((s, i) => s + (i.reviewCount || 0), 0) || 1;
   const shopKwReviews = items.reduce((s, i) => s + (i.reviewCount || 0), 0);
   const kwMonthly = Math.round(shopKwReviews / totalKwReviews * marketMonthly);
@@ -3182,20 +3209,16 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
       <span style="display:inline-block;background:${strength.bg};color:${strength.color};font-size:0.88rem;font-weight:800;border-radius:8px;padding:3px 10px">${strength.label}</span>
       <span style="font-size:0.78rem;color:#888">${shopTotalLabel}</span>
     </div>
-    <div style="margin-top:6px;display:flex;align-items:baseline;gap:6px">
-      <span style="font-size:0.72rem;color:#aaa;font-weight:600">店舗全体の推計月商</span>
-      <span id="shopAllMonthly" style="font-size:0.85rem;color:#aaa">取得中…</span>
-    </div>`;
+    `;
   const analysisHtml = `
     <div class="shop-analysis">
-      <div style="display:grid;grid-template-columns:${isMobileSM?'repeat(3,1fr)':'repeat(6,1fr)'};gap:6px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:${isMobileSM?'repeat(2,1fr) repeat(3,1fr)':'repeat(5,1fr)'};gap:6px;margin-bottom:8px">
         ${[
-          {bg:'#f0f7ff',border:'#c0d8f0',lc:'#2563eb',label:'💬 レビュー', val:`${totalReviews.toLocaleString()}<span style="font-size:0.6rem;font-weight:400">件</span>`, vc:'#1a3a5c'},
-          {bg:'#fff8f0',border:'#fddcb5',lc:'#ea580c',label:'⭐ 評価',    val:`★${avgReview.toFixed(1)}`, vc:'#e67e22'},
-          {bg:'#fafbfc',border:'#e0e8f0',lc:'#555',   label:'💴 価格帯',  val:`${fmtYen(minPrice)}<span style="font-size:0.6rem;color:#aaa;display:block">〜${fmtYen(maxPrice)}</span>`, vc:'#333'},
-          {bg:'#f0faf4',border:'#a8d5b8',lc:'#1e8449',label:'📦 商品数', val:`${items.length}<span style="font-size:0.6rem;font-weight:400">件</span>`, vc:'#1e8449'},
           {bg:'#fef5f5',border:'#f5c6c6',lc:'#c0392b',label:'📊 月商',   val:fmtMonthly(kwMonthly), vc:'#c0392b'},
+          {bg:'#f0faf4',border:'#a8d5b8',lc:'#1e8449',label:'📦 商品数', val:`${items.length}<span style="font-size:0.6rem;font-weight:400">件</span>`, vc:'#1e8449'},
           {bg:'#f5f0ff',border:'#d4b8f5',lc:'#7c3aed',label:'📈 シェア率',val:kwShare > 0 ? `${kwShare}%` : '-', vc:'#7c3aed'},
+          {bg:'#fff8f0',border:'#fddcb5',lc:'#ea580c',label:'⭐ 評価',    val:`★${avgReview.toFixed(1)}`, vc:'#e67e22'},
+          {bg:'#f0f7ff',border:'#c0d8f0',lc:'#2563eb',label:'💬 レビュー', val:`${totalReviews.toLocaleString()}<span style="font-size:0.6rem;font-weight:400">件</span>`, vc:'#1a3a5c'},
         ].map(c=>`
           <div style="background:${c.bg};border:1px solid ${c.border};border-radius:10px;padding:8px 10px">
             <div style="font-size:0.6rem;color:${c.lc};font-weight:700;margin-bottom:4px">${c.label}</div>
@@ -3204,7 +3227,7 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
       </div>
     </div>`;
 
-  const itemsLabelHtml = `<div style="padding:10px 16px 6px;font-size:0.75rem;font-weight:700;color:#888;letter-spacing:0.04em;border-top:1px solid #f0f2f7">「${kwLabel}」の検索中</div>`;
+  const itemsLabelHtml = ``;
 
   const itemsHtml = isMobileSM
     ? `<div style="display:flex;flex-direction:column;gap:8px;padding:8px 0">` +
@@ -3290,6 +3313,8 @@ function _movePriceFilter() {
 
 function resetPriceBand() {
   window._currentBandLabel = '';
+  window._currentBandItems = null;
+  window._currentBandMonthly = null;
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl) titleEl.textContent = '📦 全価格帯売れ筋商品';
   const shopTitleEl2 = document.getElementById('shopRankCardTitle');
@@ -3350,6 +3375,10 @@ function filterByPriceBand(min, max, bandIdx) {
   if (shopTitleEl && bandIdx !== undefined) shopTitleEl.textContent = `🏪 ${bandLabels[bandIdx] ?? ''}店舗ランキング`;
   // 競合店舗タグも価格帯内の店舗のみ表示
   const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
+  // 店舗モーダル用に価格帯内アイテムと月商を保存
+  window._currentBandItems = bandItems;
+  const _cbRow = bandIdx !== undefined ? (window._priceBandRows || [])[bandIdx] : null;
+  window._currentBandMonthly = _cbRow ? _cbRow.rounded : null;
   renderShopTags(bandItems);
   // 売れ筋商品カードも絞り込む
   document.querySelectorAll('[data-band-idx]').forEach(el => {
@@ -3396,7 +3425,16 @@ function clearFilter() {
 function setStatus(type, msg) {
   const el = document.getElementById("status");
   el.className = `status ${type}`;
-  el.textContent = msg;
+  if (type === "error") {
+    const isOverload = msg.includes('混雑') || msg.includes('exceeded');
+    el.innerHTML = `
+      <span style="font-size:1.1rem;margin-right:6px">${isOverload ? '⏳' : '⚠️'}</span>
+      <span>${msg}</span>
+      ${isOverload ? `<button onclick="doSearch()" style="margin-left:12px;padding:4px 14px;background:#fff;border:1.5px solid #e05555;color:#c0392b;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">再試行</button>` : ''}
+    `;
+  } else {
+    el.textContent = msg;
+  }
 }
 
 // ── ランキング・グリッド ──────────────────────────────────
