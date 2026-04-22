@@ -3148,10 +3148,9 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
   const shopKwReviews = items.reduce((s, i) => s + (i.reviewCount || 0), 0);
   const kwMonthly = Math.round(shopKwReviews / totalKwReviews * marketMonthly);
   const kwShare = marketMonthly > 0 ? Math.min(100, Math.round(kwMonthly / marketMonthly * 100)) : 0;
-  const _bandTag = window._currentBandLabel
-    ? `<span style="font-size:0.78rem;color:#2563eb;font-weight:700">${window._currentBandLabel}を表示中</span>`
-    : `<span style="font-size:0.78rem;color:#888">全価格帯を表示中</span>`;
-  const shopTotalLabel = _bandTag;
+  const _kw4shop = window._marketAnalysis?.keyword || document.getElementById('keyword')?.value.trim() || '';
+  const _bandDisp = window._currentBandLabel || '全価格帯';
+  const shopTotalLabel = `<span style="font-size:0.8rem;color:#555;font-weight:600">「${_kw4shop}」で検索中、<span style="color:#2563eb">${_bandDisp}</span>を表示中</span>`;
 
   // 強さ判定
   const strength = totalReviews > 5000 ? { label:"💪 強力な店舗", color:"#1a5276", bg:"#eaf4fb" }
