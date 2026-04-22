@@ -706,7 +706,7 @@ td a:hover { text-decoration: underline; }
 }
 
 .result-sidebar {
-  width: 360px;
+  width: 340px;
   flex-shrink: 0;
 }
 
