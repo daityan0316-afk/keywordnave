@@ -1957,15 +1957,15 @@ function renderNiche(items, keyword) {
         return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
           <div style="padding:8px 10px 7px;border-bottom:1px solid #eef0f6">
             <div id="marketTopGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-              <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:72px;overflow:hidden;box-sizing:border-box">
-                <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-                <div style="font-size:1rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
-                <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+              <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:95px;overflow:hidden;box-sizing:border-box">
+                <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+                <div style="font-size:1.32rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
+                <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
               </div>
-              <div style="border-radius:7px;padding:10px 12px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;height:72px;overflow:hidden;box-sizing:border-box">
-                <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-                <div style="font-size:1rem;font-weight:900;color:${ma.entryColor};line-height:1.2">${fmtM(monthlyRounded)}</div>
-                <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+              <div style="border-radius:7px;padding:10px 12px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;height:95px;overflow:hidden;box-sizing:border-box">
+                <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+                <div style="font-size:1.32rem;font-weight:900;color:${ma.entryColor};line-height:1.2">${fmtM(monthlyRounded)}</div>
+                <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
               </div>
             </div>
           </div>
@@ -2005,10 +2005,10 @@ function renderNiche(items, keyword) {
             const _allRange = _allPrices.length ? `¥${Math.min(..._allPrices).toLocaleString()}〜¥${Math.max(..._allPrices).toLocaleString()}` : '';
             const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #eef0f6;cursor:pointer;transition:background 0.12s;border-left:3px solid #b0b8c8" onmouseover="this.style.background='#f6f8fc'" onmouseout="this.style.background=''">
               <div style="flex:1">
-                <div style="font-size:0.8rem;font-weight:700;color:#334">全価格帯</div>
-                <div style="font-size:0.63rem;color:#7a90a8;margin-top:1px">${_allRange}</div>
+                <div style="font-size:1.05rem;font-weight:700;color:#334">全価格帯</div>
+                <div style="font-size:0.83rem;color:#5a7a96;margin-top:1px">${_allRange}</div>
               </div>
-              <div style="font-size:1rem;font-weight:900;color:#2d4a7a">${fmtM(Math.round(_totalMonthly))}</div>
+              <div style="font-size:1.32rem;font-weight:900;color:#2d4a7a">${fmtM(Math.round(_totalMonthly))}</div>
             </div>`;
             return allRows + rows.map((r,i)=>{
               const pMin = r.b.min===0?0:Math.round(r.b.min);
@@ -2033,12 +2033,12 @@ function renderNiche(items, keyword) {
               return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #f0f2f7;cursor:pointer;transition:background 0.12s;border-left:3px solid ${r.b.color}" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                 <div style="flex:1;min-width:0">
                   <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-                    <span style="font-size:0.8rem;font-weight:700;color:#2d3748">${r.b.label}</span>
-                    <span class="band-judge-tip" style="font-size:0.62rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
+                    <span style="font-size:1.05rem;font-weight:700;color:#2d3748">${r.b.label}</span>
+                    <span class="band-judge-tip" style="font-size:0.82rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
                   </div>
-                  <div style="font-size:0.63rem;color:#aab">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
+                  <div style="font-size:0.83rem;color:#7a90a8">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
                 </div>
-                <div style="font-size:1rem;font-weight:900;color:${r.b.color};flex-shrink:0">${_amtStr}</div>
+                <div style="font-size:1.32rem;font-weight:900;color:${r.b.color};flex-shrink:0">${_amtStr}</div>
               </div>`;
             }).join('');
           })()}
@@ -3391,15 +3391,15 @@ function updateMarketTopGrid(items) {
   const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
   const ec = ma.entryColor || '#27ae60';
   el.innerHTML = `
-    <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:72px;overflow:hidden;box-sizing:border-box">
-      <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-      <div style="font-size:1rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
-      <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+    <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:95px;overflow:hidden;box-sizing:border-box">
+      <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+      <div style="font-size:1.32rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
+      <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
     </div>
-    <div style="border-radius:7px;padding:10px 12px;background:${ec}0f;border:1px solid ${ec}35;height:72px;overflow:hidden;box-sizing:border-box">
-      <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-      <div style="font-size:1rem;font-weight:900;color:${ec};line-height:1.2">${fmtM(monthlyRounded)}</div>
-      <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+    <div style="border-radius:7px;padding:10px 12px;background:${ec}0f;border:1px solid ${ec}35;height:95px;overflow:hidden;box-sizing:border-box">
+      <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+      <div style="font-size:1.32rem;font-weight:900;color:${ec};line-height:1.2">${fmtM(monthlyRounded)}</div>
+      <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
     </div>`;
 }
 
