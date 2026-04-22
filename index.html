@@ -112,7 +112,7 @@
       <!-- 左サイドバー -->
       <aside class="result-sidebar">
         <div class="sidebar-sticky">
-          <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 商品分析レポート</button>
+          <button id="marketSideBtn" class="market-side-btn hidden" onclick="openMarketPopup()" style="display:none!important">📊 レポートはコチラ</button>
           <div id="seoBadgeTop"></div>
           <div id="summaryGrid" class="summary-grid"></div>
           <div id="nicheBar"></div>
@@ -1912,28 +1912,35 @@ function renderNiche(items, keyword) {
     ${_kwLabel ? `<div class="sp-only" style="font-size:0.78rem;font-weight:700;color:#1e3a8a;background:#f0f5ff;border-radius:8px;padding:7px 12px;line-height:1.5;display:none">検索結果「${_kwLabel}」<br><span style="font-size:0.82rem;color:#2563eb">${_bandLabel2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_filteredCount}件</span></div>` : ''}
     <div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
-        <span style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">💰 売上予測（１商品の目安）</span>
+        <span style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📊 市場規模</span>
         <span class="collapse-btn">▲</span>
       </div>
       <div class="card-body" style="width:100%">
       ${ma.entryJudge ? (() => {
-        const monthly = ma.yearlyEstimate ? ma.yearlyEstimate / 12 : 0;
-        // 5万円単位で丸めて表示を安定化
-        const monthlyRounded = monthly >= 1e8 ? Math.round(monthly/5e7)*5e7
-                             : monthly >= 1e5 ? Math.round(monthly/5e4)*5e4
-                             : monthly >= 1e4 ? Math.round(monthly/1e4)*1e4
-                             : Math.round(monthly/1000)*1000;
-        const monthlyLabel = monthly >= 1e8 ? `約${(monthlyRounded/1e8).toFixed(1)}億円`
-                           : monthly >= 1e4 ? `約${Math.round(monthlyRounded/1e4)}万円`
-                           : `約${monthlyRounded.toLocaleString()}円`;
-        const s = `font-size:0.75rem;font-weight:600;opacity:0.7`;
-        const monthlyDisplay = monthly >= 1e8
-          ? `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`
-          : monthly >= 1e4
-          ? `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`
-          : `<span style="${s}">約</span>${monthlyRounded.toLocaleString()}<span style="${s}">円</span>`;
+        // 市場シェアタブと同じ直接計算で1位店舗の月商を算出
+        const _rrF = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+        const _moF = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
+        const _allIt = ma.items || [];
+        const _shopMap = {};
+        _allIt.forEach(it => {
+          if (!it.shopName) return;
+          if (!_shopMap[it.shopName]) _shopMap[it.shopName] = [];
+          _shopMap[it.shopName].push(it);
+        });
+        const _shopRevs = Object.entries(_shopMap).map(([name, its]) => ({
+          name,
+          rev: its.reduce((s, i) => s + (i.reviewCount && i.price ? (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price : 0), 0)
+        })).sort((a, b) => b.rev - a.rev);
+        const topShopRev = _shopRevs[0]?.rev || 0;
+        const topShopName = _shopRevs[0]?.name || '';
+        // 参入目安 = 1位月商 × 参入シェア率（競合数ベース）
+        const _uShops = ma.uniqueShops || 0;
+        const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
+        const _adjRatio = ma.topShopShare > 0.3 ? _entRatio * 0.6 : _entRatio;
+        const monthly = Math.round(topShopRev * _adjRatio);
+        const monthlyRounded = monthly >= 1e5 ? Math.round(monthly/5e4)*5e4 : Math.round(monthly/1e3)*1e3;
+        const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
         const cs = ma.compRank || 0;
-        const seoVal = cs >= 3 ? '上位困難' : cs >= 2 ? 'やや難しい' : '上位狙える';
         const priceLo  = ma.priceMedian > 0 ? Math.round(ma.priceMedian * 0.35) : 0;
         const priceMid = ma.priceMedian || 0;
         const priceHi  = ma.priceMedian > 0 ? Math.round(ma.priceMedian * 3) : 0;
@@ -1943,9 +1950,26 @@ function renderNiche(items, keyword) {
                <span style="font-size:0.9rem;font-weight:800;color:${ma.entryColor}">${Math.ceil(monthlyRounded/price)}個/月</span>
              </div>` : '';
         document.getElementById('seoBadgeTop').innerHTML = '';
-        return `
-      <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="padding:8px 14px">
+        const _totalMonthly = _allIt.reduce((s, i) => {
+          if (!i.reviewCount || !i.price) return s;
+          return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
+        }, 0);
+        return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
+          <div style="padding:8px 10px 7px;border-bottom:1px solid #eef0f6">
+            <div id="marketTopGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+              <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:72px;overflow:hidden;box-sizing:border-box">
+                <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+                <div style="font-size:1rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
+                <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+              </div>
+              <div style="border-radius:7px;padding:10px 12px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;height:72px;overflow:hidden;box-sizing:border-box">
+                <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+                <div style="font-size:1rem;font-weight:900;color:${ma.entryColor};line-height:1.2">${fmtM(monthlyRounded)}</div>
+                <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:2px 0 2px">
           ${(()=>{
             const allItems = (ma.items||[]).filter(i=>i.price>0&&i.reviewCount>0);
             const prices = allItems.map(i=>i.price).sort((a,b)=>a-b);
@@ -1964,70 +1988,66 @@ function renderNiche(items, keyword) {
               const _rr = topItem.price < 1000 ? 0.08 : topItem.price < 5000 ? 0.06 : topItem.price < 20000 ? 0.05 : 0.04;
               const _mo = topItem.reviewCount > 1000 ? 48 : topItem.reviewCount > 300 ? 36 : topItem.reviewCount > 100 ? 24 : topItem.reviewCount > 30 ? 18 : 12;
               const estSales = Math.round(topItem.reviewCount/_rr/_mo);
-              const estMonthly = Math.round(estSales * topItem.price);
-              const rounded = estMonthly>=1e5?Math.round(estMonthly/5e4)*5e4:Math.round(estMonthly/1e3)*1e3;
+              const estMonthlyBand = Math.round(its.reduce((s, i) => {
+                if (!i.reviewCount || !i.price) return s;
+                const rr = i.price < 1000 ? 0.08 : i.price < 5000 ? 0.06 : i.price < 20000 ? 0.05 : 0.04;
+                const mo = i.reviewCount > 1000 ? 48 : i.reviewCount > 300 ? 36 : i.reviewCount > 100 ? 24 : i.reviewCount > 30 ? 18 : 12;
+                return s + (i.reviewCount / rr / mo) * i.price;
+              }, 0));
+              const rounded = estMonthlyBand>=1e5?Math.round(estMonthlyBand/5e4)*5e4:Math.round(estMonthlyBand/1e3)*1e3;
               return {b, avgPrice, rounded, estSales, topPrice: topItem.price};
             }).filter(Boolean);
             const maxRounded = Math.max(...rows.map(r=>r.rounded), 1);
             const bestIdx = rows.reduce((bi,r,i)=>r.rounded>rows[bi].rounded?i:bi,0);
             window._priceBandRows = rows;
             window._priceBandBestIdx = bestIdx;
-                    const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="padding:8px 10px;margin-bottom:4px;border-radius:8px;background:#fff;border:1px solid #e8edf2;border-left:3px solid #e8edf2;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:0.82rem;font-weight:600;color:#555">全価格帯</span>
-                <span style="font-size:0.7rem;color:#aaa">リセット</span>
+            const _allPrices = allItems.map(i=>i.price);
+            const _allRange = _allPrices.length ? `¥${Math.min(..._allPrices).toLocaleString()}〜¥${Math.max(..._allPrices).toLocaleString()}` : '';
+            const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #eef0f6;cursor:pointer;transition:background 0.12s;border-left:3px solid #b0b8c8" onmouseover="this.style.background='#f6f8fc'" onmouseout="this.style.background=''">
+              <div style="flex:1">
+                <div style="font-size:0.8rem;font-weight:700;color:#334">全価格帯</div>
+                <div style="font-size:0.63rem;color:#7a90a8;margin-top:1px">${_allRange}</div>
               </div>
+              <div style="font-size:1rem;font-weight:900;color:#2d4a7a">${fmtM(Math.round(_totalMonthly))}</div>
             </div>`;
             return allRows + rows.map((r,i)=>{
-              const barW = Math.round(r.rounded/maxRounded*100);
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
-              // 価格帯内の競合店舗数
               const _bandIts = allItems.filter(it=>it.price>=r.b.min&&it.price<r.b.max);
               const _shopSet = new Set(_bandIts.map(it=>it.shopName).filter(Boolean));
               const _shopCnt = _shopSet.size;
               const _priceRange = _bandIts.length ? `¥${Math.min(..._bandIts.map(i=>i.price)).toLocaleString()}〜¥${Math.max(..._bandIts.map(i=>i.price)).toLocaleString()}` : '';
-              // 規模×競合数で総合判定
               const _bigMkt = r.rounded >= 150000;
               const _fewShops = _shopCnt <= 5;
               const _mj = (() => {
-                if (r.rounded < 10000) return {text:'❌ 砂漠地帯', color:'#aaa', bg:'#f5f5f5'};
-                if (r.rounded < 30000) return {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5', tip:'販売数が少なく利益化が難しい価格帯です'};
-                if (_bigMkt && _shopCnt >= 15) return {text:'🔴 激戦・参入困難', color:'#c0392b', bg:'#fef2f2', tip:'競合が多く新規では埋もれやすい。差別化必須'};
-                if (_bigMkt && _shopCnt >= 8)  return {text:'🟡 規模大・競合多め', color:'#d97706', bg:'#fffbeb', tip:'市場は大きいが競合も多め。尖った商品で勝負'};
-                if (_bigMkt && _fewShops)       return {text:'🏆 規模大・競合少！', color:'#1a5276', bg:'#eaf4fb', tip:'売上規模が大きく競合が少ない絶好の狙い目'};
-                if (!_bigMkt && _fewShops)      return {text:'✅ ニッチ狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'競合が少なくレビューで差をつければ上位を狙える'};
-                if (!_bigMkt && _shopCnt >= 10) return {text:'⚠️ 小規模・競合多', color:'#d97706', bg:'#fffbeb', tip:'規模の割に競合が多い。参入は慎重に'};
-                return {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'バランスの良い価格帯。レビュー獲得で上位を狙える'};
+                if (r.rounded < 10000) return {text:'❌砂漠', color:'#bbb', bg:'#f5f5f5', tip:'月商1万未満の砂漠地帯'};
+                if (r.rounded < 30000) return {text:'⚠️薄い', color:'#999', bg:'#f5f5f5', tip:'販売数が少なく利益化が難しい価格帯'};
+                if (_bigMkt && _shopCnt >= 15) return {text:'🔴激戦', color:'#c0392b', bg:'#fef2f2', tip:'競合が多く差別化必須'};
+                if (_bigMkt && _shopCnt >= 8)  return {text:'🟡競合多', color:'#d97706', bg:'#fffbeb', tip:'市場は大きいが競合も多め'};
+                if (_bigMkt && _fewShops)       return {text:'🏆大×少！', color:'#1a5276', bg:'#eaf4fb', tip:'市場大・競合少の絶好の狙い目'};
+                if (!_bigMkt && _fewShops)      return {text:'✅ニッチ', color:'#16a34a', bg:'#f0fdf4', tip:'競合少でレビューで差をつければ上位狙える'};
+                if (!_bigMkt && _shopCnt >= 10) return {text:'⚠️競合多', color:'#d97706', bg:'#fffbeb', tip:'規模の割に競合が多い。参入は慎重に'};
+                return {text:'✅狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'バランスの良い価格帯'};
               })();
-              const _shopColor = _shopCnt >= 15 ? '#c0392b' : _shopCnt >= 8 ? '#d97706' : '#16a34a';
-              return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:12px 12px;margin-bottom:6px;border-radius:8px;background:#fff;border:1px solid #e8edf2;border-left:3px solid #e8edf2;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:nowrap">
-                  <div style="display:flex;flex-direction:column;gap:2px">
-                    <span style="font-size:0.82rem;font-weight:600;color:#555;white-space:nowrap">${r.b.label}</span>
-                    <span class="band-judge-tip" style="font-size:0.68rem;font-weight:700;color:${_mj.color};background:${_mj.bg};border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-block;position:relative;cursor:help">${_mj.text}<span class="band-tip-box">❌ 砂漠地帯：月商1万未満<br>⚠️ 市場が薄い：月商1〜3万<br>✅ ニッチ狙い目：小規模・競合少<br>✅ 狙い目：月商3万超・競合少<br>🏆 規模大・競合少！：大市場×少競合<br>🟡 規模大・競合多め：大市場×競合8店以上<br>🔴 激戦・参入困難：大市場×競合15店以上</span></span>
+              const _amtStr = r.rounded >= 10000 ? Math.round(r.rounded/10000)+'万円' : r.rounded.toLocaleString()+'円';
+              return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #f0f2f7;cursor:pointer;transition:background 0.12s;border-left:3px solid ${r.b.color}" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+                    <span style="font-size:0.8rem;font-weight:700;color:#2d3748">${r.b.label}</span>
+                    <span class="band-judge-tip" style="font-size:0.62rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
                   </div>
-                  <span style="font-size:1.4rem;font-weight:900;color:${r.b.color};white-space:nowrap;flex-shrink:0;letter-spacing:-0.02em">${r.rounded.toLocaleString()}円</span>
+                  <div style="font-size:0.63rem;color:#aab">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px">
-                  <span style="font-size:0.75rem;color:#666;white-space:nowrap;font-weight:600">${_priceRange}</span>
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <span style="font-size:0.75rem;color:${_shopColor};font-weight:800;white-space:nowrap">競合${_shopCnt}店</span>
-                    <span style="font-size:0.75rem;color:#444;background:#eef1f6;border-radius:4px;padding:2px 7px;white-space:nowrap;font-weight:700">¥${r.topPrice.toLocaleString()}×${r.estSales}個</span>
-                  </div>
-                </div>
-                <div style="font-size:0.7rem;color:#666;margin-bottom:5px;line-height:1.4">${_mj.tip}</div>
-                <div style="height:3px;background:#f0f2f7;border-radius:3px;overflow:hidden">
-                  <div style="height:100%;width:${barW}%;background:${r.b.color};border-radius:3px;opacity:0.5"></div>
-                </div>
+                <div style="font-size:1rem;font-weight:900;color:${r.b.color};flex-shrink:0">${_amtStr}</div>
               </div>`;
             }).join('');
           })()}
-        </div>
-      </div>`;
+          </div>
+        </div>`;
+
       })() : ''}
       <div style="margin-top:0">
-        <button onclick="openMarketPopup()" style="width:100%;padding:8px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#eef3fa;color:#2563eb;border:1px solid #b8cfe8;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:all 0.15s" onmouseover="this.style.background='#dbeafe';this.style.borderColor='#2563eb'" onmouseout="this.style.background='#eef3fa';this.style.borderColor='#b8cfe8'">📊 商品分析レポート</button>
+        <button onclick="openMarketPopup()" style="width:100%;padding:8px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#eef3fa;color:#2563eb;border:1px solid #b8cfe8;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:all 0.15s" onmouseover="this.style.background='#dbeafe';this.style.borderColor='#2563eb'" onmouseout="this.style.background='#eef3fa';this.style.borderColor='#b8cfe8'">📊 レポートはコチラ</button>
       </div>
       </div>
     </div>
@@ -2092,40 +2112,6 @@ function renderNiche(items, keyword) {
           ${itemCards2}
         </div>`;
       }).join('');
-      // 店舗ランキングブロック
-      const RRATE2=0.13, AMTHS2=24;
-      const shopMap2={};
-      its2.forEach(it=>{
-        if(!it.shopName) return;
-        const code=(it.itemCode||'').split(':')[0];
-        if(!shopMap2[it.shopName]) shopMap2[it.shopName]={code,count:0,rev:0,prices:[]};
-        shopMap2[it.shopName].count++;
-        shopMap2[it.shopName].rev += (it.reviewCount/RRATE2/AMTHS2)*it.price;
-        shopMap2[it.shopName].prices.push(it.price);
-      });
-      const shopRanks = Object.entries(shopMap2)
-        .map(([name,v])=>({name,code:v.code,count:v.count,rev:Math.round(v.rev),avgPrice:Math.round(v.prices.reduce((s,p)=>s+p,0)/v.prices.length)}))
-        .sort((a,b)=>b.rev-a.rev).slice(0,5);
-      const maxShopRev = shopRanks[0]?.rev||1;
-      const shopRankHtml = shopRanks.map((s,i)=>{
-        const barW=Math.round(s.rev/maxShopRev*100);
-        const rankColor=i===0?'#f39c12':i===1?'#95a5a6':i===2?'#cd7f32':'#dde3ea';
-        const revLabel=s.rev>=1e8?`${(s.rev/1e8).toFixed(1)}億`:s.rev>=1e4?`${Math.round(s.rev/1e4)}万`:`${s.rev.toLocaleString()}`;
-        return `<div style="padding:7px 10px;border-bottom:${i<shopRanks.length-1?'1px solid #f0f2f7':'none'}">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#888'};font-size:0.68rem;font-weight:800;flex-shrink:0">${i+1}</span>
-            <a href="#" onclick="event.preventDefault();openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:500};flex:1;word-break:break-all;line-height:1.3">${s.name}</a>
-            <span style="font-size:0.85rem;font-weight:800;color:${i===0?'#e74c3c':i<3?'#e67e22':'#27ae60'};flex-shrink:0">${revLabel}円</span>
-          </div>
-          <div style="display:flex;gap:8px;font-size:0.72rem;color:#aaa;margin-bottom:3px">
-            <span>${s.count}商品</span><span>平均¥${s.avgPrice.toLocaleString()}</span>
-          </div>
-          <div style="height:3px;background:#f0f2f7;border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${barW}%;background:#3498db;border-radius:2px;opacity:0.6"></div>
-          </div>
-        </div>`;
-      }).join('');
-
       return cards2 ? `<div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
         <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
           <span id="bestsellerCardTitle" style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📦 全価格帯売れ筋商品</span>
@@ -2134,19 +2120,12 @@ function renderNiche(items, keyword) {
         <div class="card-body" style="width:100%">
           ${cards2}
         </div>
-      </div>
-      <div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
-        <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
-          <span id="shopRankCardTitle" style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">🏪 価格帯別 店舗ランキング</span>
-          <span class="collapse-btn">▲</span>
-        </div>
-        <div id="shopRankCardBody" class="card-body" style="width:100%;padding:0">
-          <div style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden">${shopRankHtml}</div>
-        </div>
       </div>` : '';
     })() : ''}`;
 
   window._currentBandLabel = '';
+  window._currentBandItems = null;
+  window._currentBandMonthly = null;
 }
 
 function renderSummary(items) {
@@ -2177,16 +2156,13 @@ function renderSummary(items) {
   const uniqueShops = Math.max(Object.keys(shopCounts).length, 1);
   const topShopShare = Math.max(...Object.values(shopCounts)) / items.length;
 
-  // 新規参入シェア：市場の分散度に応じて 0.3〜2%
-  // 競合が少なく分散していれば参入しやすい
-  let entrantShare = uniqueShops < 10 ? 0.006
-                   : uniqueShops < 20 ? 0.015
-                   : uniqueShops < 40 ? 0.025
-                   : 0.04;
+  // 新規参入シェア：競合が少ないほど参入しやすく高シェアを狙える
+  let entrantShare = uniqueShops < 10 ? 0.05
+                   : uniqueShops < 30 ? 0.02
+                   : uniqueShops < 60 ? 0.01
+                   : 0.005;
   // 上位店が30%超を独占していれば難易度UP
-  if (topShopShare > 0.3) entrantShare *= 0.55;
-  // 市場が巨大すぎる場合はシェアが薄まる
-  if (totalMarketRevenue > 50e8) entrantShare *= 0.6;
+  if (topShopShare > 0.3) entrantShare *= 0.7;
 
   const yearlyEstimate = totalMarketRevenue * entrantShare;
   const marketLabel = (() => {
@@ -2482,9 +2458,8 @@ function renderTablePage() {
     }).join("");
   } else {
     document.querySelector("#itemTable thead").style.display = "";
-    const _ma = window._marketAnalysis || {};
-    const _totalRev = (_ma.items||page).reduce((s,i)=>s+(i.reviewCount||0),0) || 1;
-    const _mktMonthly = (_ma.totalMarketRevenue||0) / 12;
+    const _rrT = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+    const _moT = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
     document.querySelector("#itemTable tbody").innerHTML = page.map(it => {
       const pos = _tableOrderMap?.[it.itemCode];
       const rankCls = pos === 1 ? "rank-1" : pos === 2 ? "rank-2" : pos === 3 ? "rank-3" : "";
@@ -2493,7 +2468,7 @@ function renderTablePage() {
         : `<td class="pos-cell miss">-</td>`;
       const isFav = isFavorite(it.itemCode);
       const codeEsc = (it.itemCode||'').replace(/'/g,"\\'");
-      const estSales = _mktMonthly * (it.reviewCount||0) / _totalRev;
+      const estSales = (it.reviewCount && it.price) ? (it.reviewCount / _rrT(it.price) / _moT(it.reviewCount)) * it.price : 0;
       const estLabel = estSales >= 1e6 ? `約${(estSales/1e4).toFixed(0)}万円`
                      : estSales >= 1e4 ? `約${Math.round(estSales/1e3)}千円`
                      : estSales > 0    ? `約${Math.round(estSales)}円` : '-';
@@ -2759,7 +2734,7 @@ function openMarketPopup() {
   const cvLabel   = d.cv > 0.9 ? "⚠️ 高い（季節商品）" : d.cv > 0.5 ? "📅 やや高い" : "✅ 安定傾向";
   const shareDisp = `約${(d.entrantShare * 100).toFixed(1)}%`;
 
-  const seasonal = analyzeSeasonalDemand(d.keyword || "", _allItems || []);
+  const seasonal = analyzeSeasonalDemand(d.keyword || "", (window._currentBandItems != null ? window._currentBandItems : _allItems) || []);
   const seasonChart = renderSeasonChart(seasonal.scores, seasonal.isYearRound);
   const peakMonths = seasonal.scores
     .map((s, i) => ({ m: i + 1, s }))
@@ -2767,7 +2742,7 @@ function openMarketPopup() {
     .map(x => `${x.m}月`).join("・");
 
   // ── 差別化ポイント分析 ────────────────────────────────
-  const items = _allItems || [];
+  const items = (window._currentBandItems != null ? window._currentBandItems : _allItems) || [];
   const diffPoints = [];
 
   // ① 価格の空白帯（最安〜最高を5分割して件数が少ないゾーン）
@@ -2957,11 +2932,13 @@ function openMarketPopup() {
   const riskBg   = { high:"#fdf0ef", mid:"#fef6ec", low:"#edfaf2" };
   const riskLabel = { high:"⚠️ 高", mid:"📊 中", low:"✅ 低" };
 
-  document.getElementById("marketPopupTitle").innerHTML = `📊 &nbsp;${d.keyword}`;
+  const _bandLabel = window._currentBandLabel ? `　<span style="font-size:0.75rem;font-weight:500;color:#2563eb">${window._currentBandLabel}</span>` : '';
+  document.getElementById("marketPopupTitle").innerHTML = `💡 &nbsp;${d.keyword}${_bandLabel}`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場シェア</button>
       <button class="mp-tab" onclick="mpTab(this,1)">🔍 SEO戦略</button>
+      <button class="mp-tab" onclick="mpTab(this,2)">💡 おすすめ戦略</button>
     </div>
     <div class="mp-panes">
 
@@ -2981,15 +2958,19 @@ function openMarketPopup() {
             const avgRev2 = its.filter(i=>i.reviewAvg>0).length ? (its.reduce((s,i)=>s+i.reviewAvg,0)/its.filter(i=>i.reviewAvg>0).length) : 0;
             return { name, code: v.code, count: its.length, avgPrice, totalRev, avgRev: avgRev2, its };
           });
-          const totalReviews2 = allShopsRaw.reduce((s,x) => s + x.totalRev, 0) || 1;
-          const monthRevTotal2 = d.totalMarketRevenue / 12;
+          // 店舗モーダルと同じ直接計算方式
+          const _rrP = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+          const _moP = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
           const shops2 = allShopsRaw
-            .map(s => ({ ...s, estSales: Math.round(s.totalRev / totalReviews2 * monthRevTotal2) }))
+            .map(s => ({ ...s, estSales: Math.round(s.its.reduce((sum, i) => {
+              if (!i.reviewCount || !i.price) return sum;
+              return sum + (i.reviewCount / _rrP(i.price) / _moP(i.reviewCount)) * i.price;
+            }, 0)) }))
             .sort((a,b) => b.estSales - a.estSales).slice(0, 15);
           const maxRev2 = shops2[0]?.estSales || 1;
           const maxItemCount = Math.max(...allShopsRaw.map(x=>x.count), 1);
           return `
-          <div style="margin-bottom:10px;font-size:0.88rem;font-weight:700;color:#1a3a5c">🏆 上位${shops2.length}店舗<span style="font-size:0.72rem;font-weight:400;color:#aaa;margin-left:6px">※推計月商順・レビュー数比率で按分</span></div>
+          <div style="margin-bottom:10px;font-size:0.88rem;font-weight:700;color:#1a3a5c">🏆 上位${shops2.length}店舗<span style="font-size:0.72rem;font-weight:400;color:#aaa;margin-left:6px">※商品別レビュー数から推計</span></div>
           <div style="display:flex;flex-direction:column;gap:8px">
             ${shops2.map((s, i) => {
               const rankColor = i===0?'#f39c12':i===1?'#95a5a6':i===2?'#cd7f32':'#e2e8f0';
@@ -3021,36 +3002,11 @@ function openMarketPopup() {
       <div class="mp-pane">
         ${(()=>{
           const cs = d.competitionScore || 0;
-          const seoColor = cs >= 4 ? '#c0392b' : cs >= 2 ? '#e67e22' : '#27ae60';
-          const seoBg    = cs >= 4 ? '#fef2f2' : cs >= 2 ? '#fffbeb' : '#f0fdf4';
-          const seoDot   = cs >= 4 ? '🔴' : cs >= 2 ? '🟡' : '🟢';
-          const seoBadgeText = cs >= 4 ? 'SEO 上位困難' : cs >= 2 ? 'SEO やや難しい' : 'SEO 上位狙える';
-          const _ej = d.entryJudge || '';
-          const _ec = d.entryColor || '#888';
-          const _eb = d.entryBg || '#f5f5f5';
           const avgR = Math.round(d.avgReviewPerItem || 0);
           const targetReviews = cs >= 4 ? Math.ceil(avgR*0.3) : cs >= 2 ? Math.ceil(avgR*0.4) : Math.ceil(Math.max(avgR*0.5,10));
           const months = cs >= 4 ? '6〜12ヶ月' : cs >= 2 ? '3〜6ヶ月' : '1〜3ヶ月';
           const adBudget = cs >= 4 ? '月3〜5万円〜' : cs >= 2 ? '月1〜3万円' : '月0.5〜1万円';
           return `
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-            <div style="background:${seoBg};border:2px solid ${seoColor}50;border-radius:12px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:5px">
-              <span style="font-size:0.72rem;color:${seoColor};font-weight:700;letter-spacing:0.04em">SEO難易度・参入判定</span>
-              <span style="font-size:1.5rem;line-height:1">${seoDot}</span>
-              <span style="font-size:0.9rem;font-weight:900;color:${seoColor};text-align:center;line-height:1.3">${seoBadgeText}</span>
-              ${_ej ? `<span style="font-size:0.82rem;font-weight:800;color:${_ec};background:${_eb};border-radius:6px;padding:2px 8px;margin-top:2px">${_ej}</span>` : ''}
-            </div>
-            <div style="background:#f0f5ff;border:2px solid #bfdbfe;border-radius:12px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:5px">
-              <span style="font-size:0.72rem;color:#2563eb;font-weight:700;letter-spacing:0.04em">目標レビュー数</span>
-              <span style="font-size:1.8rem;font-weight:900;color:#1a3a5c;line-height:1">${targetReviews}<span style="font-size:0.82rem;font-weight:600">件</span></span>
-              <span style="font-size:0.72rem;color:#888">平均 ${avgR}件</span>
-            </div>
-          </div>
-          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden;margin-bottom:10px">
-            <div style="background:#f0f4f8;padding:8px 14px;font-size:0.75rem;font-weight:700;color:#1a3a5c;letter-spacing:0.04em">🎯 狙い目キーワード（件数少＝競合少）</div>
-            <div id="seoTargetKwList"><div style="padding:10px 14px;font-size:0.78rem;color:#aaa">取得中…</div></div>
-          </div>
-
           <div style="border:1px solid #e0e8f0;border-radius:12px;overflow:hidden">
             <div style="background:#f0f4f8;padding:10px 16px;font-size:0.75rem;font-weight:700;color:#1a3a5c;letter-spacing:0.05em">🗺️ 楽天SEO 3ステップ戦略</div>
             <div style="display:flex;flex-direction:column">
@@ -3059,9 +3015,9 @@ function openMarketPopup() {
                   <span style="font-size:0.65rem">STEP</span><span style="font-size:1rem">1</span>
                 </div>
                 <div style="padding:10px 14px;flex:1">
-                  <div style="font-size:0.82rem;font-weight:700;color:#1a3a5c;margin-bottom:4px">RPP広告（検索連動型）で露出</div>
-                  <div style="font-size:0.78rem;color:#555;line-height:1.6">検索上位に表示させ購買データを積む。予算：<b>${adBudget}</b></div>
-                  <div style="margin-top:6px;font-size:0.75rem;color:#e67e22;font-weight:600">→ 目標：クリック率2%以上を確認してから予算拡大</div>
+                  <div style="font-size:0.82rem;font-weight:700;color:#1a3a5c;margin-bottom:4px">RPP広告で「${d.keyword}」に露出</div>
+                  <div style="font-size:0.78rem;color:#555;line-height:1.6">予算 <b>${adBudget}</b> から開始。入札KWは「${(topKws[0]||d.keyword)}」など件数が少ないミドル〜ロングKWを優先して費用対効果を高める</div>
+                  <div style="margin-top:6px;font-size:0.75rem;color:#e67e22;font-weight:600">→ CTR 2%以上・転換率 3%以上が確認できたら予算拡大</div>
                 </div>
               </div>
               <div style="display:flex;border-bottom:1px solid #e8edf4">
@@ -3069,9 +3025,9 @@ function openMarketPopup() {
                   <span style="font-size:0.65rem">STEP</span><span style="font-size:1rem">2</span>
                 </div>
                 <div style="padding:10px 14px;flex:1">
-                  <div style="font-size:0.82rem;font-weight:700;color:#1a3a5c;margin-bottom:4px">レビュー・販売実績の積み上げ</div>
-                  <div style="font-size:0.78rem;color:#555;line-height:1.6">同梱カード・メールフォローでレビュー率UP。期間：<b>${months}</b></div>
-                  <div style="margin-top:6px;font-size:0.75rem;color:#2563eb;font-weight:600">→ 目標：${targetReviews}件達成で自然流入が始まる</div>
+                  <div style="font-size:0.82rem;font-weight:700;color:#1a3a5c;margin-bottom:4px">レビュー <b>${targetReviews}件</b> を最速で積む</div>
+                  <div style="font-size:0.78rem;color:#555;line-height:1.6">① 同梱カード＋QRで購入者をレビューページへ誘導<br>② 購入7日後にフォローメール（レビュー依頼）<br>③ 低評価は即返信＋改善で評価 4.5以上を維持</div>
+                  <div style="margin-top:6px;font-size:0.75rem;color:#2563eb;font-weight:600">→ 期間目安：${months}　達成後に自然検索流入が増加する</div>
                 </div>
               </div>
               <div style="display:flex">
@@ -3080,11 +3036,88 @@ function openMarketPopup() {
                 </div>
                 <div style="padding:10px 14px;flex:1">
                   <div style="font-size:0.82rem;font-weight:700;color:#1a3a5c;margin-bottom:4px">自然流入で広告費を削減</div>
-                  <div style="font-size:0.78rem;color:#555;line-height:1.6">「${topKws.slice(0,3).join('」「')}」をタイトル前半に配置してSEO強化。</div>
-                  <div style="margin-top:6px;font-size:0.75rem;color:#27ae60;font-weight:600">→ 目標：広告なしでも上位表示される状態</div>
+                  <div style="font-size:0.78rem;color:#555;line-height:1.6">タイトル前半に「${topKws.slice(0,2).join('」「')}」を配置してSEO強化。商品説明文にも「${topKws.slice(0,4).join('・')}」を自然な文章で組み込む</div>
+                  <div style="margin-top:6px;font-size:0.75rem;color:#27ae60;font-weight:600">→ 目標：RPP広告を止めても上位表示が続く状態</div>
                 </div>
               </div>
             </div>
+          </div>`;
+        })()}
+      </div>
+
+      <!-- タブ2: おすすめ戦略 -->
+      <div class="mp-pane">
+        ${(()=>{
+          const rows = window._priceBandRows || [];
+          const bestIdx = window._priceBandBestIdx ?? -1;
+          if (!rows.length) return `<div style="padding:20px;text-align:center;color:#aaa;font-size:0.85rem">価格帯データがありません</div>`;
+
+          const ideas = {
+            '低価格帯': {
+              icon: '💚',
+              tagline: 'セット・まとめ売りで単価を上げる',
+              points: [
+                { icon:'📦', t:'セット・まとめ買い訴求', b:'単品では利益が出にくいため、3個セット・5個セットを主力SKUにする。「送料無料」ライン到達を訴求すると転換率が上がりやすい' },
+                { icon:'🔄', t:'リピート購入を設計する', b:'消耗品・日用品なら「お得な定期購入」や「まとめ買い割引」でLTV（顧客生涯価値）を最大化。初回購入者のフォローが鍵' },
+                { icon:'⭐', t:'レビュー数で信頼を先行投資', b:'低価格帯は比較されやすい。レビュー件数が多い方が勝つ。初期は薄利でも口コミを積み上げ、検索順位と評価を先に確保する' },
+                { icon:'🎯', t:'ロングKWで費用対効果を上げる', b:`ビッグKWへのRPP入札は費用がかさむ。「${d.keyword} まとめ買い」「${d.keyword} セット」など購買意欲の高いロングKWを狙う` },
+              ]
+            },
+            '中価格帯': {
+              icon: '🧡',
+              tagline: '写真・説明文の品質で選ばれる商品に',
+              points: [
+                { icon:'📸', t:'商品写真で価値を伝える', b:'1枚目：白背景＋メイン。2枚目：使用シーン・サイズ感。3枚目：素材・品質アップ画像。スマホ表示でのサムネイルが勝負所' },
+                { icon:'✍️', t:'説明文でスペックを数値化', b:'サイズ・素材・重さ・対応機種などを数値で明記する。「高品質」より「厚み2mm・強化ガラス採用」の方が信頼される' },
+                { icon:'🎁', t:'ギフト需要を取り込む', b:'中価格帯はプレゼント用途の需要が高い。「ラッピング対応」「のし可」「メッセージカード同梱」などギフト訴求を商品タイトル・写真に追加する' },
+                { icon:'💬', t:'Q&A・商品説明でリスクを下げる', b:'「届いてがっかり」を防ぐため、想定される疑問（サイズ感・色の見え方）に先回りして答える。返品率が下がりレビュー評価も上がる' },
+              ]
+            },
+            '高価格帯': {
+              icon: '❤️',
+              tagline: 'ブランドストーリーと限定感で価値を訴求',
+              points: [
+                { icon:'🏆', t:'ブランドストーリーで価格を正当化', b:'なぜこの価格なのかを説明する。素材へのこだわり・製造背景・品質保証など「高くて当然の理由」を商品ページの上部に明示する' },
+                { icon:'🔒', t:'アフターサービスで安心を売る', b:'高単価商品は購入後の不安が大きい。「1年保証」「交換対応」「専用サポート」など購入後の安心を前面に出すと転換率が上がる' },
+                { icon:'✨', t:'限定感・希少性で決断を後押し', b:'「職人手作り」「数量限定」「受注生産」などの限定要素があれば積極的に伝える。「今買わなければ損」という感覚が高額でも購買を後押しする' },
+                { icon:'📱', t:'SNS・インフルエンサー連携を検討', b:'高価格帯は口コミの影響力が高い。Instagramでの使用シーン投稿や、レビュー投稿キャンペーンで自然な口コミを生む施策が有効' },
+              ]
+            },
+          };
+
+          const fmtV = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
+          const tabBtns = rows.map((r, i) => {
+            const idea = ideas[r.b.label] || { icon:'💡' };
+            const isBest = i === bestIdx;
+            return `<button onclick="mpSubTab(this,${i})" style="flex:1;padding:8px 4px;font-size:0.75rem;font-weight:${isBest?800:600};font-family:inherit;border:none;border-bottom:2px solid ${i===bestIdx?r.b.color:'transparent'};background:${i===bestIdx?r.b.color+'18':'#f8fafc'};color:${i===bestIdx?r.b.color:'#888'};cursor:pointer;transition:all 0.15s;white-space:nowrap" data-subtab="${i}">${idea.icon} ${r.b.label}${isBest?' ★':''}</button>`;
+          }).join('');
+          const tabPanes = rows.map((r, i) => {
+            const idea = ideas[r.b.label] || { icon:'💡', tagline:'', points:[] };
+            const isBest = i === bestIdx;
+            const borderColor = r.b.color;
+            return `
+            <div data-subtabpane="${i}" style="display:${i===bestIdx?'block':'none'}">
+              <div style="padding:10px 14px 8px;background:${borderColor}12;border-bottom:1px solid ${borderColor}20;display:flex;align-items:center;gap:6px">
+                <span style="font-size:1rem">${idea.icon}</span>
+                <div>
+                  <span style="font-size:0.72rem;font-weight:400;color:#888">平均 ¥${r.avgPrice.toLocaleString()} / 推計月商 ${fmtV(r.rounded)}</span>
+                  ${isBest ? `<span style="font-size:0.65rem;background:${borderColor};color:#fff;border-radius:4px;padding:1px 6px;margin-left:5px;font-weight:700">最有望</span>` : ''}
+                  <div style="font-size:0.73rem;color:${borderColor};font-weight:700;margin-top:1px">${idea.tagline}</div>
+                </div>
+              </div>
+              <div>
+                ${idea.points.map((p, pi) => `
+                <div style="padding:10px 14px;${pi < idea.points.length-1 ? 'border-bottom:1px solid #f0f4f8' : ''}">
+                  <div style="font-size:0.8rem;font-weight:700;color:#1a3a5c;margin-bottom:3px">${p.icon} ${p.t}</div>
+                  <div style="font-size:0.75rem;color:#555;line-height:1.65">${p.b}</div>
+                </div>`).join('')}
+              </div>
+            </div>`;
+          }).join('');
+          return `
+          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden" id="bandSubTabs">
+            <div style="display:flex;border-bottom:1px solid #e0e8f0">${tabBtns}</div>
+            ${tabPanes}
           </div>`;
         })()}
       </div>
@@ -3106,6 +3139,22 @@ function closeMarketPopup(e) {
 function mpTab(btn, idx) {
   btn.closest(".mp-tabs").querySelectorAll(".mp-tab").forEach((t,i) => t.classList.toggle("active", i===idx));
   btn.closest(".market-popup-body").querySelectorAll(".mp-pane").forEach((p,i) => p.classList.toggle("active", i===idx));
+}
+function mpSubTab(btn, idx) {
+  const container = btn.closest("#bandSubTabs");
+  const rows = window._priceBandRows || [];
+  container.querySelectorAll("[data-subtab]").forEach((t, i) => {
+    const r = rows[i];
+    const color = r ? r.b.color : '#888';
+    const isSel = i === idx;
+    t.style.borderBottom = `2px solid ${isSel ? color : 'transparent'}`;
+    t.style.background = isSel ? color + '18' : '#f8fafc';
+    t.style.color = isSel ? color : '#888';
+    t.style.fontWeight = isSel ? '800' : '600';
+  });
+  container.querySelectorAll("[data-subtabpane]").forEach((p, i) => {
+    p.style.display = i === idx ? 'block' : 'none';
+  });
 }
 
 // ── 店舗モーダル ─────────────────────────────────────────
@@ -3134,8 +3183,9 @@ function openShopModal(shopCode, shopName, fromReport = false) {
     });
   }
 
-  // 検索結果から該当店舗の商品のみ抽出（API呼び出し不要）
-  const kwItems = (_allItems || []).filter(it => (it.itemCode || "").split(":")[0] === shopCode);
+  // 検索結果から該当店舗の商品のみ抽出（価格帯フィルタ中はその帯のみ）
+  const _srcItems = (window._currentBandItems != null ? window._currentBandItems : _allItems) || [];
+  const kwItems = _srcItems.filter(it => (it.itemCode || "").split(":")[0] === shopCode);
   if (!kwItems.length) {
     document.getElementById("shopModalBody").innerHTML = '<p class="suggest-none">この店舗の商品が検索結果に見つかりませんでした</p>';
     const badgeEl = document.getElementById("shopStrengthBadge");
@@ -3184,10 +3234,13 @@ function renderShopModal(items, shopTotal = 0, shopCode = "", shopAllCount = 0) 
   const _bandMonthly = window._currentBandMonthly;
   const marketMonthly = _bandMonthly != null ? _bandMonthly : (mkt ? mkt.totalMarketRevenue / 12 : 0);
   const kwLabel = mkt && mkt.keyword ? mkt.keyword : '検索KW';
-  const allKwItems = (window._currentBandItems != null ? window._currentBandItems : _allItems) || [];
-  const totalKwReviews = allKwItems.reduce((s, i) => s + (i.reviewCount || 0), 0) || 1;
-  const shopKwReviews = items.reduce((s, i) => s + (i.reviewCount || 0), 0);
-  const kwMonthly = Math.round(shopKwReviews / totalKwReviews * marketMonthly);
+  // 各商品のレビュー数・価格から直接推計（市場按分より精度が高い）
+  const _rr = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+  const _mo = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
+  const kwMonthly = Math.round(items.reduce((s, i) => {
+    if (!i.reviewCount || !i.price) return s;
+    return s + (i.reviewCount / _rr(i.price) / _mo(i.reviewCount)) * i.price;
+  }, 0));
   const kwShare = marketMonthly > 0 ? Math.min(100, Math.round(kwMonthly / marketMonthly * 100)) : 0;
   const _kw4shop = window._marketAnalysis?.keyword || document.getElementById('keyword')?.value.trim() || '';
   const _bandDisp = window._currentBandLabel || '全価格帯';
@@ -3311,35 +3364,69 @@ function _movePriceFilter() {
   dst.appendChild(src);
 }
 
+function updateMarketTopGrid(items) {
+  const el = document.getElementById('marketTopGrid');
+  if (!el) return;
+  const ma = window._marketAnalysis || {};
+  const _rrF = p => p < 1000 ? 0.08 : p < 5000 ? 0.06 : p < 20000 ? 0.05 : 0.04;
+  const _moF = r => r > 1000 ? 48 : r > 300 ? 36 : r > 100 ? 24 : r > 30 ? 18 : 12;
+  const _shopMap = {};
+  (items || []).forEach(it => {
+    if (!it.shopName) return;
+    (_shopMap[it.shopName] = _shopMap[it.shopName] || []).push(it);
+  });
+  const _shopRevs = Object.entries(_shopMap).map(([name, its]) => ({
+    name,
+    rev: its.reduce((s, i) => s + (i.reviewCount && i.price ? (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price : 0), 0)
+  })).sort((a, b) => b.rev - a.rev);
+  const topShopRev = _shopRevs[0]?.rev || 0;
+  const topShopName = _shopRevs[0]?.name || '';
+  const _totalBandRev = _shopRevs.reduce((s, sh) => s + sh.rev, 0);
+  const _topShare = _totalBandRev > 0 ? topShopRev / _totalBandRev : 0;
+  const _uShops = Object.keys(_shopMap).length;
+  const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
+  const _adjRatio = _topShare > 0.3 ? _entRatio * 0.6 : _entRatio;
+  const monthly = Math.round(topShopRev * _adjRatio);
+  const monthlyRounded = monthly >= 1e5 ? Math.round(monthly/5e4)*5e4 : Math.round(monthly/1e3)*1e3;
+  const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
+  const ec = ma.entryColor || '#27ae60';
+  el.innerHTML = `
+    <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:72px;overflow:hidden;box-sizing:border-box">
+      <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+      <div style="font-size:1rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
+      <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+    </div>
+    <div style="border-radius:7px;padding:10px 12px;background:${ec}0f;border:1px solid ${ec}35;height:72px;overflow:hidden;box-sizing:border-box">
+      <div style="font-size:0.66rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+      <div style="font-size:1rem;font-weight:900;color:${ec};line-height:1.2">${fmtM(monthlyRounded)}</div>
+      <div style="font-size:0.63rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+    </div>`;
+}
+
 function resetPriceBand() {
   window._currentBandLabel = '';
   window._currentBandItems = null;
   window._currentBandMonthly = null;
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl) titleEl.textContent = '📦 全価格帯売れ筋商品';
-  const shopTitleEl2 = document.getElementById('shopRankCardTitle');
-  if (shopTitleEl2) shopTitleEl2.textContent = '🏪 全価格帯店舗ランキング';
   clearFilter();
   renderShopTags(_sortedItems);
   document.querySelectorAll('[data-band-idx]').forEach(el => el.style.display = '');
   document.querySelectorAll('[data-price-row]').forEach(el => {
     const idx = parseInt(el.dataset.priceRow);
+    const rows = window._priceBandRows || [];
     if (idx === -1) {
-      el.style.background = '#f0f4fa';
-      el.style.borderLeft = '3px solid #2563eb';
-      el.style.boxShadow = 'none';
+      el.style.background = '#f6f8fc';
+      el.style.borderLeftColor = '#2563eb';
     } else {
-      const rows = window._priceBandRows || [];
       const r = rows[idx];
-      const isBest = idx === (window._priceBandBestIdx ?? -1);
-      if (r) {
-        el.style.background = '#fff';
-        el.style.borderLeft = '3px solid #e8edf2';
-      }
-      el.style.boxShadow = 'none';
+      el.style.background = '';
+      if (r) el.style.borderLeftColor = r.b.color;
     }
+    el.style.boxShadow = 'none';
   });
   document.getElementById('filterCount').textContent = `(${_sortedItems.length}件)`;
+  updateMarketTopGrid(_sortedItems);
   const _kw0 = document.getElementById('keyword')?.value.trim() || _lastSearchKeyword || '';
   const _t0 = _kw0 ? `検索結果「${_kw0}」 全価格帯 ${_sortedItems.length}件` : `全価格帯 ${_sortedItems.length}件`;
   const _r0 = document.getElementById('resultTitle'); if (_r0) _r0.textContent = _t0;
@@ -3356,29 +3443,31 @@ function filterByPriceBand(min, max, bandIdx) {
                        .sort((a,b) => b.reviewCount - a.reviewCount);
   renderTable(filtered, _orderMap);
   document.getElementById('filterCount').textContent = `(${filtered.length}件)`;
-  // 売れ筋ランキングタイトルを更新
+  // 価格帯フィルタ状態を即時保存（openMarketPopupが参照する）
   const bandLabels = ['低価格帯', '中価格帯', '高価格帯'];
   window._currentBandLabel = bandIdx !== undefined ? bandLabels[bandIdx] : '';
+  const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
+  window._currentBandItems = bandItems;
+  const _cbRow = bandIdx !== undefined ? (window._priceBandRows || [])[bandIdx] : null;
+  window._currentBandMonthly = _cbRow ? _cbRow.rounded : null;
   // 検索結果タイトルに価格帯を反映
   const _kw = document.getElementById('keyword')?.value.trim() || _lastSearchKeyword || '';
   const _bandLabel = bandIdx !== undefined ? bandLabels[bandIdx] : '';
-  const _newTitle = _kw
-    ? `検索結果「${_kw}」 ${_bandLabel} ${filtered.length}件`
-    : `${_bandLabel} ${filtered.length}件`;
   const _rtEl = document.getElementById('resultTitle');
-  if (_rtEl) _rtEl.textContent = _newTitle;
+  if (_rtEl) {
+    if (_kw && _bandLabel) {
+      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#fff;background:#2563eb;border-radius:4px;padding:1px 7px;font-size:0.8rem">${_bandLabel}</span>&nbsp;${filtered.length}件`;
+    } else if (_kw) {
+      _rtEl.textContent = `検索結果「${_kw}」 ${filtered.length}件`;
+    } else {
+      _rtEl.textContent = `${_bandLabel} ${filtered.length}件`;
+    }
+  }
   const _rtBot = document.getElementById('resultTitleBottom');
   if (_rtBot) { _rtBot.innerHTML = _kw ? `検索結果「${_kw}」<br><span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>` : `<span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>`; }
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl && bandIdx !== undefined) titleEl.textContent = `📦 ${bandLabels[bandIdx] ?? ''}売れ筋ランキング`;
-  const shopTitleEl = document.getElementById('shopRankCardTitle');
-  if (shopTitleEl && bandIdx !== undefined) shopTitleEl.textContent = `🏪 ${bandLabels[bandIdx] ?? ''}店舗ランキング`;
-  // 競合店舗タグも価格帯内の店舗のみ表示
-  const bandItems = (_sortedItems || []).filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max));
-  // 店舗モーダル用に価格帯内アイテムと月商を保存
-  window._currentBandItems = bandItems;
-  const _cbRow = bandIdx !== undefined ? (window._priceBandRows || [])[bandIdx] : null;
-  window._currentBandMonthly = _cbRow ? _cbRow.rounded : null;
+  updateMarketTopGrid(bandItems);
   renderShopTags(bandItems);
   // 売れ筋商品カードも絞り込む
   document.querySelectorAll('[data-band-idx]').forEach(el => {
@@ -3388,12 +3477,12 @@ function filterByPriceBand(min, max, bandIdx) {
   const rows = window._priceBandRows || [];
   document.querySelectorAll('[data-price-row]').forEach(el => {
     const idx = parseInt(el.dataset.priceRow);
+    if (idx === -1) return;
     const r = rows[idx];
     if (!r) return;
     const isSelected = idx === bandIdx;
-    const isBest = idx === (window._priceBandBestIdx ?? -1);
-    el.style.background = isSelected ? '#f0f4fa' : '#fff';
-    el.style.borderLeft = isSelected ? `3px solid #2563eb` : '3px solid #e8edf2';
+    el.style.background = isSelected ? '#f0f4fa' : '';
+    el.style.borderLeftColor = isSelected ? '#2563eb' : r.b.color;
     el.style.boxShadow = 'none';
   });
 }
