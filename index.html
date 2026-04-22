@@ -1972,9 +1972,18 @@ function renderNiche(items, keyword) {
               const isBest = i===bestIdx;
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
+              const _mj = r.rounded >= 1000000 ? {text:'🔴 激戦区規模', color:'#c0392b', bg:'#fef2f2'}
+                         : r.rounded >= 300000  ? {text:'🟡 実力勝負', color:'#d97706', bg:'#fffbeb'}
+                         : r.rounded >= 150000  ? {text:'🏆 大チャンス', color:'#1a5276', bg:'#eaf4fb'}
+                         : r.rounded >= 30000   ? {text:'✅ 狙い目', color:'#16a34a', bg:'#f0fdf4'}
+                         : r.rounded >= 10000   ? {text:'⚠️ 市場が薄い', color:'#888', bg:'#f5f5f5'}
+                         :                        {text:'❌ 砂漠地帯', color:'#aaa', bg:'#f5f5f5'};
               return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="padding:8px 10px;margin-bottom:4px;border-radius:8px;background:#fff;border:1px solid #e8edf2;border-left:3px solid #e8edf2;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px;flex-wrap:nowrap">
-                  <span style="font-size:0.82rem;font-weight:600;color:#555;white-space:nowrap">${r.b.label}</span>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <span style="font-size:0.82rem;font-weight:600;color:#555;white-space:nowrap">${r.b.label}</span>
+                    <span style="font-size:0.68rem;font-weight:700;color:${_mj.color};background:${_mj.bg};border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-block">${_mj.text}</span>
+                  </div>
                   <span style="font-size:1.4rem;font-weight:900;color:${r.b.color};white-space:nowrap;flex-shrink:0;letter-spacing:-0.02em">${r.rounded.toLocaleString()}円</span>
                 </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px">
