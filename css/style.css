@@ -501,11 +501,9 @@ td a:hover { text-decoration: underline; }
   overflow: hidden;
 }
 .shop-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
-  border-bottom: 1px solid #eee;
+  display: block;
+  padding: 0;
+  border-bottom: none;
   font-weight: 700;
   font-size: 1rem;
   color: #1a3a5c;
