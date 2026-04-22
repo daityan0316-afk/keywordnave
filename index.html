@@ -1924,17 +1924,8 @@ function renderNiche(items, keyword) {
                <span style="font-size:0.9rem;font-weight:800;color:${ma.entryColor}">${Math.ceil(monthlyRounded/price)}個/月</span>
              </div>` : '';
         document.getElementById('seoBadgeTop').innerHTML = '';
-        const _seoColor = cs >= 3 ? '#c0392b' : cs >= 2 ? '#d97706' : '#16a34a';
-        const _seoBg    = cs >= 3 ? '#fef2f2' : cs >= 2 ? '#fffbeb' : '#f0fdf4';
-        const _seoDot   = cs >= 3 ? '🔴' : cs >= 2 ? '🟡' : '🟢';
-        const _seoBadgeText = cs >= 3 ? 'SEO 上位困難' : cs >= 2 ? 'SEO やや難しい' : 'SEO 上位狙える';
         return `
       <div style="width:100%;background:#fff;border:1.5px solid #e0e4ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-        <div style="background:${_seoBg};border-bottom:1px solid ${_seoColor}25;padding:7px 14px;display:flex;align-items:center;gap:8px">
-          <span style="font-size:0.85rem;line-height:1">${_seoDot}</span>
-          <span style="font-size:0.78rem;font-weight:700;color:${_seoColor}">${_seoBadgeText}</span>
-          <span style="font-size:0.7rem;color:#888;margin-left:auto">${ma.entryJudge}</span>
-        </div>
         <div style="padding:8px 14px">
           ${(()=>{
             const REVIEW_RATE = 0.13, AVG_MONTHS = 24;
@@ -2892,11 +2883,26 @@ function openMarketPopup() {
         ${(()=>{
           const cs = d.competitionScore || 0;
           const seoColor = cs >= 4 ? '#c0392b' : cs >= 2 ? '#e67e22' : '#27ae60';
+          const seoBg    = cs >= 4 ? '#fef2f2' : cs >= 2 ? '#fffbeb' : '#f0fdf4';
+          const seoDot   = cs >= 4 ? '🔴' : cs >= 2 ? '🟡' : '🟢';
+          const seoBadgeText = cs >= 4 ? 'SEO 上位困難' : cs >= 2 ? 'SEO やや難しい' : 'SEO 上位狙える';
+          const _ej = d.entryJudge || '';
+          const _ec = d.entryColor || '#888';
+          const _eb = d.entryBg || '#f5f5f5';
           const avgR = Math.round(d.avgReviewPerItem || 0);
           const targetReviews = cs >= 4 ? Math.ceil(avgR*0.3) : cs >= 2 ? Math.ceil(avgR*0.4) : Math.ceil(Math.max(avgR*0.5,10));
           const months = cs >= 4 ? '6〜12ヶ月' : cs >= 2 ? '3〜6ヶ月' : '1〜3ヶ月';
           const adBudget = cs >= 4 ? '月3〜5万円〜' : cs >= 2 ? '月1〜3万円' : '月0.5〜1万円';
           return `
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1;background:${seoBg};border:1.5px solid ${seoColor}30;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:7px">
+              <span style="font-size:1.1rem">${seoDot}</span>
+              <span style="font-size:0.82rem;font-weight:800;color:${seoColor}">${seoBadgeText}</span>
+            </div>
+            ${_ej ? `<div style="flex:1;background:${_eb};border:1.5px solid ${_ec}30;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:0.82rem;font-weight:800;color:${_ec}">${_ej}</span>
+            </div>` : ''}
+          </div>
           <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden;margin-bottom:10px;display:flex">
             <div style="background:${seoColor};width:4px;flex-shrink:0"></div>
             <div style="display:flex;flex:1">
