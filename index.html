@@ -546,6 +546,7 @@ function renderSuggest(stdItems, sellItems = [], amazonWords = [], baseKw = '', 
   }
   suggestDrop.innerHTML = html;
   suggestDrop.classList.add("open");
+  window._lastSuggestItems = [...stdItems, ...sellItems.map(it=>({...it, isSell:true}))];
 }
 
 // イベント委譲でサジェスト選択
@@ -2845,31 +2846,19 @@ function openMarketPopup() {
               const estLabel = s.estSales >= 1e8 ? `${(s.estSales/1e8).toFixed(1)}億` : s.estSales >= 1e4 ? `${Math.round(s.estSales/1e4)}万` : `${s.estSales.toLocaleString()}`;
               const salesColor = i===0?'#e74c3c':i<3?'#e67e22':'#27ae60';
               const barW = Math.round(s.estSales / (shops2[0]?.estSales||1) * 100);
-              return `<div style="background:#fff;border:1px solid #e8edf4;border-radius:10px;padding:10px 12px;border-left:3px solid ${rankColor}">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#999'};font-size:0.72rem;font-weight:800;flex-shrink:0">${i+1}</span>
-                  <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:600};font-size:0.9rem;word-break:break-all;line-height:1.3;flex:1">${s.name}</a>
-                  <span style="font-size:1rem;font-weight:800;color:${salesColor};white-space:nowrap;flex-shrink:0">${estLabel}円</span>
+              return `<div style="background:#fff;border:1px solid #e8edf4;border-radius:8px;padding:8px 10px;border-left:3px solid ${rankColor}">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${rankColor};color:${i<3?'#fff':'#999'};font-size:0.65rem;font-weight:800;flex-shrink:0">${i+1}</span>
+                  <a href="#" onclick="event.preventDefault();document.getElementById('marketPopup').classList.remove('open');openShopModal('${s.code}','${s.name.replace(/'/g,"\\'")}',true)" style="color:#1a3a5c;text-decoration:none;font-weight:${i<3?700:600};font-size:0.82rem;word-break:break-all;line-height:1.3;flex:1">${s.name}</a>
+                  <span style="font-size:0.92rem;font-weight:800;color:${salesColor};white-space:nowrap;flex-shrink:0">${estLabel}円</span>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px">
-                  <div style="text-align:center;background:#f8fafc;border-radius:6px;padding:4px 2px">
-                    <div style="font-size:0.62rem;color:#aaa;margin-bottom:1px">商品数</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:#2563eb">${s.count}</div>
-                  </div>
-                  <div style="text-align:center;background:#f8fafc;border-radius:6px;padding:4px 2px">
-                    <div style="font-size:0.62rem;color:#aaa;margin-bottom:1px">平均価格</div>
-                    <div style="font-size:0.82rem;font-weight:600;color:#555">¥${s.avgPrice.toLocaleString()}</div>
-                  </div>
-                  <div style="text-align:center;background:#f8fafc;border-radius:6px;padding:4px 2px">
-                    <div style="font-size:0.62rem;color:#aaa;margin-bottom:1px">レビュー</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:#2980b9">${s.totalRev.toLocaleString()}</div>
-                  </div>
-                  <div style="text-align:center;background:#f8fafc;border-radius:6px;padding:4px 2px">
-                    <div style="font-size:0.62rem;color:#aaa;margin-bottom:1px">評価</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:#e67e22">${s.avgRev > 0 ? '★'+s.avgRev.toFixed(1) : '-'}</div>
-                  </div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:0.7rem;color:#888;margin-bottom:5px">
+                  <span>商品<b style="color:#2563eb;margin-left:2px">${s.count}</b></span>
+                  <span>平均<b style="color:#555;margin-left:2px">¥${s.avgPrice.toLocaleString()}</b></span>
+                  <span>レビュー<b style="color:#2980b9;margin-left:2px">${s.totalRev.toLocaleString()}</b></span>
+                  ${s.avgRev > 0 ? `<span>★<b style="color:#e67e22">${s.avgRev.toFixed(1)}</b></span>` : ''}
                 </div>
-                <div style="height:4px;background:#f0f2f7;border-radius:4px;overflow:hidden">
+                <div style="height:3px;background:#f0f2f7;border-radius:4px;overflow:hidden">
                   <div style="height:100%;width:${barW}%;background:${salesColor};border-radius:4px;opacity:0.7"></div>
                 </div>
               </div>`;
@@ -2893,33 +2882,41 @@ function openMarketPopup() {
           const targetReviews = cs >= 4 ? Math.ceil(avgR*0.3) : cs >= 2 ? Math.ceil(avgR*0.4) : Math.ceil(Math.max(avgR*0.5,10));
           const months = cs >= 4 ? '6〜12ヶ月' : cs >= 2 ? '3〜6ヶ月' : '1〜3ヶ月';
           const adBudget = cs >= 4 ? '月3〜5万円〜' : cs >= 2 ? '月1〜3万円' : '月0.5〜1万円';
+          const _sugItems = (window._lastSuggestItems || []).filter(it => it.count > 0).sort((a,b)=>a.count-b.count);
+          const _targetKws = _sugItems.slice(0,6);
           return `
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <div style="flex:1;background:${seoBg};border:1.5px solid ${seoColor}30;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:7px">
-              <span style="font-size:1.1rem">${seoDot}</span>
-              <span style="font-size:0.82rem;font-weight:800;color:${seoColor}">${seoBadgeText}</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+            <div style="background:${seoBg};border:1.5px solid ${seoColor}30;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <span style="font-size:0.62rem;color:#aaa">SEO難易度</span>
+              <span style="font-size:0.85rem;line-height:1">${seoDot}</span>
+              <span style="font-size:0.78rem;font-weight:800;color:${seoColor};text-align:center">${seoBadgeText}</span>
             </div>
-            ${_ej ? `<div style="flex:1;background:${_eb};border:1.5px solid ${_ec}30;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center">
-              <span style="font-size:0.82rem;font-weight:800;color:${_ec}">${_ej}</span>
-            </div>` : ''}
-          </div>
-          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden;margin-bottom:10px;display:flex">
-            <div style="background:${seoColor};width:4px;flex-shrink:0"></div>
-            <div style="display:flex;flex:1">
-              <div style="flex:1;padding:10px 12px;border-right:1px solid #e0e8f0">
-                <div style="font-size:0.65rem;color:#aaa;margin-bottom:3px">SEO難易度</div>
-                <div style="font-size:0.95rem;font-weight:800;color:${seoColor}">${cs >= 4 ? '非常に高い' : cs >= 2 ? '高い' : '低い'}</div>
-              </div>
-              <div style="flex:1;padding:10px 12px;border-right:1px solid #e0e8f0;text-align:center">
-                <div style="font-size:0.65rem;color:#aaa;margin-bottom:3px">上位平均レビュー</div>
-                <div style="font-size:0.95rem;font-weight:800;color:#1a3a5c">${avgR}件</div>
-              </div>
-              <div style="flex:1;padding:10px 12px;text-align:center">
-                <div style="font-size:0.65rem;color:#aaa;margin-bottom:3px">目標レビュー</div>
-                <div style="font-size:0.95rem;font-weight:800;color:#2563eb">${targetReviews}件</div>
-              </div>
+            <div style="background:#f8fafc;border:1.5px solid #e0e8f0;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <span style="font-size:0.62rem;color:#aaa">上位平均レビュー</span>
+              <span style="font-size:1.1rem;font-weight:800;color:#1a3a5c">${avgR}<span style="font-size:0.7rem;font-weight:500">件</span></span>
+              <span style="font-size:0.68rem;color:#888">目標 ${targetReviews}件〜</span>
             </div>
+            ${_ej ? `<div style="background:${_eb};border:1.5px solid ${_ec}30;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:3px">
+              <span style="font-size:0.62rem;color:#aaa">参入判定</span>
+              <span style="font-size:0.82rem;font-weight:800;color:${_ec};text-align:center">${_ej}</span>
+            </div>` : '<div></div>'}
           </div>
+          ${_targetKws.length ? `
+          <div style="border:1px solid #e0e8f0;border-radius:10px;overflow:hidden;margin-bottom:10px">
+            <div style="background:#f0f4f8;padding:8px 14px;font-size:0.75rem;font-weight:700;color:#1a3a5c;letter-spacing:0.04em">🎯 狙い目キーワード候補（件数が少ない＝競合少）</div>
+            <div style="display:flex;flex-direction:column">
+              ${_targetKws.map((it,i)=>{
+                const fmtC = n => n>=10000?`${Math.floor(n/10000)}万件`:n>=1000?`${Math.floor(n/1000)}千件`:`${n}件`;
+                const barW = Math.round(it.count / (_targetKws[_targetKws.length-1].count||1) * 100);
+                const barColor = it.count < 1000 ? '#16a34a' : it.count < 5000 ? '#d97706' : '#c0392b';
+                return `<div style="padding:7px 12px;border-bottom:${i<_targetKws.length-1?'1px solid #f0f4f8':'none'};display:flex;align-items:center;gap:8px;cursor:pointer" onclick="document.getElementById('keyword').value='${it.kw.replace(/'/g,"\\'")}';document.getElementById('marketPopup').classList.remove('open');doSearch()">
+                  <span style="font-size:0.78rem;color:#1a3a5c;font-weight:600;flex:1">${it.kw}</span>
+                  <span style="font-size:0.72rem;font-weight:700;color:${barColor};background:${barColor}15;border-radius:4px;padding:1px 6px;white-space:nowrap">${fmtC(it.count)}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>` : ''}
+
           <div style="border:1px solid #e0e8f0;border-radius:12px;overflow:hidden">
             <div style="background:#f0f4f8;padding:10px 16px;font-size:0.75rem;font-weight:700;color:#1a3a5c;letter-spacing:0.05em">🗺️ 楽天SEO 3ステップ戦略</div>
             <div style="display:flex;flex-direction:column">
