@@ -32,6 +32,21 @@
       if (typeof renderFavGrid === 'function') renderFavGrid();
       if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
     });
+
+    const _kwRef = _db.ref('savedKeywords');
+    let _kwCache = null;
+    _kwRef.on('value', snapshot => {
+      const fbData = snapshot.val();
+      if (!fbData) {
+        // Firebaseが空ならlocalStorageから移行
+        try {
+          const local = JSON.parse(localStorage.getItem("savedKeywords") || "[]");
+          if (local.length) { _kwRef.set(local); return; }
+        } catch {}
+      }
+      _kwCache = fbData || [];
+      if (typeof renderSavedKeywords === 'function') renderSavedKeywords();
+    });
   </script>
 </head>
 <body>
@@ -69,6 +84,7 @@
       </div>
 
       <button id="searchBtn" onclick="doSearch()">調査する</button>
+      <div id="keywordError" style="display:none;font-size:0.8rem;color:#e53e3e;margin-top:4px;font-weight:600;padding-left:2px"></div>
       <div class="sp-btn-row">
         <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">＋ キーワード保存</button>
         <button id="spFavBtn" style="display:none" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)">★ お気に入り <span id="spFavCount">0</span></button>
@@ -416,6 +432,12 @@ kwInput.addEventListener("input", () => {
   _suggestTimer = setTimeout(() => fetchSuggest(q), 200);
 });
 kwInput.addEventListener("blur", () => { setTimeout(closeSuggest, 150); });
+document.addEventListener("pointerdown", e => {
+  if (!e.target.closest(".suggest-wrap") && !e.target.closest(".suggest-dropdown")) {
+    closeSuggest();
+  }
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden) closeSuggest(); });
 
 async function fetchSuggest(q) {
   const splitter = /[\s　\-－/／・\|｜【】（）()[\]「」『』、。,\.!！?？★◆◇■□●○]+/;
@@ -582,7 +604,12 @@ function getExcludeTerms() {
 
 // ── 登録キーワード（キーワード＋除外セット） ──────────────
 function loadSaved() {
+  if (_kwCache !== null) return _kwCache;
   try { return JSON.parse(localStorage.getItem("savedKeywords")||"[]"); } catch { return []; }
+}
+function _saveKwList(list) {
+  _kwCache = list;
+  _kwRef.set(list.length ? list : null);
 }
 function saveKeyword() {
   const kw = document.getElementById("keyword").value.trim();
@@ -590,17 +617,14 @@ function saveKeyword() {
   const entry = { kw, exclude: getExcludeTerms() };
   let list = loadSaved().filter(e => (e.kw||e) !== kw);
   list.unshift(entry);
-  localStorage.setItem("savedKeywords", JSON.stringify(list));
-  renderSavedKeywords();
+  _saveKwList(list);
   const btn = document.getElementById("saveBtn");
   btn.textContent = "✓ 登録済";
-  setTimeout(() => { btn.textContent = "★ 登録"; }, 1500);
+  setTimeout(() => { btn.textContent = "＋ キーワード保存"; }, 1500);
 }
 function deleteSaved(kw) {
   if (!confirm(`「${kw}」を削除しますか？`)) return;
-  const list = loadSaved().filter(e => (e.kw||e) !== kw);
-  localStorage.setItem("savedKeywords", JSON.stringify(list));
-  renderSavedKeywords();
+  _saveKwList(loadSaved().filter(e => (e.kw||e) !== kw));
 }
 let _dragSrcIdx = null;
 function _kwDragStart(e, i) {
@@ -617,9 +641,8 @@ function _kwDrop(e, i) {
   const list = loadSaved();
   const [moved] = list.splice(_dragSrcIdx, 1);
   list.splice(i, 0, moved);
-  localStorage.setItem("savedKeywords", JSON.stringify(list));
+  _saveKwList(list);
   _dragSrcIdx = null;
-  renderSavedKeywords();
 }
 
 function renderSavedKeywords() {
@@ -1724,8 +1747,16 @@ async function doSearch(searchGenreId) {
   if (keyword) _lastSearchKeyword = keyword;
 
   _currentGenreId = searchGenreId || null;
-  // キーワードもジャンルもない場合はランキングを表示
-  if (!keyword && searchGenreId == null) { loadRanking(); return; }
+  // キーワードもジャンルもない場合はエラー表示
+  if (!keyword && searchGenreId == null) {
+    _searching = false;
+    const inp = document.getElementById("keyword");
+    const errEl = document.getElementById("keywordError");
+    inp.focus();
+    if (errEl) { errEl.textContent = "⚠ キーワードを入力してください"; errEl.style.display = 'block'; }
+    setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 2500);
+    return;
+  }
   const _nextUrl = keyword ? "?q=" + encodeURIComponent(keyword) : location.pathname;
   if (_isFirstSearch) { history.replaceState({ q: keyword }, "", _nextUrl); _isFirstSearch = false; }
   else { history.pushState({ q: keyword }, "", _nextUrl); }
@@ -1954,19 +1985,29 @@ function renderNiche(items, keyword) {
           if (!i.reviewCount || !i.price) return s;
           return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
         }, 0);
-        return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box">
-          <div style="padding:8px 10px 7px;border-bottom:1px solid #eef0f6">
-            <div id="marketTopGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-              <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:95px;overflow:hidden;box-sizing:border-box">
-                <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-                <div style="font-size:1.32rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
-                <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+        const _validCount = _allIt.filter(i => i.reviewCount && i.price).length;
+        const _avgItemMonthly = _validCount > 0 ? Math.round(_totalMonthly / _validCount) : 0;
+        const _avgRounded = _avgItemMonthly >= 1e5 ? Math.round(_avgItemMonthly/1e4)*1e4 : Math.round(_avgItemMonthly/1e3)*1e3;
+        return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column-reverse">
+          <div style="padding:8px 10px 7px;border-top:1px solid #eef0f6">
+            <div id="marketTopGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
+              <div style="background:#f0f5ff;border-radius:7px;padding:9px 11px;box-sizing:border-box">
+                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+                <div style="font-size:1.15rem;font-weight:900;color:#1e3a8a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(Math.round(topShopRev))}</div>
+                <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
               </div>
-              <div style="border-radius:7px;padding:10px 12px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;height:95px;overflow:hidden;box-sizing:border-box">
-                <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-                <div style="font-size:1.32rem;font-weight:900;color:${ma.entryColor};line-height:1.2">${fmtM(monthlyRounded)}</div>
-                <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+              <div style="border-radius:7px;padding:9px 11px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;box-sizing:border-box">
+                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+                <div style="font-size:1.15rem;font-weight:900;color:${ma.entryColor};text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(monthlyRounded)}</div>
+                <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
               </div>
+            </div>
+            <div id="marketItemCell" style="background:#f4f6fb;border-radius:7px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;box-sizing:border-box">
+              <div>
+                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の目安</div>
+                <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validCount}商品の平均</div>
+              </div>
+              <div style="font-size:1.15rem;font-weight:900;color:#2d4a7a;white-space:nowrap">${fmtM(_avgRounded)}</div>
             </div>
           </div>
           <div style="padding:2px 0 2px">
@@ -3390,17 +3431,31 @@ function updateMarketTopGrid(items) {
   const monthlyRounded = monthly >= 1e5 ? Math.round(monthly/5e4)*5e4 : Math.round(monthly/1e3)*1e3;
   const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
   const ec = ma.entryColor || '#27ae60';
+  const _validItems = (items || []).filter(i => i.reviewCount && i.price);
+  const _totalItemRev = _validItems.reduce((s, i) => s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price, 0);
+  const _avgItemRev = _validItems.length > 0 ? Math.round(_totalItemRev / _validItems.length) : 0;
+  const _avgRounded = _avgItemRev >= 1e5 ? Math.round(_avgItemRev/1e4)*1e4 : Math.round(_avgItemRev/1e3)*1e3;
   el.innerHTML = `
-    <div style="background:#f0f5ff;border-radius:7px;padding:10px 12px;height:95px;overflow:hidden;box-sizing:border-box">
-      <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-      <div style="font-size:1.32rem;font-weight:900;color:#1e3a8a;line-height:1.2">${fmtM(Math.round(topShopRev))}</div>
-      <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
+    <div style="background:#f0f5ff;border-radius:7px;padding:9px 11px;box-sizing:border-box">
+      <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
+      <div style="font-size:1.15rem;font-weight:900;color:#1e3a8a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(Math.round(topShopRev))}</div>
+      <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
     </div>
-    <div style="border-radius:7px;padding:10px 12px;background:${ec}0f;border:1px solid ${ec}35;height:95px;overflow:hidden;box-sizing:border-box">
-      <div style="font-size:0.87rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-      <div style="font-size:1.32rem;font-weight:900;color:${ec};line-height:1.2">${fmtM(monthlyRounded)}</div>
-      <div style="font-size:0.83rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+    <div style="border-radius:7px;padding:9px 11px;background:${ec}0f;border:1px solid ${ec}35;box-sizing:border-box">
+      <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
+      <div style="font-size:1.15rem;font-weight:900;color:${ec};text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(monthlyRounded)}</div>
+      <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
     </div>`;
+  el.style.gridTemplateColumns = '1fr 1fr';
+  const itemCell = document.getElementById('marketItemCell');
+  if (itemCell) {
+    itemCell.innerHTML = `
+      <div>
+        <div style="font-size:0.82rem;color:#7a90b0;font-weight:600">1商品の目安</div>
+        <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validItems.length}商品の平均</div>
+      </div>
+      <div style="font-size:1.15rem;font-weight:900;color:#2d4a7a">${fmtM(_avgRounded)}</div>`;
+  }
 }
 
 function resetPriceBand() {
@@ -3664,37 +3719,7 @@ function renderFavGrid() {
     el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">お気に入り商品はありません</div>`;
     return;
   }
-  const isMobile = window.innerWidth <= 640;
-  if (isMobile) {
-    el.style.overflowX = 'hidden';
-    el.innerHTML = list.map(f => {
-      const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
-      const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
-      return `<div style="background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;position:relative;width:100%;box-sizing:border-box;overflow:hidden">
-        ${f.image ? `<img src="${f.image}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
-        <div style="flex:1;min-width:0">
-          <a href="${f.url||'#'}" target="_blank" style="font-size:0.83rem;color:#1a3a5c;text-decoration:none;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">${f.name}</a>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">
-            <span style="font-size:0.88rem;font-weight:800;color:#c0392b">¥${(f.price||0).toLocaleString()}</span>
-            <span style="font-size:0.78rem;color:#e67e22">★${f.reviewAvg||'-'} <span style="color:#aaa;font-size:0.72rem">${f.reviewCount||0}件</span></span>
-          </div>
-          <div style="font-size:0.74rem;color:#666;margin-top:2px">${f.shopName||''}</div>
-          <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
-            <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
-              placeholder="🔗 仕入先URL"
-              onchange="saveSupplierUrl('${codeEsc}', this.value)"
-              style="flex:1;border:1px solid #d0d8e8;border-radius:6px;padding:5px 8px;font-size:0.78rem;color:#333;outline:none;min-width:0"
-              onfocus="this.style.borderColor='#2563eb'"
-              onblur="this.style.borderColor='#d0d8e8'">
-            <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-              style="flex-shrink:0;padding:5px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
-          </div>
-        </div>
-        <button onclick="if(confirm('この商品をお気に入りから削除しますか？'))removeFavFromGrid('${codeEsc}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
-      </div>`;
-    }).join('');
-    return;
-  }
+  const isMobile = window.innerWidth <= 768;
   // キーワード別グループ化
   const groups = {};
   list.forEach(f => {
@@ -3703,6 +3728,34 @@ function renderFavGrid() {
     groups[kw].push(f);
   });
   const kwKeys = Object.keys(groups);
+
+  const makeCards = items => items.map(f => {
+    const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
+    const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+    return `<div style="background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;position:relative;width:100%;box-sizing:border-box;overflow:hidden">
+      ${f.image ? `<img src="${f.image}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0">
+        <a href="${f.url||'#'}" target="_blank" style="font-size:0.83rem;color:#1a3a5c;text-decoration:none;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">${f.name}</a>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">
+          <span style="font-size:0.88rem;font-weight:800;color:#c0392b">¥${(f.price||0).toLocaleString()}</span>
+          <span style="font-size:0.78rem;color:#e67e22">★${f.reviewAvg||'-'} <span style="color:#aaa;font-size:0.72rem">${f.reviewCount||0}件</span></span>
+        </div>
+        <div style="font-size:0.74rem;color:#666;margin-top:2px">${f.shopName||''}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
+          <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
+            placeholder="🔗 仕入先URL"
+            onchange="saveSupplierUrl('${codeEsc}', this.value)"
+            style="flex:1;border:1px solid #d0d8e8;border-radius:6px;padding:5px 8px;font-size:0.78rem;color:#333;outline:none;min-width:0"
+            onfocus="this.style.borderColor='#2563eb'"
+            onblur="this.style.borderColor='#d0d8e8'">
+          <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
+            style="flex-shrink:0;padding:5px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
+        </div>
+      </div>
+      <button onclick="if(confirm('この商品をお気に入りから削除しますか？'))removeFavFromGrid('${codeEsc}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
+    </div>`;
+  }).join('');
+
   const makeTable = items => `<div style="overflow-x:auto">
     <table class="fav-mgmt-table">
       <thead><tr>
@@ -3750,8 +3803,12 @@ function renderFavGrid() {
       </tbody>
     </table>
   </div>`;
+
+  const makePane = items => isMobile ? makeCards(items) : makeTable(items);
+
+  el.style.overflowX = 'hidden';
   el.innerHTML = `
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
       <button onclick="favKwTab(this,0)"
         style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s">
         全て <span style="font-size:0.7rem;opacity:0.7">${list.length}</span>
@@ -3762,13 +3819,8 @@ function renderFavGrid() {
           🔍 ${kw} <span style="font-size:0.7rem;opacity:0.7">${groups[kw].length}</span>
         </button>`).join('')}
     </div>
-    <div class="fav-kw-pane">
-      ${makeTable(list)}
-    </div>
-    ${kwKeys.map((kw) => `
-      <div class="fav-kw-pane" style="display:none">
-        ${makeTable(groups[kw])}
-      </div>`).join('')}`;
+    <div class="fav-kw-pane">${makePane(list)}</div>
+    ${kwKeys.map(kw => `<div class="fav-kw-pane" style="display:none">${makePane(groups[kw])}</div>`).join('')}`;
 }
 function favKwTab(btn, idx) {
   const wrap = btn.closest('#favItemGrid');
