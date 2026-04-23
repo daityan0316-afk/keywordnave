@@ -2009,7 +2009,7 @@ function renderNiche(items, keyword) {
         const _avgItemMonthly = _validCount > 0 ? Math.round(_totalMonthly / _validCount) : 0;
         const _avgRounded = _avgItemMonthly >= 1e5 ? Math.round(_avgItemMonthly/1e4)*1e4 : Math.round(_avgItemMonthly/1e3)*1e3;
         const _sortedPrices0 = _validItems0.map(i=>i.price).sort((a,b)=>a-b);
-        const _medianPrice = _sortedPrices0.length ? _sortedPrices0[Math.floor(_sortedPrices0.length/2)] : 0;
+        const _medianPrice = _sortedPrices0.length ? _sortedPrices0[0] : 0;
         const _unitsForAvg = _medianPrice > 0 && _avgRounded > 0 ? Math.ceil(_avgRounded / _medianPrice) : 0;
         return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column-reverse">
           <div style="padding:8px 10px 7px;border-top:1px solid #eef0f6">
@@ -2024,7 +2024,7 @@ function renderNiche(items, keyword) {
                 </div>
                 <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
                   <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">1位 ${topShopName}</div>
-                  <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topShare}%）</span></div>
+                  <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topShare}%を目指す）</span></div>
                 </div>
               </div>
             </div>
@@ -2036,10 +2036,10 @@ function renderNiche(items, keyword) {
               <div style="text-align:right;margin-bottom:3px">
                 <span style="font-size:1.32rem;font-weight:900;color:#1e3a8a;white-space:nowrap">${fmtM(_avgRounded)}</span>
               </div>
-              ${_unitsForAvg > 0 ? `<div style="font-size:0.74rem;color:#2563eb;font-weight:600;text-align:right;margin-bottom:8px">約${_unitsForAvg}個/月販売で達成</div>` : '<div style="margin-bottom:8px"></div>'}
+              ${_unitsForAvg > 0 ? `<div style="font-size:0.83rem;color:#2563eb;font-weight:700;text-align:right;margin-bottom:8px">¥${_medianPrice.toLocaleString()} × 約${_unitsForAvg}個/月</div>` : '<div style="margin-bottom:8px"></div>'}
               <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid #2563eb20">
                 <div style="font-size:0.76rem;color:#445870;font-weight:600">目標達成に必要な商品数</div>
-                <div style="font-size:0.95rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
+                <div style="font-size:1.15rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
               </div>
             </div>
           </div>
@@ -3480,7 +3480,7 @@ function updateMarketTopGrid(items) {
   const _avgItemRev = _validItems.length > 0 ? Math.round(_totalItemRev / _validItems.length) : 0;
   const _avgRounded = _avgItemRev >= 1e5 ? Math.round(_avgItemRev/1e4)*1e4 : Math.round(_avgItemRev/1e3)*1e3;
   const _sortedPrices = _validItems.map(i=>i.price).sort((a,b)=>a-b);
-  const _medianPrice = _sortedPrices.length ? _sortedPrices[Math.floor(_sortedPrices.length/2)] : 0;
+  const _medianPrice = _sortedPrices.length ? _sortedPrices[0] : 0;
   const _unitsForAvg = _medianPrice > 0 && _avgRounded > 0 ? Math.ceil(_avgRounded / _medianPrice) : 0;
   const _bandLabel = window._currentBandLabel || '全価格帯';
   el.innerHTML = `
@@ -3494,7 +3494,7 @@ function updateMarketTopGrid(items) {
       </div>
       <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
         <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">1位 ${topShopName}</div>
-        <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topSharePct}%）</span></div>
+        <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topSharePct}%を目指す）</span></div>
       </div>
     </div>`;
   const itemCell = document.getElementById('marketItemCell');
@@ -3508,10 +3508,10 @@ function updateMarketTopGrid(items) {
       <div style="text-align:right;margin-bottom:3px">
         <span style="font-size:1.32rem;font-weight:900;color:#1e3a8a;white-space:nowrap">${fmtM(_avgRounded)}</span>
       </div>
-      ${_unitsForAvg > 0 ? `<div style="font-size:0.74rem;color:#2563eb;font-weight:600;text-align:right;margin-bottom:8px">約${_unitsForAvg}個/月販売で達成</div>` : '<div style="margin-bottom:8px"></div>'}
+      ${_unitsForAvg > 0 ? `<div style="font-size:0.83rem;color:#2563eb;font-weight:700;text-align:right;margin-bottom:8px">¥${_medianPrice.toLocaleString()} × 約${_unitsForAvg}個/月</div>` : '<div style="margin-bottom:8px"></div>'}
       <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid #2563eb20">
         <div style="font-size:0.76rem;color:#445870;font-weight:600">目標達成に必要な商品数</div>
-        <div style="font-size:0.95rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
+        <div style="font-size:1.15rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
       </div>`;
   }
 }

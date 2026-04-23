@@ -712,8 +712,11 @@ td a:hover { text-decoration: underline; }
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: sticky;
+  top: 0;
 }
 .sidebar-sticky > * { margin: 0 !important; }
+.sidebar-sticky > *:empty { display: none; }
 #nicheBar { display: flex; flex-direction: column; gap: 12px; }
 }
 
