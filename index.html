@@ -33,6 +33,10 @@
       if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
     });
 
+    const _trashRef = _db.ref('favTrash');
+    let _trashCache = [];
+    _trashRef.on('value', snapshot => { _trashCache = snapshot.val() || []; });
+
     const _kwRef = _db.ref('savedKeywords');
     let _kwCache = null;
     _kwRef.on('value', snapshot => {
@@ -109,12 +113,14 @@
     <section class="top-section" id="favGridSection">
       <div class="top-section-header">
         <span class="top-section-title"><span class="title-emoji">★</span> お気に入り商品 <span id="favCount" style="font-size:0.8rem;font-weight:600;color:#e67e22;background:#fffbe6;border:1px solid #fde68a;border-radius:20px;padding:1px 10px;margin-left:4px">0</span></span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:0.76rem;color:#888;white-space:nowrap">名前：</span>
-          <input type="text" id="favUserNameInput" placeholder="中西"
+        <button onclick="openTrashModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:2px 4px;color:#aaa;line-height:1" title="ゴミ箱">🗑</button>
+        <div style="display:flex;align-items:center;gap:0;background:#f4f6fb;border:1px solid #d0d8e8;border-radius:20px;overflow:hidden;padding:0">
+          <span style="font-size:0.72rem;color:#7a90b0;font-weight:600;padding:4px 8px 4px 12px;white-space:nowrap;user-select:none">👤</span>
+          <input type="text" id="favUserNameInput" placeholder="名前"
             oninput="localStorage.setItem('favUserName',this.value)"
-            style="border:1px solid #d0d8e8;border-radius:6px;padding:3px 8px;font-size:0.78rem;color:#333;outline:none;width:80px"
-            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d0d8e8'">
+            style="border:none;background:transparent;padding:4px 12px 4px 2px;font-size:0.78rem;font-weight:600;color:#334;outline:none;width:72px"
+            onfocus="this.parentElement.style.borderColor='#2563eb';this.parentElement.style.background='#fff'"
+            onblur="this.parentElement.style.borderColor='#d0d8e8';this.parentElement.style.background='#f4f6fb'">
         </div>
       </div>
       <div class="top-section-body">
@@ -148,10 +154,11 @@
       <!-- 右メイン -->
       <div class="result-main">
         <div id="tableContent" class="hidden">
+          <div id="shopTagListMobile" class="sp-only" style="display:none;margin-bottom:8px"></div>
           <div class="pg-header-row">
             <span id="filterCount" class="filter-count" style="display:none"></span>
             <div id="pagination"></div>
-            <span id="resultTitle" style="font-size:0.88rem;font-weight:800;color:#1e3a8a;white-space:nowrap;margin-left:auto;padding-left:8px"></span>
+            <span id="resultTitle" style="font-size:0.88rem;font-weight:800;color:#1e3a8a;word-break:break-all;padding-left:8px"></span>
           </div>
           <div class="table-wrap">
             <table id="itemTable">
@@ -669,13 +676,14 @@ function renderSavedKeywords() {
           ${list.map((e, i) => {
             const kw    = e.kw || e;
             const kwEsc = kw.replace(/'/g,"\\'");
-            return `<div class="saved-kw-item"
+            return `<div class="saved-kw-item" onclick="setKeywordByIndex(${i})" style="cursor:pointer"
               ondragover="_kwDragOver(event)" ondragenter="_kwDragEnter(event)" ondrop="_kwDrop(event,${i})">
               <span class="saved-kw-drag" draggable="true"
                 ondragstart="_kwDragStart(event,${i})" ondragend="_kwDragEnd(event)"
+                onclick="event.stopPropagation()"
                 style="color:#ccc;font-size:0.75rem;padding:0 3px;cursor:grab">⠿</span>
-              <div class="saved-kw-main" onclick="setKeywordByIndex(${i})"><span class="saved-kw-text">${kw}</span></div>
-              <button class="saved-kw-del" onclick="deleteSaved('${kwEsc}')">×</button>
+              <div class="saved-kw-main"><span class="saved-kw-text">${kw}</span></div>
+              <button class="saved-kw-del" onclick="event.stopPropagation();deleteSaved('${kwEsc}')">×</button>
             </div>`;
           }).join("")}
         </div>
@@ -1954,7 +1962,7 @@ function renderNiche(items, keyword) {
     ${_kwLabel ? `<div class="sp-only" style="font-size:0.78rem;font-weight:700;color:#1e3a8a;background:#f0f5ff;border-radius:8px;padding:7px 12px;line-height:1.5;display:none">検索結果「${_kwLabel}」<br><span style="font-size:0.82rem;color:#2563eb">${_bandLabel2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_filteredCount}件</span></div>` : ''}
     <div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
       <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
-        <span style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📊 月商目安</span>
+        <span style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📊 市場月商（推計）</span>
         <span class="collapse-btn">▲</span>
       </div>
       <div class="card-body" style="width:100%">
@@ -1991,38 +1999,48 @@ function renderNiche(items, keyword) {
           if (!i.reviewCount || !i.price) return s;
           return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
         }, 0);
-        const monthlyRounded = Math.round(_totalMonthly);
+        const _uShops = ma.uniqueShops || 0;
+        const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
+        const _adjRatio = ma.topShopShare > 0.3 ? _entRatio * 0.6 : _entRatio;
+        const monthlyRounded = Math.round(topShopRev * _adjRatio);
         const _topShare = _totalMonthly > 0 ? Math.round(topShopRev / _totalMonthly * 100) : 0;
-        const _validCount = _allIt.filter(i => i.reviewCount && i.price).length;
+        const _validItems0 = _allIt.filter(i => i.reviewCount && i.price);
+        const _validCount = _validItems0.length;
         const _avgItemMonthly = _validCount > 0 ? Math.round(_totalMonthly / _validCount) : 0;
         const _avgRounded = _avgItemMonthly >= 1e5 ? Math.round(_avgItemMonthly/1e4)*1e4 : Math.round(_avgItemMonthly/1e3)*1e3;
+        const _sortedPrices0 = _validItems0.map(i=>i.price).sort((a,b)=>a-b);
+        const _medianPrice = _sortedPrices0.length ? _sortedPrices0[Math.floor(_sortedPrices0.length/2)] : 0;
+        const _unitsForAvg = _medianPrice > 0 && _avgRounded > 0 ? Math.ceil(_avgRounded / _medianPrice) : 0;
         return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column-reverse">
           <div style="padding:8px 10px 7px;border-top:1px solid #eef0f6">
             <div id="marketTopGrid" style="margin-bottom:5px">
-              <div style="border-radius:7px;padding:9px 11px;background:${ma.entryColor}18;border:1.5px solid ${ma.entryColor}70;box-sizing:border-box">
+              <div style="border-radius:9px;padding:10px 12px;background:linear-gradient(135deg,${ma.entryColor}15,${ma.entryColor}08);border:1.5px solid ${ma.entryColor}50;box-sizing:border-box;box-shadow:0 2px 8px ${ma.entryColor}15">
                 <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-                  <span style="font-size:0.78rem;color:#445870;font-weight:600">目標月商</span>
-                  <span id="marketBandBadge" style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">全価格帯</span>
+                  <span style="font-size:0.78rem;color:#445870;font-weight:700;letter-spacing:0.02em">新規参入時の目標</span>
+                  <span id="marketBandBadge" style="font-size:0.65rem;background:${ma.entryColor}20;color:${ma.entryColor};border-radius:3px;padding:1px 6px;font-weight:700">全価格帯</span>
                 </div>
-                <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px">
-                  <span style="font-size:0.78rem;font-weight:700;color:${ma.entryColor}aa">1位${_topShare}%</span>
+                <div style="text-align:right">
                   <span style="font-size:1.32rem;font-weight:900;color:${ma.entryColor};white-space:nowrap">${fmtM(monthlyRounded)}</span>
                 </div>
                 <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
-                  <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">参考：1位月商 ${topShopName}</div>
-                  <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}</div>
+                  <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">1位 ${topShopName}</div>
+                  <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topShare}%）</span></div>
                 </div>
               </div>
             </div>
-            <div id="marketItemCell" style="background:#f4f6fb;border-radius:7px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;box-sizing:border-box">
-              <div>
-                <div style="display:flex;align-items:center;gap:5px">
-                  <span style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の売上</span>
-                  <span id="marketItemBadge" style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">全価格帯</span>
-                </div>
-                <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validCount}商品の平均</div>
+            <div id="marketItemCell" style="background:linear-gradient(135deg,#1e3a8a12,#2563eb08);border:1.5px solid #2563eb40;border-radius:9px;padding:10px 12px;box-sizing:border-box;box-shadow:0 2px 8px #2563eb12">
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+                <span style="font-size:0.78rem;color:#1e3a8a;font-weight:700;letter-spacing:0.02em">1商品の売上（市場平均）</span>
+                <span id="marketItemBadge" style="font-size:0.65rem;background:#2563eb20;color:#2563eb;border-radius:3px;padding:1px 6px;font-weight:700">全価格帯</span>
               </div>
-              <div style="font-size:1.32rem;font-weight:900;color:#2d4a7a;white-space:nowrap">${fmtM(_avgRounded)}</div>
+              <div style="text-align:right;margin-bottom:3px">
+                <span style="font-size:1.32rem;font-weight:900;color:#1e3a8a;white-space:nowrap">${fmtM(_avgRounded)}</span>
+              </div>
+              ${_unitsForAvg > 0 ? `<div style="font-size:0.74rem;color:#2563eb;font-weight:600;text-align:right;margin-bottom:8px">約${_unitsForAvg}個/月販売で達成</div>` : '<div style="margin-bottom:8px"></div>'}
+              <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid #2563eb20">
+                <div style="font-size:0.76rem;color:#445870;font-weight:600">目標達成に必要な商品数</div>
+                <div style="font-size:0.95rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
+              </div>
             </div>
           </div>
           <div style="padding:2px 0 2px">
@@ -2059,12 +2077,13 @@ function renderNiche(items, keyword) {
             window._priceBandBestIdx = bestIdx;
             const _allPrices = allItems.map(i=>i.price);
             const _allRange = _allPrices.length ? `¥${Math.min(..._allPrices).toLocaleString()}〜¥${Math.max(..._allPrices).toLocaleString()}` : '';
-            const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #eef0f6;cursor:pointer;transition:background 0.12s;border-left:3px solid #b0b8c8" onmouseover="this.style.background='#f6f8fc'" onmouseout="this.style.background=''">
-              <div style="flex:1">
-                <div style="font-size:1.05rem;font-weight:700;color:#334">全価格帯</div>
-                <div style="font-size:0.83rem;color:#5a7a96;margin-top:1px">${_allRange}</div>
+            const _allShopCnt = new Set(allItems.map(i=>i.shopName).filter(Boolean)).size;
+            const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid #e2e8f0;cursor:pointer;transition:background 0.12s;border-left:4px solid #94a3b8;background:#f8fafc" onmouseover="this.style.background='#f0f4fa'" onmouseout="this.style.background='#f8fafc'">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">全価格帯</div>
+                <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_allRange}&nbsp;·&nbsp;競合${_allShopCnt}店</div>
               </div>
-              <div style="font-size:1.32rem;font-weight:900;color:#2d4a7a">${fmtM(Math.round(_totalMonthly))}</div>
+              <div style="font-size:1.25rem;font-weight:900;color:#334e68;white-space:nowrap">${fmtM(Math.round(_totalMonthly))}</div>
             </div>`;
             return allRows + rows.map((r,i)=>{
               const pMin = r.b.min===0?0:Math.round(r.b.min);
@@ -2086,15 +2105,15 @@ function renderNiche(items, keyword) {
                 return {text:'✅狙い目', color:'#16a34a', bg:'#f0fdf4', tip:'バランスの良い価格帯'};
               })();
               const _amtStr = r.rounded >= 10000 ? Math.round(r.rounded/10000)+'万円' : r.rounded.toLocaleString()+'円';
-              return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #f0f2f7;cursor:pointer;transition:background 0.12s;border-left:3px solid ${r.b.color}" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+              return `<div data-price-row="${i}" onclick="filterByPriceBand(${pMin},${pMax},${i})" style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid #eef1f6;cursor:pointer;transition:background 0.12s;border-left:4px solid ${r.b.color}" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''">
                 <div style="flex:1;min-width:0">
-                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
-                    <span style="font-size:1.05rem;font-weight:700;color:#2d3748">${r.b.label}</span>
-                    <span class="band-judge-tip" style="font-size:0.82rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                    <span style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">${r.b.label}</span>
+                    <span class="band-judge-tip" style="font-size:0.75rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
                   </div>
-                  <div style="font-size:0.83rem;color:#7a90a8">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
+                  <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
                 </div>
-                <div style="font-size:1.32rem;font-weight:900;color:${r.b.color};flex-shrink:0">${_amtStr}</div>
+                <div style="font-size:1.25rem;font-weight:900;color:${r.b.color};flex-shrink:0;padding-left:8px;white-space:nowrap">${_amtStr}</div>
               </div>`;
             }).join('');
           })()}
@@ -2371,7 +2390,12 @@ function renderShopTags(items) {
   const shops = Object.entries(shopMap)
     .sort((a, b) => b[1].count - a[1].count);
 
-  if (!shops.length) { el.innerHTML = ""; return; }
+  if (!shops.length) {
+    el.innerHTML = "";
+    const mob = document.getElementById('shopTagListMobile');
+    if (mob) mob.innerHTML = '';
+    return;
+  }
 
   el.innerHTML = `
     <div class="collapsible-card shop-tag-box" style="padding:12px 14px">
@@ -2390,6 +2414,8 @@ function renderShopTags(items) {
         </div>
       </div>
     </div>`;
+  const mob = document.getElementById('shopTagListMobile');
+  if (mob) mob.innerHTML = el.innerHTML;
 }
 
 function renderPriceChart(items) {
@@ -3443,40 +3469,50 @@ function updateMarketTopGrid(items) {
     return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
   }, 0);
   const _topSharePct = _totalBandRevAll > 0 ? Math.round(topShopRev / _totalBandRevAll * 100) : 0;
-  const monthlyRounded = Math.round(_totalBandRevAll);
+  const _uShops = Object.keys(_shopMap).length;
+  const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
+  const _adjRatio = _topSharePct > 30 ? _entRatio * 0.6 : _entRatio;
+  const monthlyRounded = Math.round(topShopRev * _adjRatio);
   const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
   const ec = ma.entryColor || '#27ae60';
   const _validItems = (items || []).filter(i => i.reviewCount && i.price);
   const _totalItemRev = _validItems.reduce((s, i) => s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price, 0);
   const _avgItemRev = _validItems.length > 0 ? Math.round(_totalItemRev / _validItems.length) : 0;
   const _avgRounded = _avgItemRev >= 1e5 ? Math.round(_avgItemRev/1e4)*1e4 : Math.round(_avgItemRev/1e3)*1e3;
+  const _sortedPrices = _validItems.map(i=>i.price).sort((a,b)=>a-b);
+  const _medianPrice = _sortedPrices.length ? _sortedPrices[Math.floor(_sortedPrices.length/2)] : 0;
+  const _unitsForAvg = _medianPrice > 0 && _avgRounded > 0 ? Math.ceil(_avgRounded / _medianPrice) : 0;
   const _bandLabel = window._currentBandLabel || '全価格帯';
   el.innerHTML = `
-    <div style="border-radius:7px;padding:9px 11px;background:${ec}18;border:1.5px solid ${ec}70;box-sizing:border-box">
+    <div style="border-radius:9px;padding:10px 12px;background:linear-gradient(135deg,${ec}15,${ec}08);border:1.5px solid ${ec}50;box-sizing:border-box;box-shadow:0 2px 8px ${ec}15">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-        <span style="font-size:0.78rem;color:#445870;font-weight:600">目標月商</span>
-        <span style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">${_bandLabel}</span>
+        <span style="font-size:0.78rem;color:#445870;font-weight:700;letter-spacing:0.02em">新規参入時の目標</span>
+        <span style="font-size:0.65rem;background:${ec}20;color:${ec};border-radius:3px;padding:1px 6px;font-weight:700">${_bandLabel}</span>
       </div>
-      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px">
-        <span style="font-size:0.78rem;font-weight:700;color:${ec}aa">1位${_topSharePct}%</span>
+      <div style="text-align:right">
         <span style="font-size:1.32rem;font-weight:900;color:${ec};white-space:nowrap">${fmtM(monthlyRounded)}</span>
       </div>
       <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">参考：1位月商 ${topShopName}</div>
-        <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}</div>
+        <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">1位 ${topShopName}</div>
+        <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}<span style="font-size:0.7rem;font-weight:500;color:#8a9ab0;margin-left:3px">（シェア${_topSharePct}%）</span></div>
       </div>
     </div>`;
   const itemCell = document.getElementById('marketItemCell');
   if (itemCell) {
+    itemCell.style.cssText = 'background:linear-gradient(135deg,#1e3a8a12,#2563eb08);border:1.5px solid #2563eb40;border-radius:9px;padding:10px 12px;box-sizing:border-box;box-shadow:0 2px 8px #2563eb12';
     itemCell.innerHTML = `
-      <div>
-        <div style="display:flex;align-items:center;gap:5px">
-          <span style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の売上</span>
-          <span style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">${_bandLabel}</span>
-        </div>
-        <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validItems.length}商品の平均</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+        <span style="font-size:0.78rem;color:#1e3a8a;font-weight:700;letter-spacing:0.02em">1商品の売上（市場平均）</span>
+        <span style="font-size:0.65rem;background:#2563eb20;color:#2563eb;border-radius:3px;padding:1px 6px;font-weight:700">${_bandLabel}</span>
       </div>
-      <div style="font-size:1.15rem;font-weight:900;color:#2d4a7a">${fmtM(_avgRounded)}</div>`;
+      <div style="text-align:right;margin-bottom:3px">
+        <span style="font-size:1.32rem;font-weight:900;color:#1e3a8a;white-space:nowrap">${fmtM(_avgRounded)}</span>
+      </div>
+      ${_unitsForAvg > 0 ? `<div style="font-size:0.74rem;color:#2563eb;font-weight:600;text-align:right;margin-bottom:8px">約${_unitsForAvg}個/月販売で達成</div>` : '<div style="margin-bottom:8px"></div>'}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid #2563eb20">
+        <div style="font-size:0.76rem;color:#445870;font-weight:600">目標達成に必要な商品数</div>
+        <div style="font-size:0.95rem;font-weight:800;color:#1e3a8a;white-space:nowrap">${_avgRounded > 0 ? Math.ceil(monthlyRounded / _avgRounded) : '-'}商品</div>
+      </div>`;
   }
 }
 
@@ -3493,11 +3529,15 @@ function resetPriceBand() {
     const idx = parseInt(el.dataset.priceRow);
     const rows = window._priceBandRows || [];
     if (idx === -1) {
-      el.style.background = '#f6f8fc';
+      el.style.background = '#dbeafe';
       el.style.borderLeftColor = '#2563eb';
+      el.style.borderLeftWidth = '5px';
+      el.style.boxShadow = 'inset 0 0 0 1px #2563eb30';
     } else {
       const r = rows[idx];
       el.style.background = '';
+      el.style.borderLeftWidth = '4px';
+      el.style.boxShadow = 'none';
       if (r) el.style.borderLeftColor = r.b.color;
     }
     el.style.boxShadow = 'none';
@@ -3558,10 +3598,19 @@ function filterByPriceBand(min, max, bandIdx) {
     const r = rows[idx];
     if (!r) return;
     const isSelected = idx === bandIdx;
-    el.style.background = isSelected ? '#f0f4fa' : '';
+    el.style.background = isSelected ? '#dbeafe' : '';
     el.style.borderLeftColor = isSelected ? '#2563eb' : r.b.color;
-    el.style.boxShadow = 'none';
+    el.style.borderLeftWidth = isSelected ? '5px' : '4px';
+    el.style.fontWeight = isSelected ? '700' : '';
+    el.style.boxShadow = isSelected ? 'inset 0 0 0 1px #2563eb30' : 'none';
   });
+  const allRow = document.querySelector('[data-price-row="-1"]');
+  if (allRow) {
+    allRow.style.background = '#f8fafc';
+    allRow.style.borderLeftColor = '#94a3b8';
+    allRow.style.borderLeftWidth = '4px';
+    allRow.style.boxShadow = 'none';
+  }
 }
 
 function applyFilter() {
@@ -3741,7 +3790,7 @@ function renderFavGrid() {
     el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">お気に入り商品はありません</div>`;
     return;
   }
-  const isMobile = window.innerWidth <= 768;
+  const isMobile = window.innerWidth <= 900 || window.matchMedia('(pointer:coarse)').matches;
   // キーワード別グループ化
   const groups = {};
   list.forEach(f => {
@@ -3762,8 +3811,11 @@ function renderFavGrid() {
           <span style="font-size:0.88rem;font-weight:800;color:#c0392b">¥${(f.price||0).toLocaleString()}</span>
           <span style="font-size:0.78rem;color:#e67e22">★${f.reviewAvg||'-'} <span style="color:#aaa;font-size:0.72rem">${f.reviewCount||0}件</span></span>
         </div>
-        <div style="font-size:0.74rem;color:#666;margin-top:2px">${f.shopName||''}</div>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px">
+          <div style="font-size:0.74rem;color:#666">${f.shopName||''}</div>
+          ${f.savedBy ? `<span style="font-size:0.68rem;font-weight:700;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;border-radius:20px;padding:1px 7px">${f.savedBy}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
           <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
             placeholder="🔗 仕入先URL"
             onchange="saveSupplierUrl('${codeEsc}', this.value)"
@@ -3771,10 +3823,14 @@ function renderFavGrid() {
             onfocus="this.style.borderColor='#2563eb'"
             onblur="this.style.borderColor='#d0d8e8'">
           <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-            style="flex-shrink:0;padding:5px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
+            style="flex-shrink:0;padding:5px 12px;background:none;border:none;color:#f97316;font-size:1.1rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">↗</button>
         </div>
+        <input type="text" value="${(f.memo||'').replace(/"/g,'&quot;')}" placeholder="📝 備考"
+          onchange="saveFavMemo('${codeEsc}',this.value)"
+          style="width:100%;margin-top:5px;border:1px solid #d0d8e8;border-radius:6px;padding:4px 8px;font-size:0.76rem;color:#333;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d0d8e8'">
       </div>
-      <button onclick="if(confirm('この商品をお気に入りから削除しますか？'))removeFavFromGrid('${codeEsc}')" style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px" title="削除">×</button>
+      <button onclick="confirmFavDelete('${codeEsc}',this)" data-fav-del style="position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px;transition:color 0.15s" title="削除">×</button>
     </div>`;
   }).join('');
 
@@ -3800,17 +3856,21 @@ function renderFavGrid() {
           const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
           const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
           return `<tr>
-            <td style="padding:6px 8px;text-align:center">
-              ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:6px"></div>'}
+            <td style="padding:3px 6px;text-align:center">
+              ${f.image ? `<img src="${f.image}" style="width:36px;height:36px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:36px;height:36px;background:#f0f0f0;border-radius:5px"></div>'}
             </td>
-            <td style="padding:6px 8px">
+            <td style="padding:3px 6px">
               <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
             </td>
-            <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
-            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}</td>
-            <td style="padding:6px 8px;font-size:0.82rem;color:#aaa;white-space:nowrap">${f.reviewCount||0}件</td>
-            <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
-            <td style="padding:6px 8px">
+            <td style="padding:3px 6px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
+            <td style="padding:3px 6px;white-space:nowrap">
+              <span style="font-size:0.82rem;font-weight:700;color:#f59e0b">★</span><span style="font-size:0.85rem;font-weight:800;color:#333">${f.reviewAvg||'-'}</span>
+            </td>
+            <td style="padding:3px 6px;white-space:nowrap">
+              <span style="font-size:0.82rem;font-weight:700;color:#555">${f.reviewCount||0}</span><span style="font-size:0.72rem;color:#aaa">件</span>
+            </td>
+            <td style="padding:3px 6px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
+            <td style="padding:3px 6px">
               <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
                 <input type="url" id="sup-${codeAttr}" value="${(f.supplierUrl||'').replace(/"/g,'&quot;')}"
                   placeholder="🔗 仕入先URLを貼り付け"
@@ -3819,19 +3879,19 @@ function renderFavGrid() {
                   onfocus="this.style.borderColor='#2563eb'"
                   onblur="this.style.borderColor='#d0d8e8'">
                 <button onclick="var u=document.getElementById('sup-${codeAttr}').value;if(u)window.open(u,'_blank');else alert('URLを入力してください')"
-                  style="flex-shrink:0;padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:20px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap">↗ 開く</button>
+                  style="flex-shrink:0;padding:4px 12px;background:none;border:none;color:#f97316;font-size:1.1rem;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0">↗</button>
               </div>
             </td>
-            <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
-            <td style="padding:6px 8px;font-size:0.78rem;color:#555;white-space:nowrap">${f.savedBy||''}</td>
-            <td style="padding:6px 8px">
+            <td style="padding:3px 6px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
+            <td style="padding:3px 6px;text-align:center">${f.savedBy ? `<span style="display:inline-block;font-size:0.72rem;font-weight:700;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;border-radius:20px;padding:2px 9px;white-space:nowrap">${f.savedBy}</span>` : ''}</td>
+            <td style="padding:3px 6px">
               <input type="text" value="${(f.memo||'').replace(/"/g,'&quot;')}" placeholder="メモ"
                 onchange="saveFavMemo('${codeEsc}',this.value)"
                 style="width:100%;border:1px solid #d0d8e8;border-radius:5px;padding:3px 6px;font-size:0.76rem;color:#333;outline:none;box-sizing:border-box"
                 onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d0d8e8'">
             </td>
-            <td style="padding:6px 8px;text-align:center">
-              <button onclick="if(confirm('削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
+            <td style="padding:3px 6px;text-align:center">
+              <button onclick="confirmFavDelete('${codeEsc}',this)" data-fav-del style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px;transition:color 0.15s">×</button>
             </td>
           </tr>`;
         }).join('')}
@@ -3893,9 +3953,145 @@ function saveSupplierUrl(itemCode, url) {
   const idx = list.findIndex(f => f.itemCode === itemCode);
   if (idx >= 0) { list[idx].supplierUrl = url; saveFavs(list); renderFavGrid(); }
 }
+let _undoFavItem = null;
+let _undoFavIdx = null;
+let _undoTimer = null; // 未使用・互換のため残す
+let _favDeletePending = null;
+function confirmFavDelete(itemCode, btn) {
+  if (_favDeletePending === itemCode) {
+    // 2回目 → 実際に削除
+    clearTimeout(btn._resetTimer);
+    _favDeletePending = null;
+    const list = loadFavs();
+    const idx = list.findIndex(f => f.itemCode === itemCode);
+    if (idx < 0) return;
+    const trashItem = { ...list[idx], deletedAt: new Date().toLocaleDateString('ja-JP') };
+    const trash = [...(_trashCache || [])];
+    trash.unshift(trashItem);
+    _trashRef.set(trash.slice(0, 50));
+    saveFavs(list.filter(f => f.itemCode !== itemCode));
+  } else {
+    // 1回目 → 確認状態に
+    if (_favDeletePending) {
+      // 別ボタンがペンディング中なら解除
+      document.querySelectorAll('[data-fav-del]').forEach(b => { b.textContent='×'; b.style.color='#ccc'; b.style.fontWeight=''; });
+    }
+    _favDeletePending = itemCode;
+    btn.textContent = '削除?';
+    btn.style.color = '#e53e3e';
+    btn.style.fontWeight = '700';
+    btn._resetTimer = setTimeout(() => {
+      _favDeletePending = null;
+      btn.textContent = '×';
+      btn.style.color = '#ccc';
+      btn.style.fontWeight = '';
+    }, 3000);
+  }
+}
 function removeFavFromGrid(itemCode) {
-  saveFavs(loadFavs().filter(f => f.itemCode !== itemCode));
-  renderFavGrid();
+  const list = loadFavs();
+  const idx = list.findIndex(f => f.itemCode === itemCode);
+  if (idx < 0) return;
+  const trashItem = { ...list[idx], deletedAt: new Date().toLocaleDateString('ja-JP') };
+  const trash = [...(_trashCache || [])];
+  trash.unshift(trashItem);
+  _trashRef.set(trash.slice(0, 50));
+  saveFavs(list.filter(f => f.itemCode !== itemCode));
+}
+function restoreFromTrash(itemCode) {
+  const trash = _trashCache || [];
+  const item = trash.find(f => f.itemCode === itemCode);
+  if (!item) return;
+  const { deletedAt, ...restored } = item;
+  const list = loadFavs();
+  list.unshift(restored);
+  saveFavs(list);
+  _trashRef.set(trash.filter(f => f.itemCode !== itemCode).length ? trash.filter(f => f.itemCode !== itemCode) : null);
+  renderTrashModal();
+}
+function deleteFromTrash(itemCode) {
+  const trash = (_trashCache || []).filter(f => f.itemCode !== itemCode);
+  _trashRef.set(trash.length ? trash : null);
+}
+function clearTrash() {
+  if (!confirm('ゴミ箱を空にしますか？')) return;
+  _trashRef.set(null);
+  renderTrashModal();
+}
+function showFavUndoToast() {
+  clearTimeout(_undoTimer);
+  let toast = document.getElementById('favUndoToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'favUndoToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 16px;border-radius:24px;display:flex;align-items:center;gap:12px;font-size:0.85rem;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);white-space:nowrap';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>削除しました</span><button onclick="undoFavRemove()" style="background:#f97316;border:none;color:#fff;border-radius:16px;padding:4px 12px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit">元に戻す</button>`;
+  toast.style.display = 'flex';
+  _undoTimer = setTimeout(() => {
+    toast.style.display = 'none';
+    _undoFavItem = null;
+    _undoFavIdx = null;
+  }, 10000);
+}
+function undoFavRemove() {
+  clearTimeout(_undoTimer);
+  const toast = document.getElementById('favUndoToast');
+  if (toast) toast.style.display = 'none';
+  if (!_undoFavItem) return;
+  const list = loadFavs();
+  const idx = Math.min(_undoFavIdx, list.length);
+  list.splice(idx, 0, _undoFavItem);
+  saveFavs(list);
+  // ゴミ箱からも除去
+  const trash = (_trashCache || []).filter(f => f.itemCode !== _undoFavItem.itemCode);
+  _trashRef.set(trash.length ? trash : null);
+  _undoFavItem = null;
+  _undoFavIdx = null;
+}
+function openTrashModal() {
+  let m = document.getElementById('trashModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'trashModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML = `<div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e8edf4">
+        <span style="font-size:0.95rem;font-weight:700;color:#1e3a8a">🗑 ゴミ箱</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="clearTrash()" style="font-size:0.75rem;color:#e53e3e;background:none;border:1px solid #e53e3e;border-radius:8px;padding:3px 10px;cursor:pointer;font-family:inherit">全て削除</button>
+          <button onclick="document.getElementById('trashModal').style.display='none'" style="background:none;border:none;font-size:1.2rem;color:#aaa;cursor:pointer">×</button>
+        </div>
+      </div>
+      <div id="trashModalBody" style="overflow-y:auto;flex:1;padding:10px 12px"></div>
+    </div>`;
+    m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  renderTrashModal();
+}
+function renderTrashModal() {
+  const body = document.getElementById('trashModalBody');
+  if (!body) return;
+  const trash = _trashCache || [];
+  if (!trash.length) {
+    body.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.9rem">ゴミ箱は空です</div>';
+    return;
+  }
+  body.innerHTML = trash.map(f => {
+    const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f3f8">
+      ${f.image ? `<img src="${f.image}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0">` : '<div style="width:44px;height:44px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.82rem;font-weight:600;color:#334;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name||''}</div>
+        <div style="font-size:0.75rem;color:#888;margin-top:2px">¥${(f.price||0).toLocaleString()} · ${f.deletedAt||''}削除</div>
+      </div>
+      <button onclick="restoreFromTrash('${codeEsc}')" style="flex-shrink:0;padding:5px 12px;background:#dbeafe;color:#1a3a5c;border:1px solid #93b4e0;border-radius:20px;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit">復元</button>
+      <button onclick="deleteFromTrash('${codeEsc}');renderTrashModal()" style="flex-shrink:0;background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
+    </div>`;
+  }).join('');
 }
 
 // ── お気に入り（Firebase同期） ────────────────────────────
