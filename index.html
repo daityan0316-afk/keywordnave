@@ -109,7 +109,13 @@
     <section class="top-section" id="favGridSection">
       <div class="top-section-header">
         <span class="top-section-title"><span class="title-emoji">★</span> お気に入り商品 <span id="favCount" style="font-size:0.8rem;font-weight:600;color:#e67e22;background:#fffbe6;border:1px solid #fde68a;border-radius:20px;padding:1px 10px;margin-left:4px">0</span></span>
-        <button onclick="openFavModal()" style="font-size:0.78rem;font-weight:600;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background 0.15s" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'">一覧を見る</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.76rem;color:#888;white-space:nowrap">名前：</span>
+          <input type="text" id="favUserNameInput" placeholder="中西"
+            oninput="localStorage.setItem('favUserName',this.value)"
+            style="border:1px solid #d0d8e8;border-radius:6px;padding:3px 8px;font-size:0.78rem;color:#333;outline:none;width:80px"
+            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d0d8e8'">
+        </div>
       </div>
       <div class="top-section-body">
         <div id="favItemGrid"></div>
@@ -663,11 +669,11 @@ function renderSavedKeywords() {
           ${list.map((e, i) => {
             const kw    = e.kw || e;
             const kwEsc = kw.replace(/'/g,"\\'");
-            return `<div class="saved-kw-item" draggable="true"
-              ondragstart="_kwDragStart(event,${i})" ondragend="_kwDragEnd(event)"
-              ondragover="_kwDragOver(event)" ondragenter="_kwDragEnter(event)" ondrop="_kwDrop(event,${i})"
-              style="cursor:grab">
-              <span class="saved-kw-drag" style="color:#ccc;font-size:0.75rem;padding:0 3px;cursor:grab">⠿</span>
+            return `<div class="saved-kw-item"
+              ondragover="_kwDragOver(event)" ondragenter="_kwDragEnter(event)" ondrop="_kwDrop(event,${i})">
+              <span class="saved-kw-drag" draggable="true"
+                ondragstart="_kwDragStart(event,${i})" ondragend="_kwDragEnd(event)"
+                style="color:#ccc;font-size:0.75rem;padding:0 3px;cursor:grab">⠿</span>
               <div class="saved-kw-main" onclick="setKeywordByIndex(${i})"><span class="saved-kw-text">${kw}</span></div>
               <button class="saved-kw-del" onclick="deleteSaved('${kwEsc}')">×</button>
             </div>`;
@@ -686,11 +692,12 @@ function renderSavedKeywords() {
     const kwEsc = kw.replace(/'/g,"\\'");
     const ex    = (e.exclude || []).join(" ");
     return `
-      <div class="saved-kw-card" draggable="true"
-        ondragstart="_kwDragStart(event,${i})" ondragend="_kwDragEnd(event)"
+      <div class="saved-kw-card"
         ondragover="_kwDragOver(event)" ondragenter="_kwDragEnter(event)" ondrop="_kwDrop(event,${i})"
         onclick="setKeywordByIndex(${i})">
-        <div class="saved-kw-card-name">${kw}</div>
+        <div class="saved-kw-card-name" draggable="true"
+          ondragstart="_kwDragStart(event,${i})" ondragend="_kwDragEnd(event)"
+          style="cursor:grab">${kw}</div>
         ${ex ? `<div class="saved-kw-card-ex">除外: ${ex}</div>` : ''}
         <button class="saved-kw-card-del" onclick="event.stopPropagation();deleteSaved('${kwEsc}')">×</button>
       </div>`;
@@ -698,6 +705,10 @@ function renderSavedKeywords() {
 }
 renderSavedKeywords();
 renderFavGrid();
+(function() {
+  const inp = document.getElementById('favUserNameInput');
+  if (inp) inp.value = localStorage.getItem('favUserName') || '';
+})();
 function setKeywordByIndex(i) {
   const e = (window._savedList || [])[i];
   if (!e) return;
@@ -1965,11 +1976,6 @@ function renderNiche(items, keyword) {
         const topShopRev = _shopRevs[0]?.rev || 0;
         const topShopName = _shopRevs[0]?.name || '';
         // 参入目安 = 1位月商 × 参入シェア率（競合数ベース）
-        const _uShops = ma.uniqueShops || 0;
-        const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
-        const _adjRatio = ma.topShopShare > 0.3 ? _entRatio * 0.6 : _entRatio;
-        const monthly = Math.round(topShopRev * _adjRatio);
-        const monthlyRounded = monthly >= 1e5 ? Math.round(monthly/5e4)*5e4 : Math.round(monthly/1e3)*1e3;
         const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
         const cs = ma.compRank || 0;
         const priceLo  = ma.priceMedian > 0 ? Math.round(ma.priceMedian * 0.35) : 0;
@@ -1985,29 +1991,38 @@ function renderNiche(items, keyword) {
           if (!i.reviewCount || !i.price) return s;
           return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
         }, 0);
+        const monthlyRounded = Math.round(_totalMonthly);
+        const _topShare = _totalMonthly > 0 ? Math.round(topShopRev / _totalMonthly * 100) : 0;
         const _validCount = _allIt.filter(i => i.reviewCount && i.price).length;
         const _avgItemMonthly = _validCount > 0 ? Math.round(_totalMonthly / _validCount) : 0;
         const _avgRounded = _avgItemMonthly >= 1e5 ? Math.round(_avgItemMonthly/1e4)*1e4 : Math.round(_avgItemMonthly/1e3)*1e3;
         return `<div style="background:#fff;border:1.5px solid #dde3ef;border-radius:12px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column-reverse">
           <div style="padding:8px 10px 7px;border-top:1px solid #eef0f6">
-            <div id="marketTopGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
-              <div style="background:#f0f5ff;border-radius:7px;padding:9px 11px;box-sizing:border-box">
-                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-                <div style="font-size:1.15rem;font-weight:900;color:#1e3a8a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(Math.round(topShopRev))}</div>
-                <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
-              </div>
-              <div style="border-radius:7px;padding:9px 11px;background:${ma.entryColor}0f;border:1px solid ${ma.entryColor}35;box-sizing:border-box">
-                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-                <div style="font-size:1.15rem;font-weight:900;color:${ma.entryColor};text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(monthlyRounded)}</div>
-                <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+            <div id="marketTopGrid" style="margin-bottom:5px">
+              <div style="border-radius:7px;padding:9px 11px;background:${ma.entryColor}18;border:1.5px solid ${ma.entryColor}70;box-sizing:border-box">
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                  <span style="font-size:0.78rem;color:#445870;font-weight:600">目標月商</span>
+                  <span id="marketBandBadge" style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">全価格帯</span>
+                </div>
+                <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px">
+                  <span style="font-size:0.78rem;font-weight:700;color:${ma.entryColor}aa">1位${_topShare}%</span>
+                  <span style="font-size:1.32rem;font-weight:900;color:${ma.entryColor};white-space:nowrap">${fmtM(monthlyRounded)}</span>
+                </div>
+                <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+                  <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">参考：1位月商 ${topShopName}</div>
+                  <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}</div>
+                </div>
               </div>
             </div>
             <div id="marketItemCell" style="background:#f4f6fb;border-radius:7px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;box-sizing:border-box">
               <div>
-                <div style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の目安</div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の売上</span>
+                  <span id="marketItemBadge" style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">全価格帯</span>
+                </div>
                 <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validCount}商品の平均</div>
               </div>
-              <div style="font-size:1.15rem;font-weight:900;color:#2d4a7a;white-space:nowrap">${fmtM(_avgRounded)}</div>
+              <div style="font-size:1.32rem;font-weight:900;color:#2d4a7a;white-space:nowrap">${fmtM(_avgRounded)}</div>
             </div>
           </div>
           <div style="padding:2px 0 2px">
@@ -3423,35 +3438,42 @@ function updateMarketTopGrid(items) {
   const topShopRev = _shopRevs[0]?.rev || 0;
   const topShopName = _shopRevs[0]?.name || '';
   const _totalBandRev = _shopRevs.reduce((s, sh) => s + sh.rev, 0);
-  const _topShare = _totalBandRev > 0 ? topShopRev / _totalBandRev : 0;
-  const _uShops = Object.keys(_shopMap).length;
-  const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
-  const _adjRatio = _topShare > 0.3 ? _entRatio * 0.6 : _entRatio;
-  const monthly = Math.round(topShopRev * _adjRatio);
-  const monthlyRounded = monthly >= 1e5 ? Math.round(monthly/5e4)*5e4 : Math.round(monthly/1e3)*1e3;
+  const _totalBandRevAll = (items || []).reduce((s, i) => {
+    if (!i.reviewCount || !i.price) return s;
+    return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
+  }, 0);
+  const _topSharePct = _totalBandRevAll > 0 ? Math.round(topShopRev / _totalBandRevAll * 100) : 0;
+  const monthlyRounded = Math.round(_totalBandRevAll);
   const fmtM = v => v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
   const ec = ma.entryColor || '#27ae60';
   const _validItems = (items || []).filter(i => i.reviewCount && i.price);
   const _totalItemRev = _validItems.reduce((s, i) => s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price, 0);
   const _avgItemRev = _validItems.length > 0 ? Math.round(_totalItemRev / _validItems.length) : 0;
   const _avgRounded = _avgItemRev >= 1e5 ? Math.round(_avgItemRev/1e4)*1e4 : Math.round(_avgItemRev/1e3)*1e3;
+  const _bandLabel = window._currentBandLabel || '全価格帯';
   el.innerHTML = `
-    <div style="background:#f0f5ff;border-radius:7px;padding:9px 11px;box-sizing:border-box">
-      <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">1位店舗月商</div>
-      <div style="font-size:1.15rem;font-weight:900;color:#1e3a8a;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(Math.round(topShopRev))}</div>
-      <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${topShopName}</div>
-    </div>
-    <div style="border-radius:7px;padding:9px 11px;background:${ec}0f;border:1px solid ${ec}35;box-sizing:border-box">
-      <div style="font-size:0.78rem;color:#7a90b0;font-weight:600;margin-bottom:3px">参入目安月商</div>
-      <div style="font-size:1.15rem;font-weight:900;color:${ec};text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fmtM(monthlyRounded)}</div>
-      <div style="font-size:0.78rem;color:#7a90a8;margin-top:3px">${Math.round(_adjRatio * 100)}%×1位月商</div>
+    <div style="border-radius:7px;padding:9px 11px;background:${ec}18;border:1.5px solid ${ec}70;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+        <span style="font-size:0.78rem;color:#445870;font-weight:600">目標月商</span>
+        <span style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">${_bandLabel}</span>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:flex-end;gap:6px">
+        <span style="font-size:0.78rem;font-weight:700;color:${ec}aa">1位${_topSharePct}%</span>
+        <span style="font-size:1.32rem;font-weight:900;color:${ec};white-space:nowrap">${fmtM(monthlyRounded)}</span>
+      </div>
+      <div style="border-top:1px solid #e8edf4;margin-top:7px;padding-top:5px;display:flex;align-items:center;justify-content:space-between;gap:6px">
+        <div style="font-size:0.72rem;color:#556880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">参考：1位月商 ${topShopName}</div>
+        <div style="font-size:0.82rem;font-weight:700;color:#556880;white-space:nowrap">${fmtM(Math.round(topShopRev))}</div>
+      </div>
     </div>`;
-  el.style.gridTemplateColumns = '1fr 1fr';
   const itemCell = document.getElementById('marketItemCell');
   if (itemCell) {
     itemCell.innerHTML = `
       <div>
-        <div style="font-size:0.82rem;color:#7a90b0;font-weight:600">1商品の目安</div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="font-size:0.78rem;color:#7a90b0;font-weight:600">1商品の売上</span>
+          <span style="font-size:0.68rem;background:#e8edf4;color:#5a7a96;border-radius:3px;padding:1px 5px;font-weight:600">${_bandLabel}</span>
+        </div>
         <div style="font-size:0.76rem;color:#7a90a8;margin-top:1px">${_validItems.length}商品の平均</div>
       </div>
       <div style="font-size:1.15rem;font-weight:900;color:#2d4a7a">${fmtM(_avgRounded)}</div>`;
@@ -3710,7 +3732,7 @@ loadStocks();
 function renderFavGrid() {
   const el = document.getElementById("favItemGrid");
   if (!el) return;
-  const list = loadFavs();
+  let list = loadFavs();
   if (!_favsLoaded) {
     el.innerHTML = `<div style="text-align:center;color:#aaa;padding:32px 0;font-size:0.95rem">読み込み中…</div>`;
     return;
@@ -3756,16 +3778,21 @@ function renderFavGrid() {
     </div>`;
   }).join('');
 
+  const _si = k => k === _favSortKey ? (_favSortDir > 0 ? ' ↑' : ' ↓') : ' ⇅';
+  const _th = (label, key, w) => `<th style="width:${w||'auto'};cursor:pointer;user-select:none;white-space:nowrap" onclick="sortFavGrid('${key}')">${label}<span style="font-size:0.7em;color:#aaa">${_si(key)}</span></th>`;
   const makeTable = items => `<div style="overflow-x:auto">
     <table class="fav-mgmt-table">
       <thead><tr>
         <th style="width:52px"></th>
-        <th>商品名</th>
-        <th style="width:80px">価格</th>
-        <th style="width:80px">評価</th>
-        <th style="width:120px">店舗</th>
+        ${_th('商品名','name')}
+        ${_th('価格','price','80px')}
+        ${_th('評価','reviewAvg','80px')}
+        ${_th('件数','reviewCount','60px')}
+        ${_th('店舗','shopName','120px')}
         <th>仕入先URL</th>
-        <th style="width:72px">保存日</th>
+        ${_th('保存日','savedAt','72px')}
+        ${_th('登録者','savedBy','60px')}
+        <th style="width:140px">備考</th>
         <th style="width:36px"></th>
       </tr></thead>
       <tbody>
@@ -3780,7 +3807,8 @@ function renderFavGrid() {
               <a href="${f.url||'#'}" target="_blank" style="font-size:0.82rem;color:#1a3a5c;text-decoration:none;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${f.name}</a>
             </td>
             <td style="padding:6px 8px;font-size:0.85rem;font-weight:700;color:#333;white-space:nowrap">¥${(f.price||0).toLocaleString()}</td>
-            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}<br><span style="font-size:0.72rem;color:#aaa">${f.reviewCount||0}件</span></td>
+            <td style="padding:6px 8px;font-size:0.82rem;color:#e67e22;white-space:nowrap">★${f.reviewAvg||'-'}</td>
+            <td style="padding:6px 8px;font-size:0.82rem;color:#aaa;white-space:nowrap">${f.reviewCount||0}件</td>
             <td style="padding:6px 8px;font-size:0.78rem;color:#555;line-height:1.4">${f.shopName||'-'}</td>
             <td style="padding:6px 8px">
               <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap">
@@ -3795,6 +3823,13 @@ function renderFavGrid() {
               </div>
             </td>
             <td style="padding:6px 8px;font-size:0.72rem;color:#aaa;white-space:nowrap">${f.savedAt||''}</td>
+            <td style="padding:6px 8px;font-size:0.78rem;color:#555;white-space:nowrap">${f.savedBy||''}</td>
+            <td style="padding:6px 8px">
+              <input type="text" value="${(f.memo||'').replace(/"/g,'&quot;')}" placeholder="メモ"
+                onchange="saveFavMemo('${codeEsc}',this.value)"
+                style="width:100%;border:1px solid #d0d8e8;border-radius:5px;padding:3px 6px;font-size:0.76rem;color:#333;outline:none;box-sizing:border-box"
+                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#d0d8e8'">
+            </td>
             <td style="padding:6px 8px;text-align:center">
               <button onclick="if(confirm('削除しますか？'))removeFavFromGrid('${codeEsc}')" style="background:none;border:none;color:#ccc;font-size:1rem;cursor:pointer;padding:2px 4px">×</button>
             </td>
@@ -3804,23 +3839,40 @@ function renderFavGrid() {
     </table>
   </div>`;
 
-  const makePane = items => isMobile ? makeCards(items) : makeTable(items);
+  const sortItems = items => {
+    if (!_favSortKey) return items;
+    return [...items].sort((a, b) => {
+      let av = a[_favSortKey], bv = b[_favSortKey];
+      if (typeof av === 'string') return av.localeCompare(bv||'') * _favSortDir;
+      return ((av||0) - (bv||0)) * _favSortDir;
+    });
+  };
+  const makePane = items => isMobile ? makeCards(sortItems(items)) : makeTable(sortItems(items));
 
   el.style.overflowX = 'hidden';
   el.innerHTML = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
       <button onclick="favKwTab(this,0)"
-        style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s">
-        全て <span style="font-size:0.7rem;opacity:0.7">${list.length}</span>
+        style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
+        全て <span style="font-size:0.72rem;font-weight:700;background:#2563eb;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${list.length}</span>
       </button>
       ${kwKeys.map((kw, i) => `
         <button onclick="favKwTab(this,${i+1})"
-          style="padding:4px 12px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#888;cursor:pointer;font-family:inherit;transition:all 0.15s">
-          🔍 ${kw} <span style="font-size:0.7rem;opacity:0.7">${groups[kw].length}</span>
+          style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#555;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
+          🔍 ${kw} <span style="font-size:0.72rem;font-weight:700;background:#64748b;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${groups[kw].length}</span>
         </button>`).join('')}
     </div>
     <div class="fav-kw-pane">${makePane(list)}</div>
     ${kwKeys.map(kw => `<div class="fav-kw-pane" style="display:none">${makePane(groups[kw])}</div>`).join('')}`;
+}
+let _favSortKey = localStorage.getItem('favSortKey') || '';
+let _favSortDir = parseInt(localStorage.getItem('favSortDir') || '-1');
+function sortFavGrid(key) {
+  if (_favSortKey === key) _favSortDir *= -1;
+  else { _favSortKey = key; _favSortDir = -1; }
+  localStorage.setItem('favSortKey', _favSortKey);
+  localStorage.setItem('favSortDir', _favSortDir);
+  renderFavGrid();
 }
 function favKwTab(btn, idx) {
   const wrap = btn.closest('#favItemGrid');
@@ -3830,6 +3882,11 @@ function favKwTab(btn, idx) {
     b.style.borderColor = i===idx ? '#93b4e0' : '#d0d8e8';
   });
   wrap.querySelectorAll('.fav-kw-pane').forEach((p,i) => p.style.display = i===idx ? 'block' : 'none');
+}
+function saveFavMemo(itemCode, memo) {
+  let list = loadFavs();
+  const idx = list.findIndex(f => f.itemCode === itemCode);
+  if (idx >= 0) { list[idx].memo = memo; saveFavs(list); }
 }
 function saveSupplierUrl(itemCode, url) {
   let list = loadFavs();
@@ -3862,6 +3919,7 @@ function toggleShopFav(itemCode) {
     list.unshift({ itemCode: item.itemCode, name: item.name, price: item.price,
       reviewCount: item.reviewCount, reviewAvg: item.reviewAvg,
       url: item.url, image: item.image, shopName: item.shopName,
+      savedBy: localStorage.getItem('favUserName') || '',
       savedAt: new Date().toLocaleDateString("ja-JP") });
   }
   saveFavs(list);
@@ -3884,6 +3942,7 @@ function toggleFavorite(itemCode) {
       reviewCount: item.reviewCount, reviewAvg: item.reviewAvg,
       url: item.url, image: item.image, shopName: item.shopName,
       keyword: _kw,
+      savedBy: localStorage.getItem('favUserName') || '',
       savedAt: new Date().toLocaleDateString("ja-JP") });
   }
   saveFavs(list);
