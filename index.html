@@ -116,6 +116,7 @@
     <section class="top-section" id="favGridSection">
       <div class="top-section-header">
         <span class="top-section-title"><span class="title-emoji">★</span> お気に入り商品 <span id="favCount" style="font-size:0.8rem;font-weight:600;color:#e67e22;background:#fffbe6;border:1px solid #fde68a;border-radius:20px;padding:1px 10px;margin-left:4px">0</span></span>
+        <button onclick="downloadFavBackup()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:2px 4px;color:#aaa;line-height:1" title="バックアップ（JSONダウンロード）">💾</button>
         <button onclick="openTrashModal()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:2px 4px;color:#aaa;line-height:1" title="ゴミ箱">🗑</button>
         <div style="display:flex;align-items:center;gap:0;background:#f4f6fb;border:1px solid #d0d8e8;border-radius:20px;overflow:hidden;padding:0">
           <span style="font-size:0.72rem;color:#7a90b0;font-weight:600;padding:4px 8px 4px 12px;white-space:nowrap;user-select:none">👤</span>
@@ -3915,26 +3916,18 @@ function renderFavGrid() {
   const makePane = items => isMobile ? makeCards(sortItems(items)) : makeTable(sortItems(items));
 
   el.style.overflowX = 'hidden';
+  el._kwGroups = groups;
   el.innerHTML = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
       <button onclick="favKwTab(this,0)"
         style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
         全て <span style="font-size:0.72rem;font-weight:700;background:#2563eb;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${list.length}</span>
       </button>
-      ${kwKeys.map((kw, i) => {
-        const kwEsc = kw.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        const kwUrl = (_kwUrlCache && _kwUrlCache[kw]) || '';
-        return `<div style="display:inline-flex;flex-direction:column;gap:2px">
-          <button onclick="favKwTab(this,${i+1})"
-            style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#555;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
-            🔍 ${kw} <span style="font-size:0.72rem;font-weight:700;background:#64748b;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${groups[kw].length}</span>
-          </button>
-          <input type="url" value="${kwUrl}" placeholder="URL"
-            onchange="saveKwUrl('${kwEsc}',this.value)"
-            style="width:100%;font-size:0.68rem;border:none;border-bottom:1px solid #d0d8e8;outline:none;color:#2563eb;background:transparent;padding:1px 4px"
-            onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#d0d8e8'">
-        </div>`;
-      }).join('')}
+      ${kwKeys.map((kw, i) => `
+        <button onclick="favKwTab(this,${i+1})"
+          style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#555;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
+          🔍 ${kw} <span style="font-size:0.72rem;font-weight:700;background:#64748b;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${groups[kw].length}</span>
+        </button>`).join('')}
     </div>
     <div class="fav-kw-pane">${makePane(list)}</div>
     ${kwKeys.map(kw => `<div class="fav-kw-pane" style="display:none">${makePane(groups[kw])}</div>`).join('')}`;
@@ -3948,6 +3941,17 @@ function sortFavGrid(key) {
   localStorage.setItem('favSortDir', _favSortDir);
   renderFavGrid();
 }
+function downloadFavBackup() {
+  const list = loadFavs();
+  if (!list.length) { alert('お気に入り商品がありません'); return; }
+  const date = new Date().toLocaleDateString('ja-JP').replace(/\//g,'-');
+  const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `favorites_backup_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 function saveKwUrl(kw, url) {
   _kwUrlCache[kw] = url;
   _kwUrlRef.set(_kwUrlCache);
@@ -3960,6 +3964,11 @@ function favKwTab(btn, idx) {
     b.style.borderColor = i===idx ? '#93b4e0' : '#d0d8e8';
   });
   wrap.querySelectorAll('.fav-kw-pane').forEach((p,i) => p.style.display = i===idx ? 'block' : 'none');
+  // URLをキーワードごとに変える
+  const kwKeys = Object.keys(wrap._kwGroups || {});
+  const kw = idx === 0 ? '' : kwKeys[idx - 1] || '';
+  const url = kw ? `?favkw=${encodeURIComponent(kw)}` : (location.search.startsWith('?favkw') ? location.pathname : location.href.split('?')[0]);
+  history.replaceState(null, '', kw ? `?favkw=${encodeURIComponent(kw)}` : location.pathname);
 }
 function saveFavMemo(itemCode, memo) {
   let list = loadFavs();
