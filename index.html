@@ -89,14 +89,16 @@
         <input type="text" id="keyword" placeholder="例：フラワーシャワー 造花" maxlength="50" autocomplete="off">
         <div id="suggestDropdown" class="suggest-dropdown"></div>
       </div>
-
-      <button id="searchBtn" onclick="doSearch()">調査する</button>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button id="searchBtn" onclick="doSearch()" style="height:40px">調査する</button>
+        <button onclick="(function(){const kw=document.getElementById('keyword').value.trim();if(kw)window.open('https://jp.mercari.com/search?keyword='+encodeURIComponent(kw)+'&sort=created_time&item_condition_id%5B%5D=1&order=desc&item_types=mercari&item_condition_id=1&status=sold_out%7Ctrading','_blank');})()" style="height:40px;padding:0 14px;font-size:0.82rem;font-weight:700;font-family:inherit;background:#fff;color:#ff0211;border:1.5px solid #ff0211;border-radius:8px;cursor:pointer;white-space:nowrap;transition:background 0.15s" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">メルカリ</button>
+        <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録" style="height:40px">＋ キーワード保存</button>
+      </div>
       <div id="keywordError" style="display:none;font-size:0.8rem;color:#e53e3e;margin-top:4px;font-weight:600;padding-left:2px"></div>
       <div class="sp-btn-row">
-        <button id="saveBtn" onclick="saveKeyword()" title="現在のキーワードを登録">＋ キーワード保存</button>
         <button id="spFavBtn" style="display:none" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)">★ お気に入り <span id="spFavCount">0</span></button>
       </div>
-      <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ お気に入り商品一覧へ</button>
+      <button id="favBtn" style="display:none" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ お気に入り商品一覧へ</button>
       <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
     </div>
     </div><!-- /.header-top -->
@@ -104,7 +106,7 @@
   </div>
 
   <a id="topBtn" href="#" title="トップへ戻る">▲</a>
-  <button id="fixedFavBtn" onclick="showWelcome();setTimeout(()=>{const el=document.getElementById('favGridSection');if(el)window.scrollTo({top:el.offsetTop-10,behavior:'smooth'})},300)">★ お気に入り商品一覧へ</button>
+  <button id="fixedFavBtn" onclick="showWelcome();setTimeout(()=>{const el=document.getElementById('favGridSection');if(el)window.scrollTo({top:el.offsetTop-10,behavior:'smooth'})},300)" title="お気に入り商品一覧へ">★</button>
 
   <!-- 株価バナー -->
   <div id="stockWidget" class="stock-banner"></div>
@@ -1851,7 +1853,7 @@ async function doSearch(searchGenreId) {
     _movePriceFilter();
     document.getElementById("status").className = "status hidden";
     const _ffb = document.getElementById("fixedFavBtn");
-    if (_ffb) _ffb.style.display = "";
+    if (_ffb) _ffb.style.display = "block";
   } catch(e) {
     setStatus("error", e.message);
   } finally {
@@ -3099,12 +3101,13 @@ function openMarketPopup() {
   const riskBg   = { high:"#fdf0ef", mid:"#fef6ec", low:"#edfaf2" };
   const riskLabel = { high:"⚠️ 高", mid:"📊 中", low:"✅ 低" };
 
-  const _bandLabel = window._currentBandLabel ? `　<span style="font-size:0.75rem;font-weight:500;color:#2563eb">${window._currentBandLabel}</span>` : '';
+  const _bandName = window._currentBandLabel || '全価格帯';
+  const _bandLabel = `　<span style="font-size:0.72rem;font-weight:700;background:#2563eb;color:#fff;border-radius:4px;padding:1px 7px">${_bandName}</span>`;
   const _fmtM = v => v >= 1e8 ? `${Math.round(v/1e8*10)/10}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
   const _bandMonthly = window._currentBandMonthly != null ? window._currentBandMonthly : (d.totalMonthly || 0);
   const _monthlyLabel = _bandMonthly > 0 ? `<span style="font-size:0.85rem;font-weight:700;color:#cbd5e1;margin-left:10px">市場月商 ${_fmtM(_bandMonthly)}</span>` : '';
   document.getElementById("marketPopupTitle").innerHTML = `💡 &nbsp;${d.keyword}${_bandLabel}${_monthlyLabel}`;
-  document.getElementById("marketPopupBody").innerHTML = `
+  const _bodyHtml = `
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場シェア</button>
       <button class="mp-tab" onclick="mpTab(this,1)">🔍 SEO戦略</button>
@@ -3294,13 +3297,16 @@ function openMarketPopup() {
       </div>
 
       <!-- タブ3: 季節・需要 -->
-      <div class="mp-pane" style="display:none">
-        ${buildSeasonPane(d.keyword || '')}
-      </div>
+      <div class="mp-pane" id="seasonPane"></div>
 
     </div>
   `;
   document.getElementById("marketPopup").classList.add("open");
+  setTimeout(() => {
+    document.getElementById("marketPopupBody").innerHTML = _bodyHtml;
+    const sp = document.getElementById('seasonPane');
+    if (sp) sp.innerHTML = buildSeasonPane(d.keyword || '');
+  }, 50);
   // サジェスト取得（非同期・完了後にリスト更新）
   const _kw4sug = d.keyword || document.getElementById('keyword')?.value.trim() || '';
   window._lastSuggestItems = window._lastSuggestItems || [];
@@ -3667,7 +3673,7 @@ function filterByPriceBand(min, max, bandIdx) {
   const _rtEl = document.getElementById('resultTitle');
   if (_rtEl) {
     if (_kw && _bandLabel) {
-      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#fff;background:#2563eb;border-radius:4px;padding:1px 7px;font-size:0.8rem">${_bandLabel}</span>&nbsp;${filtered.length}件&nbsp;<span style="font-size:0.78rem;color:#64748b;font-weight:500">競合${_bandShopCnt}店</span>`;
+      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">${_bandLabel}</span>&nbsp;${filtered.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_bandShopCnt}店</span>`;
     } else if (_kw) {
       _rtEl.textContent = `検索結果「${_kw}」 ${filtered.length}件`;
     } else {

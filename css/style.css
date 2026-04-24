@@ -131,16 +131,18 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   font-weight: 700; letter-spacing: 0.02em;
 }
 #searchBtn {
-  padding: 9px 22px;
-  font-size: 0.95rem;
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  padding: 0 24px;
+  height: 40px;
+  font-size: 0.9rem;
+  background: #2563eb;
   color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+  border-radius: 8px;
   white-space: nowrap;
   flex-shrink: 0;
+  letter-spacing: 0.04em;
 }
-#searchBtn:hover:not(:disabled) { background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
+#searchBtn:hover:not(:disabled) { background: #1d4ed8; }
+#searchBtn:disabled { background: #94a3b8; cursor: not-allowed; }
 #searchBtn:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
 
 #spFavBtn { display: none; }
@@ -149,8 +151,9 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 7px 10px;
-  font-size: 0.78rem;
+  padding: 0 14px;
+  height: 40px;
+  font-size: 0.82rem;
   border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -556,22 +559,28 @@ td a:hover { text-decoration: underline; }
 #fixedFavBtn {
   display: none;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  padding: 14px 0;
-  font-size: 0.95rem;
+  bottom: 80px;
+  right: 24px;
+  width: 48px;
+  padding: 0;
+  width: 48px;
+  height: 48px;
+  font-size: 1.3rem;
   font-weight: 700;
-  background: #fffbeb;
-  color: #92400e;
+  background: linear-gradient(135deg,#fbbf24,#f97316);
+  color: #fff;
   border: none;
-  border-top: 2px solid #fde68a;
+  border-radius: 50px;
   cursor: pointer;
   font-family: inherit;
   z-index: 1000;
   letter-spacing: 0.02em;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(249,115,22,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+#fixedFavBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(249,115,22,0.5);
 }
 
 /* Feature Tags */
@@ -1213,7 +1222,7 @@ td a:hover { text-decoration: underline; }
   flex: 1;
   overflow-y: auto;
   padding: 14px 20px 18px;
-  font-size: 1rem;
+  font-size: 1.07rem;
 }
 .mp-pane { display: none; flex-direction: column; gap: 10px; }
 .mp-pane.active { display: flex; }
