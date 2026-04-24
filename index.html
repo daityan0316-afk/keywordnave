@@ -2821,6 +2821,78 @@ function copyKw(kw, btn) {
   });
 }
 
+function buildSeasonPane(kw) {
+  const mNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const base = [4,4,5,5,5,4,5,5,4,4,5,6];
+  const evDef = [
+    { keys:['正月','お年玉','新年','おせち','福袋'], mons:[12,1], label:'正月・新年', boost:9 },
+    { keys:['バレンタイン','チョコ','ハート'], mons:[1,2], label:'バレンタイン', boost:9 },
+    { keys:['ひな祭り','雛','桃の節句'], mons:[2,3], label:'ひな祭り', boost:9 },
+    { keys:['卒業','入学','新生活','引越し'], mons:[2,3,4], label:'卒業・入学', boost:8 },
+    { keys:['花','フラワー','造花','ブーケ','ウェディング','結婚'], mons:[3,4,5,9,10], label:'冠婚・フラワー', boost:8 },
+    { keys:['母の日'], mons:[4,5], label:'母の日', boost:9 },
+    { keys:['父の日'], mons:[5,6], label:'父の日', boost:9 },
+    { keys:['夏','サマー','海','水着','プール','冷感'], mons:[6,7,8], label:'夏需要', boost:8 },
+    { keys:['七夕','お中元','お盆'], mons:[7,8], label:'夏季イベント', boost:7 },
+    { keys:['ハロウィン','かぼちゃ'], mons:[9,10], label:'ハロウィン', boost:9 },
+    { keys:['七五三'], mons:[10,11], label:'七五三', boost:8 },
+    { keys:['クリスマス','サンタ','ツリー'], mons:[11,12], label:'クリスマス', boost:10 },
+    { keys:['お歳暮','年末','防寒','温か','あったか','冬'], mons:[11,12], label:'年末・冬需要', boost:7 },
+    { keys:['敬老','シニア'], mons:[8,9], label:'敬老の日', boost:7 },
+    { keys:['アクセサリー','指輪','ネックレス','ピアス','バングル','ブレス'], mons:[2,3,5,6,11,12], label:'ギフトシーズン', boost:6 },
+    { keys:['リング','ring','シルバー','ゴールド'], mons:[2,3,5,6,11,12], label:'ジュエリー需要', boost:5 },
+    { keys:['ギフト','プレゼント'], mons:[2,5,6,11,12], label:'ギフト需要', boost:5 },
+  ];
+  const score = [...base];
+  const matched = [];
+  const kwL = kw.toLowerCase();
+  evDef.forEach(function(ev) {
+    const hit = ev.keys.some(function(k){ return kwL.includes(k.toLowerCase()); });
+    if (hit) {
+      matched.push(ev);
+      ev.mons.forEach(function(m){ score[(m-1+12)%12] = Math.min(10, score[(m-1+12)%12] + ev.boost * 0.7); });
+    }
+  });
+  const maxScore = Math.max.apply(null, score);
+  const ranked = score.map(function(s,i){ return {s:s,i:i}; }).sort(function(a,b){ return b.s-a.s; });
+  const peakIdxs = [ranked[0].i, ranked[1].i, ranked[2].i];
+  // バーチャート
+  let bars = '';
+  for (let i=0;i<12;i++) {
+    const h = Math.round(score[i]/maxScore*70);
+    const isPeak = peakIdxs.includes(i);
+    const bc = isPeak ? '#f97316' : score[i]>6 ? '#fbbf24' : score[i]>4 ? '#60a5fa' : '#cbd5e1';
+    const tc = isPeak ? '#f97316' : '#94a3b8';
+    const fw = isPeak ? '700' : '400';
+    bars += '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      + '<div style="width:100%;height:'+h+'px;background:'+bc+';border-radius:3px 3px 0 0;min-height:4px"></div>'
+      + '<div style="font-size:0.55rem;color:'+tc+';font-weight:'+fw+'">'+mNames[i]+'</div>'
+      + '</div>';
+  }
+  // イベントバッジ
+  let evBadges = '';
+  matched.forEach(function(ev) {
+    const mStr = ev.mons.map(function(m){ return m+'月'; }).join('・');
+    evBadges += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:4px 10px;font-size:0.78rem;font-weight:600;color:#c2410c">'
+      + ev.label + '<span style="font-size:0.7rem;color:#f97316;margin-left:4px">'+mStr+'</span></div>';
+  });
+  // 仕入れタイミング
+  let timing = '';
+  peakIdxs.slice(0,2).forEach(function(i) {
+    const p1 = (i-2+12)%12, p2 = (i-1+12)%12;
+    timing += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#166534">'
+      + '<b>'+mNames[i]+'ピーク</b>に向けて → <b>'+mNames[p1]+'〜'+mNames[p2]+'</b>に仕入れ開始が目安</div>';
+  });
+  return '<div style="margin-bottom:14px">'
+    + '<div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:10px">📅 月別需要予測（推計）</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:80px">'+bars+'</div>'
+    + '<div style="display:flex;gap:10px;margin-top:6px;font-size:0.68rem;color:#94a3b8">'
+    + '<span>🟠 ピーク</span><span>🟡 高め</span><span>🔵 通常</span></div>'
+    + '</div>'
+    + (evBadges ? '<div style="margin-bottom:14px"><div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">🎯 関連イベント・季節</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+evBadges+'</div></div>' : '')
+    + '<div><div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 仕入れタイミング目安</div>'
+    + '<div style="display:flex;flex-direction:column;gap:5px">'+timing+'</div></div>';
+}
 function openMarketPopup() {
   const d = window._marketAnalysis;
   if (!d) return;
@@ -3223,75 +3295,7 @@ function openMarketPopup() {
 
       <!-- タブ3: 季節・需要 -->
       <div class="mp-pane" style="display:none">
-        ${(() => {
-          const kw = d.keyword || '';
-          const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-          // キーワードベースの季節スコア（0〜10）
-          const base = [4,4,5,5,5,4,5,5,4,4,5,6];
-          const events = [
-            { keys:['正月','お年玉','新年','おせち','ふく袋','福袋'], months:[12,1], label:'正月・新年', boost:9 },
-            { keys:['バレンタイン','チョコ','ハート','valentine'], months:[1,2], label:'バレンタイン', boost:9 },
-            { keys:['ひな祭り','雛','桃の節句'], months:[2,3], label:'ひな祭り', boost:9 },
-            { keys:['卒業','入学','ランドセル','新生活','引越し'], months:[2,3,4], label:'卒業・入学シーズン', boost:9 },
-            { keys:['花','フラワー','造花','ブーケ','ウェディング','結婚','wedding'], months:[3,4,5,9,10], label:'冠婚・フラワーシーズン', boost:8 },
-            { keys:['母の日','母','ギフト','プレゼント'], months:[4,5], label:'母の日', boost:9 },
-            { keys:['父の日'], months:[5,6], label:'父の日', boost:9 },
-            { keys:['夏','サマー','海','水着','プール','涼し','冷感'], months:[6,7,8], label:'夏需要', boost:8 },
-            { keys:['七夕','お中元','お盆','帰省'], months:[7,8], label:'夏季イベント', boost:7 },
-            { keys:['ハロウィン','halloween','かぼちゃ'], months:[9,10], label:'ハロウィン', boost:9 },
-            { keys:['七五三'], months:[10,11], label:'七五三', boost:8 },
-            { keys:['クリスマス','christmas','サンタ','ツリー'], months:[11,12], label:'クリスマス', boost:10 },
-            { keys:['お歳暮','年末','大晦日','冬','防寒','温か','あったか'], months:[11,12], label:'年末・冬需要', boost:7 },
-            { keys:['敬老','シニア'], months:[8,9], label:'敬老の日', boost:7 },
-            { keys:['アクセサリー','指輪','ネックレス','ピアス','バングル','ブレス'], months:[2,3,5,6,11,12], label:'ギフトシーズン強め', boost:6 },
-            { keys:['リング','ring','silver','シルバー','gold','ゴールド'], months:[2,3,5,6,11,12], label:'ジュエリー需要', boost:5 },
-          ];
-          const score = [...base];
-          const matched = [];
-          events.forEach(ev => {
-            const hit = ev.keys.some(k => kw.toLowerCase().includes(k.toLowerCase()));
-            if (hit) {
-              matched.push({ label: ev.label, months: ev.months });
-              ev.months.forEach(m => { score[(m-1+12)%12] = Math.min(10, score[(m-1+12)%12] + ev.boost * 0.7); });
-            }
-          });
-          const maxScore = Math.max(...score);
-          const peakIdxs = score.map((s,i)=>({s,i})).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.i);
-          const barColor = i => peakIdxs.includes(i) ? '#f97316' : score[i]>6 ? '#fbbf24' : score[i]>4 ? '#60a5fa' : '#cbd5e1';
-          return `
-            <div style="margin-bottom:12px">
-              <div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:10px">📅 月別需要予測（推計）</div>
-              <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:80px">
-                ${score.map((s,i)=>{
-                  const h = Math.round(s/maxScore*70);
-                  return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                    <div style="width:100%;height:${h}px;background:${barColor(i)};border-radius:3px 3px 0 0;min-height:4px"></div>
-                    <div style="font-size:0.55rem;color:${peakIdxs.includes(i)?'#f97316':'#94a3b8'};font-weight:${peakIdxs.includes(i)?700:400}">${months[i]}</div>
-                  </div>`;
-                }).join('')}
-              </div>
-              <div style="display:flex;gap:10px;margin-top:6px;font-size:0.68rem;color:#94a3b8;align-items:center">
-                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#f97316;border-radius:2px;display:inline-block"></span>ピーク</span>
-                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#fbbf24;border-radius:2px;display:inline-block"></span>高め</span>
-                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:#60a5fa;border-radius:2px;display:inline-block"></span>通常</span>
-              </div>
-            </div>
-            ${matched.length ? `
-            <div style="margin-bottom:12px">
-              <div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">🎯 関連イベント・季節</div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px">
-                ${matched.map(ev=>`<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:4px 10px;font-size:0.78rem;font-weight:600;color:#c2410c">${ev.label}<span style="font-size:0.7rem;color:#f97316;margin-left:4px">${ev.months.map(m=>m+'月').join('・')}</span></div>`).join('')}
-              </div>
-            </div>` : ''}
-            <div>
-              <div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 仕入れタイミング目安</div>
-              <div style="display:flex;flex-direction:column;gap:5px">
-                ${peakIdxs.slice(0,2).map(i=>`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#166534">
-                  <b>${months[i]}ピーク</b>に向けて → <b>${months[(i-2+12)%12]}〜${months[(i-1+12)%12]}</b>に仕入れ開始が目安
-                </div>`).join('')}
-              </div>
-            </div>`;
-        })()}
+        ${buildSeasonPane(d.keyword || '')}
       </div>
 
     </div>
