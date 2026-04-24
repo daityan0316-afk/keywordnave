@@ -133,6 +133,7 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
 #searchBtn {
   padding: 0 24px;
   height: 40px;
+  line-height: 40px;
   font-size: 0.9rem;
   background: #2563eb;
   color: #fff;
@@ -140,6 +141,9 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   white-space: nowrap;
   flex-shrink: 0;
   letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 #searchBtn:hover:not(:disabled) { background: #1d4ed8; }
 #searchBtn:disabled { background: #94a3b8; cursor: not-allowed; }
@@ -151,9 +155,9 @@ h2 { font-size: 1.05rem; margin-bottom: 12px; color: var(--navy); font-weight: 7
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 0 14px;
+  padding: 0 16px;
   height: 40px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -559,9 +563,9 @@ td a:hover { text-decoration: underline; }
 #fixedFavBtn {
   display: none;
   position: fixed;
-  bottom: 80px;
-  right: 24px;
-  width: 48px;
+  bottom: 72px;
+  right: 16px;
+  width: 44px;
   padding: 0;
   width: 48px;
   height: 48px;
@@ -2496,16 +2500,26 @@ td a:hover { text-decoration: underline; }
   }
   .search-box { flex-wrap: wrap; }
   .suggest-wrap { flex: 1; min-width: 0; order: 1; width: 100%; }
+  /* ボタン群ラッパー */
+  .search-box > div:not(.suggest-wrap):not(.sp-btn-row) {
+    order: 2; width: 100%; flex-direction: column; gap: 6px;
+  }
+  .search-box > div:not(.suggest-wrap):not(.sp-btn-row) > button {
+    width: 100% !important; height: 44px !important; padding: 0 !important;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.92rem;
+  }
   #searchBtn {
-    order: 2; padding: 12px 0; font-size: 0.95rem; width: 100%; border-radius: 8px;
+    border-radius: 8px;
     background: linear-gradient(135deg,#1e3a8a,#2563eb); box-shadow: 0 2px 8px rgba(37,99,235,0.3);
   }
   /* キーワード保存＋お気に入りを横並び */
   .sp-btn-row { display: flex; order: 3; gap: 6px; width: 100%; }
   #saveBtn {
-    order: 0; flex: 1; padding: 11px 0; font-size: 0.82rem; font-weight: 700;
+    width: 100% !important; height: 48px !important; padding: 0 !important;
+    font-size: 0.9rem; font-weight: 700;
     background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1;
-    border-radius: 8px; white-space: nowrap; text-align: center; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; white-space: nowrap; display: flex; align-items: center; justify-content: center;
   }
   #spFavBtn {
     display: flex; order: 0; flex: 1;
@@ -2525,6 +2539,7 @@ td a:hover { text-decoration: underline; }
   .page-layout, .result-layout { flex-direction: column; gap: 10px; padding: 0 10px 80px; }
   .result-sidebar { width: 100%; }
   .sidebar-sticky { position: static; gap: 10px; }
+  #shopTagList { display: none !important; }
 
   /* サイドバーカード */
   .result-sidebar .summary-grid { flex-direction: row; flex-wrap: wrap; gap: 6px; }
@@ -2554,9 +2569,17 @@ td a:hover { text-decoration: underline; }
     margin-left: 0;
   }
   .pg-header-row {
-    flex-wrap: wrap;
-    gap: 4px;
+    flex-direction: column;
     align-items: flex-start;
+    gap: 3px;
+  }
+  #resultTitle {
+    padding-left: 0;
+    font-size: 0.8rem;
+    white-space: normal;
+    word-break: break-all;
+    max-width: 100%;
+    line-height: 1.4;
   }
   #bestsellerCardTitle {
     font-size: 0.88rem !important;
@@ -2588,7 +2611,10 @@ td a:hover { text-decoration: underline; }
   .top-section-header { padding: 8px 12px 6px; }
   .top-section-title { font-size: 0.88rem; }
   #topContent { padding-top: 2px; }
-  .top-section-header { padding: 10px 14px 8px; }
+  .top-section-header { padding: 10px 14px 8px; flex-wrap: wrap; gap: 8px; }
+  #favUserNameInput { width: 56px; }
+  .top-section-header > div[style*="margin-left:auto"] { margin-left: auto !important; }
+  #favBackupBtn { display: none !important; }
 
   /* 市場分析レポートモーダル */
   .market-popup-overlay { padding: 0; align-items: flex-start; }
