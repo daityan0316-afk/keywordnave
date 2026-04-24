@@ -34,6 +34,9 @@
     });
 
     const _trashRef = _db.ref('favTrash');
+    const _kwUrlRef = _db.ref('favKwUrls');
+    let _kwUrlCache = {};
+    _kwUrlRef.on('value', snap => { _kwUrlCache = snap.val() || {}; });
     let _trashCache = [];
     _trashRef.on('value', snapshot => { _trashCache = snapshot.val() || []; });
 
@@ -1811,12 +1814,14 @@ async function doSearch(searchGenreId) {
     await new Promise(r => setTimeout(r, 0));
 
     _allItems = items;
+    // renderNiche内のIIFEで_sortedItemsを参照するため先に設定
+    _sortedItems = [...items];
+    _orderMap = {};
+    items.forEach((it, i) => { if (it.itemCode) _orderMap[it.itemCode] = i + 1; });
     renderSummary(items);
     renderNiche(items, keyword);
 
-    // standard順の位置を記録してからレビュー数順で表示
-    _orderMap = {};
-    items.forEach((it, i) => { if (it.itemCode) _orderMap[it.itemCode] = i + 1; });
+    // standard順でソート
     _sortedItems = [...items].sort((a, b) => {
       const pa = _orderMap[a.itemCode] || 999;
       const pb = _orderMap[b.itemCode] || 999;
@@ -1999,7 +2004,8 @@ function renderNiche(items, keyword) {
           if (!i.reviewCount || !i.price) return s;
           return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
         }, 0);
-        const _uShops = ma.uniqueShops || 0;
+        const _allBase0 = (_sortedItems&&_sortedItems.length) ? _sortedItems : _allIt.filter(i=>i.price>0&&i.reviewCount>0);
+        const _uShops = new Set(_allBase0.map(it=>it.shopName).filter(Boolean)).size || ma.uniqueShops || 0;
         const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
         const _adjRatio = ma.topShopShare > 0.3 ? _entRatio * 0.6 : _entRatio;
         const monthlyRounded = Math.round(topShopRev * _adjRatio);
@@ -2071,11 +2077,12 @@ function renderNiche(items, keyword) {
             window._priceBandBestIdx = bestIdx;
             const _allPrices = allItems.map(i=>i.price);
             const _allRange = _allPrices.length ? `¥${Math.min(..._allPrices).toLocaleString()}〜¥${Math.max(..._allPrices).toLocaleString()}` : '';
-            const _allShopCnt = new Set(allItems.map(i=>i.shopName).filter(Boolean)).size;
+            const _allBase = (_sortedItems&&_sortedItems.length) ? _sortedItems : allItems;
+            const _allShopCnt = new Set(_allBase.filter(i=>i.shopName).map(i=>i.shopName)).size;
             const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid #e2e8f0;cursor:pointer;transition:background 0.12s;border-left:4px solid #94a3b8;background:#f8fafc" onmouseover="this.style.background='#f0f4fa'" onmouseout="this.style.background='#f8fafc'">
               <div style="flex:1;min-width:0">
                 <div style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">全価格帯</div>
-                <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_allRange}&nbsp;·&nbsp;競合${_allShopCnt}店</div>
+                <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_allRange}</div>
               </div>
               <div style="font-size:1.25rem;font-weight:900;color:#334e68;white-space:nowrap">${fmtM(Math.round(_totalMonthly))}</div>
             </div>`;
@@ -2083,7 +2090,9 @@ function renderNiche(items, keyword) {
               const pMin = r.b.min===0?0:Math.round(r.b.min);
               const pMax = r.b.max===Infinity?9999999:Math.round(r.b.max-1);
               const _bandIts = allItems.filter(it=>it.price>=r.b.min&&it.price<r.b.max);
-              const _shopSet = new Set(_bandIts.map(it=>it.shopName).filter(Boolean));
+              const _pMaxVal = pMax===9999999 ? Infinity : pMax;
+              const _base = (_sortedItems&&_sortedItems.length) ? _sortedItems : allItems;
+              const _shopSet = new Set(_base.filter(it=>it.price>=pMin&&it.price<=_pMaxVal).map(it=>it.shopName).filter(Boolean));
               const _shopCnt = _shopSet.size;
               const _priceRange = _bandIts.length ? `¥${Math.min(..._bandIts.map(i=>i.price)).toLocaleString()}〜¥${Math.max(..._bandIts.map(i=>i.price)).toLocaleString()}` : '';
               const _bigMkt = r.rounded >= 150000;
@@ -2105,7 +2114,7 @@ function renderNiche(items, keyword) {
                     <span style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">${r.b.label}</span>
                     <span class="band-judge-tip" style="font-size:0.75rem;font-weight:700;color:${_mj.color};background:${_mj.bg};padding:1px 5px;border-radius:3px;position:relative;cursor:help;white-space:nowrap">${_mj.text}<span class="band-tip-box">${_mj.tip}</span></span>
                   </div>
-                  <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
+                  <div style="font-size:0.8rem;color:#445870;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_priceRange}&nbsp;·&nbsp;競合${_shopCnt}店</div>
                 </div>
                 <div style="font-size:1.25rem;font-weight:900;color:${r.b.color};flex-shrink:0;padding-left:8px;white-space:nowrap">${_amtStr}</div>
               </div>`;
@@ -2334,7 +2343,8 @@ function renderSummary(items) {
     priceMedian: median, priceAvg: Math.round(avg), priceMin: prices[0]||0,
     totalCount: _totalCount,
     keyword: document.getElementById("keyword").value.trim(),
-    competitionScore, compRank, avgReviewPerItem, seoLevel: _seoLevel, items
+    competitionScore, compRank, avgReviewPerItem, seoLevel: _seoLevel, items,
+    totalMonthly: items.filter(i=>i.reviewCount&&i.price).reduce((s,i)=>{const rr=i.price<1000?0.08:i.price<5000?0.06:i.price<20000?0.05:0.04;const mo=i.reviewCount>1000?48:i.reviewCount>300?36:i.reviewCount>100?24:i.reviewCount>30?18:12;return s+(i.reviewCount/rr/mo)*i.price;},0)
   };
 
   document.getElementById("summaryGrid").innerHTML = "";
@@ -3009,7 +3019,10 @@ function openMarketPopup() {
   const riskLabel = { high:"⚠️ 高", mid:"📊 中", low:"✅ 低" };
 
   const _bandLabel = window._currentBandLabel ? `　<span style="font-size:0.75rem;font-weight:500;color:#2563eb">${window._currentBandLabel}</span>` : '';
-  document.getElementById("marketPopupTitle").innerHTML = `💡 &nbsp;${d.keyword}${_bandLabel}`;
+  const _fmtM = v => v >= 1e8 ? `${Math.round(v/1e8*10)/10}億円` : v >= 1e4 ? `約${Math.round(v/1e4)}万円` : `約${v.toLocaleString()}円`;
+  const _bandMonthly = window._currentBandMonthly != null ? window._currentBandMonthly : (d.totalMonthly || 0);
+  const _monthlyLabel = _bandMonthly > 0 ? `<span style="font-size:0.85rem;font-weight:700;color:#cbd5e1;margin-left:10px">市場月商 ${_fmtM(_bandMonthly)}</span>` : '';
+  document.getElementById("marketPopupTitle").innerHTML = `💡 &nbsp;${d.keyword}${_bandLabel}${_monthlyLabel}`;
   document.getElementById("marketPopupBody").innerHTML = `
     <div class="mp-tabs">
       <button class="mp-tab active" onclick="mpTab(this,0)">📊 市場シェア</button>
@@ -3042,7 +3055,7 @@ function openMarketPopup() {
               if (!i.reviewCount || !i.price) return sum;
               return sum + (i.reviewCount / _rrP(i.price) / _moP(i.reviewCount)) * i.price;
             }, 0)) }))
-            .sort((a,b) => b.estSales - a.estSales).slice(0, 15);
+            .sort((a,b) => b.estSales - a.estSales);
           const maxRev2 = shops2[0]?.estSales || 1;
           const maxItemCount = Math.max(...allShopsRaw.map(x=>x.count), 1);
           return `
@@ -3463,7 +3476,8 @@ function updateMarketTopGrid(items) {
     return s + (i.reviewCount / _rrF(i.price) / _moF(i.reviewCount)) * i.price;
   }, 0);
   const _topSharePct = _totalBandRevAll > 0 ? Math.round(topShopRev / _totalBandRevAll * 100) : 0;
-  const _uShops = Object.keys(_shopMap).length;
+  // 表示している競合数と同じソースで _adjRatio を計算
+  const _uShops = new Set((items||[]).map(it=>it.shopName).filter(Boolean)).size;
   const _entRatio = _uShops < 10 ? 0.5 : _uShops < 30 ? 0.3 : _uShops < 60 ? 0.2 : 0.1;
   const _adjRatio = _topSharePct > 30 ? _entRatio * 0.6 : _entRatio;
   const monthlyRounded = Math.round(topShopRev * _adjRatio);
@@ -3557,13 +3571,14 @@ function filterByPriceBand(min, max, bandIdx) {
   window._currentBandItems = bandItems;
   const _cbRow = bandIdx !== undefined ? (window._priceBandRows || [])[bandIdx] : null;
   window._currentBandMonthly = _cbRow ? _cbRow.rounded : null;
+  const _bandShopCnt = new Set(bandItems.map(it=>it.shopName).filter(Boolean)).size;
   // 検索結果タイトルに価格帯を反映
   const _kw = document.getElementById('keyword')?.value.trim() || _lastSearchKeyword || '';
   const _bandLabel = bandIdx !== undefined ? bandLabels[bandIdx] : '';
   const _rtEl = document.getElementById('resultTitle');
   if (_rtEl) {
     if (_kw && _bandLabel) {
-      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#fff;background:#2563eb;border-radius:4px;padding:1px 7px;font-size:0.8rem">${_bandLabel}</span>&nbsp;${filtered.length}件`;
+      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#fff;background:#2563eb;border-radius:4px;padding:1px 7px;font-size:0.8rem">${_bandLabel}</span>&nbsp;${filtered.length}件&nbsp;<span style="font-size:0.78rem;color:#64748b;font-weight:500">競合${_bandShopCnt}店</span>`;
     } else if (_kw) {
       _rtEl.textContent = `検索結果「${_kw}」 ${filtered.length}件`;
     } else {
@@ -3906,11 +3921,20 @@ function renderFavGrid() {
         style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
         全て <span style="font-size:0.72rem;font-weight:700;background:#2563eb;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${list.length}</span>
       </button>
-      ${kwKeys.map((kw, i) => `
-        <button onclick="favKwTab(this,${i+1})"
-          style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#555;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
-          🔍 ${kw} <span style="font-size:0.72rem;font-weight:700;background:#64748b;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${groups[kw].length}</span>
-        </button>`).join('')}
+      ${kwKeys.map((kw, i) => {
+        const kwEsc = kw.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        const kwUrl = (_kwUrlCache && _kwUrlCache[kw]) || '';
+        return `<div style="display:inline-flex;flex-direction:column;gap:2px">
+          <button onclick="favKwTab(this,${i+1})"
+            style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #d0d8e8;background:#fff;color:#555;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
+            🔍 ${kw} <span style="font-size:0.72rem;font-weight:700;background:#64748b;color:#fff;border-radius:10px;padding:1px 6px;line-height:1.4">${groups[kw].length}</span>
+          </button>
+          <input type="url" value="${kwUrl}" placeholder="URL"
+            onchange="saveKwUrl('${kwEsc}',this.value)"
+            style="width:100%;font-size:0.68rem;border:none;border-bottom:1px solid #d0d8e8;outline:none;color:#2563eb;background:transparent;padding:1px 4px"
+            onfocus="this.style.borderBottomColor='#2563eb'" onblur="this.style.borderBottomColor='#d0d8e8'">
+        </div>`;
+      }).join('')}
     </div>
     <div class="fav-kw-pane">${makePane(list)}</div>
     ${kwKeys.map(kw => `<div class="fav-kw-pane" style="display:none">${makePane(groups[kw])}</div>`).join('')}`;
@@ -3923,6 +3947,10 @@ function sortFavGrid(key) {
   localStorage.setItem('favSortKey', _favSortKey);
   localStorage.setItem('favSortDir', _favSortDir);
   renderFavGrid();
+}
+function saveKwUrl(kw, url) {
+  _kwUrlCache[kw] = url;
+  _kwUrlRef.set(_kwUrlCache);
 }
 function favKwTab(btn, idx) {
   const wrap = btn.closest('#favItemGrid');
