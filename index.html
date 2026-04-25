@@ -4071,35 +4071,16 @@ let _undoFavIdx = null;
 let _undoTimer = null; // 未使用・互換のため残す
 let _favDeletePending = null;
 function confirmFavDelete(itemCode, btn) {
-  if (_favDeletePending === itemCode) {
-    // 2回目 → 実際に削除
-    clearTimeout(btn._resetTimer);
-    _favDeletePending = null;
-    const list = loadFavs();
-    const idx = list.findIndex(f => f.itemCode === itemCode);
-    if (idx < 0) return;
-    const trashItem = { ...list[idx], deletedAt: new Date().toLocaleDateString('ja-JP') };
-    const trash = [...(_trashCache || [])];
-    trash.unshift(trashItem);
-    _trashRef.set(trash.slice(0, 50));
-    saveFavs(list.filter(f => f.itemCode !== itemCode));
-  } else {
-    // 1回目 → 確認状態に
-    if (_favDeletePending) {
-      // 別ボタンがペンディング中なら解除
-      document.querySelectorAll('[data-fav-del]').forEach(b => { b.textContent='×'; b.style.color='#ccc'; b.style.fontWeight=''; });
-    }
-    _favDeletePending = itemCode;
-    btn.textContent = '削除?';
-    btn.style.color = '#e53e3e';
-    btn.style.fontWeight = '700';
-    btn._resetTimer = setTimeout(() => {
-      _favDeletePending = null;
-      btn.textContent = '×';
-      btn.style.color = '#ccc';
-      btn.style.fontWeight = '';
-    }, 3000);
-  }
+  if (!confirm('この商品をお気に入りから削除しますか？')) return;
+  _favDeletePending = null;
+  const list = loadFavs();
+  const idx = list.findIndex(f => f.itemCode === itemCode);
+  if (idx < 0) return;
+  const trashItem = { ...list[idx], deletedAt: new Date().toLocaleDateString('ja-JP') };
+  const trash = [...(_trashCache || [])];
+  trash.unshift(trashItem);
+  _trashRef.set(trash.slice(0, 50));
+  saveFavs(list.filter(f => f.itemCode !== itemCode));
 }
 function removeFavFromGrid(itemCode) {
   const list = loadFavs();
