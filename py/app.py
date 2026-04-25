@@ -228,6 +228,167 @@ def search():
 def api_ping():
     return jsonify({"ok": True, "bs4": BS4_OK})
 
+# ── ヘルスチェック（プロキシ互換） ────────────────────────────────
+@app.route("/api/health")
+def api_health():
+    return jsonify({"ok": True})
+
+# ── キーワード抽出ユーティリティ ──────────────────────────────────
+_STOP = {
+    "の","に","は","を","が","で","と","た","て","い","な","れ","も","や","か",
+    "セット","送料","無料","対応","可能","用","約","入り","本","個","枚","円",
+    "cm","mm","kg","ml","new","sale","off","レディース","メンズ","ユニセックス",
+    "サイズ","カラー","タイプ","日本製","国産","限定","おしゃれ","シンプル",
+    "かわいい","プレゼント","ギフト","送料無料",
+}
+
+def _extract_keywords(names, limit=12):
+    import re as _re
+    freq = {}
+    splitter = _re.compile(r'[\s　\-－/／・|｜【】（）()\[\]「」『』、。,.!！?？★◆■□●○×＋\d�]+')
+    jp_re = _re.compile(r'[぀-ゟ゠-ヿ一-鿿]')
+    for name in names:
+        for w in splitter.split(name or ""):
+            if 2 <= len(w) <= 12 and w not in _STOP and jp_re.search(w):
+                freq[w] = freq.get(w, 0) + 1
+    return [{"word": w, "count": c} for w, c in sorted(freq.items(), key=lambda x: -x[1])[:limit]]
+
+def _rakuten_ranking(genre_id, hits=30):
+    params = {"applicationId": RAKUTEN_APP_ID, "hits": hits, "page": 1, "formatVersion": 2}
+    if genre_id:
+        params["genreId"] = genre_id
+    r = requests.get(
+        "https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20170628",
+        params=params, timeout=8)
+    return r.json().get("Items", [])
+
+# ── メルカリ人気キーワード（楽天ランキングで代替） ─────────────────
+@app.route("/api/mercari-keywords")
+def api_mercari_keywords():
+    try:
+        genre_ids = ["100371", "101240", "558885", "101164"]
+        all_names = []
+        for gid in genre_ids:
+            try:
+                items = _rakuten_ranking(gid, 15)
+                all_names += [it.get("itemName", "") for it in items if it.get("itemName")]
+                time.sleep(0.2)
+            except Exception:
+                pass
+        keywords = _extract_keywords(all_names, 12)
+        if keywords:
+            return jsonify({"ok": True, "keywords": keywords})
+        return jsonify({"ok": False, "error": "empty", "keywords": []})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "keywords": []})
+
+# ── Amazonサジェスト ──────────────────────────────────────────────
+@app.route("/api/amazon-suggest")
+def api_amazon_suggest():
+    q = request.args.get("q", "人気")
+    try:
+        r = requests.get(
+            "https://completion.amazon.co.jp/api/2017/suggestions",
+            params={"mid": "A1VC38T7YXB528", "alias": "aps", "prefix": q, "limit": 11, "b2b": 0},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6)
+        words = [s.get("value") for s in r.json().get("suggestions", []) if s.get("value")]
+        return jsonify({"ok": True, "words": words})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "words": []})
+
+# ── Creema人気キーワード ──────────────────────────────────────────
+@app.route("/api/creema-keywords")
+def api_creema_keywords():
+    try:
+        import re as _re
+        r = requests.get("https://www.creema.jp/ranking",
+                         headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ja-JP,ja;q=0.9"},
+                         timeout=8)
+        if not BS4_OK:
+            raise ImportError("bs4")
+        soup = BeautifulSoup(r.text, "html.parser")
+        jp_re = _re.compile(r'[぀-ゟ゠-ヿ一-鿿]')
+        names = []
+        for a in soup.select("a[href*='/item/']"):
+            t = a.get_text(strip=True).replace("　", " ").strip()
+            if 4 <= len(t) < 80:
+                names.append(t)
+        for el in soup.select("[class*='tag'],[class*='category'],[class*='keyword']"):
+            t = el.get_text(strip=True)
+            if 2 <= len(t) <= 15 and jp_re.search(t):
+                names.append(t)
+        keywords = _extract_keywords(names)
+        if keywords:
+            return jsonify({"ok": True, "keywords": keywords})
+        raise ValueError("no items")
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "keywords": []})
+
+# ── minne人気キーワード ───────────────────────────────────────────
+@app.route("/api/minne-keywords")
+def api_minne_keywords():
+    try:
+        import re as _re
+        r = requests.get("https://minne.com/",
+                         headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ja-JP,ja;q=0.9"},
+                         timeout=8)
+        if not BS4_OK:
+            raise ImportError("bs4")
+        soup = BeautifulSoup(r.text, "html.parser")
+        jp_re = _re.compile(r'[぀-ゟ゠-ヿ一-鿿]')
+        names = []
+        for a in soup.select("a[href*='/items/']"):
+            t = _re.sub(r'[\d,円【】\[\]]+', '', a.get_text(strip=True)).strip()
+            if 3 <= len(t) < 60 and jp_re.search(t):
+                names.append(t)
+        keywords = _extract_keywords(names)
+        if keywords:
+            return jsonify({"ok": True, "keywords": keywords})
+        raise ValueError("no items")
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "keywords": []})
+
+# ── Amazonベストセラーキーワード ──────────────────────────────────
+@app.route("/api/amazon-keywords")
+def api_amazon_keywords():
+    cat_map = {
+        "":        "https://www.amazon.co.jp/gp/bestsellers/",
+        "kitchen": "https://www.amazon.co.jp/gp/bestsellers/kitchen/",
+        "beauty":  "https://www.amazon.co.jp/gp/bestsellers/beauty/",
+        "fashion": "https://www.amazon.co.jp/gp/bestsellers/apparel/",
+        "outdoor": "https://www.amazon.co.jp/gp/bestsellers/sports/",
+        "home":    "https://www.amazon.co.jp/gp/bestsellers/home/",
+        "toy":     "https://www.amazon.co.jp/gp/bestsellers/toys/",
+    }
+    if not BS4_OK:
+        return jsonify({"ok": False, "error": "bs4 not installed", "keywords": []})
+    url = cat_map.get(request.args.get("category", ""), cat_map[""])
+    try:
+        r = requests.get(url,
+                         headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ja-JP,ja;q=0.9"},
+                         timeout=8)
+        soup = BeautifulSoup(r.text, "html.parser")
+        names = []
+        for sel in [
+            "._cDEzb_p13n-sc-css-line-clamp-3_g3dy1",
+            ".p13n-sc-truncate-desktop-type2",
+            ".p13n-sc-truncated",
+        ]:
+            for el in soup.select(sel):
+                t = el.get_text(strip=True)
+                if len(t) > 2:
+                    names.append(t)
+        if not names:
+            for a in soup.find_all("a", attrs={"aria-label": True}):
+                t = a.get("aria-label", "")
+                if len(t) > 2:
+                    names.append(t)
+        keywords = _extract_keywords(names)
+        return jsonify({"ok": True, "keywords": keywords})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "keywords": []})
+
 @app.route("/api/reviews", methods=["POST"])
 def api_reviews():
     """上位商品の楽天レビューページをスクレイピングして感情分析"""
