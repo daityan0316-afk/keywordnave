@@ -297,58 +297,6 @@ def api_amazon_suggest():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "words": []})
 
-# ── Creema人気キーワード ──────────────────────────────────────────
-@app.route("/api/creema-keywords")
-def api_creema_keywords():
-    try:
-        import re as _re
-        r = requests.get("https://www.creema.jp/ranking",
-                         headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ja-JP,ja;q=0.9"},
-                         timeout=8)
-        if not BS4_OK:
-            raise ImportError("bs4")
-        soup = BeautifulSoup(r.text, "html.parser")
-        jp_re = _re.compile(r'[぀-ゟ゠-ヿ一-鿿]')
-        names = []
-        for a in soup.select("a[href*='/item/']"):
-            t = a.get_text(strip=True).replace("　", " ").strip()
-            if 4 <= len(t) < 80:
-                names.append(t)
-        for el in soup.select("[class*='tag'],[class*='category'],[class*='keyword']"):
-            t = el.get_text(strip=True)
-            if 2 <= len(t) <= 15 and jp_re.search(t):
-                names.append(t)
-        keywords = _extract_keywords(names)
-        if keywords:
-            return jsonify({"ok": True, "keywords": keywords})
-        raise ValueError("no items")
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e), "keywords": []})
-
-# ── minne人気キーワード ───────────────────────────────────────────
-@app.route("/api/minne-keywords")
-def api_minne_keywords():
-    try:
-        import re as _re
-        r = requests.get("https://minne.com/",
-                         headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "ja-JP,ja;q=0.9"},
-                         timeout=8)
-        if not BS4_OK:
-            raise ImportError("bs4")
-        soup = BeautifulSoup(r.text, "html.parser")
-        jp_re = _re.compile(r'[぀-ゟ゠-ヿ一-鿿]')
-        names = []
-        for a in soup.select("a[href*='/items/']"):
-            t = _re.sub(r'[\d,円【】\[\]]+', '', a.get_text(strip=True)).strip()
-            if 3 <= len(t) < 60 and jp_re.search(t):
-                names.append(t)
-        keywords = _extract_keywords(names)
-        if keywords:
-            return jsonify({"ok": True, "keywords": keywords})
-        raise ValueError("no items")
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e), "keywords": []})
-
 # ── Amazonベストセラーキーワード ──────────────────────────────────
 @app.route("/api/amazon-keywords")
 def api_amazon_keywords():

@@ -814,18 +814,6 @@ function _seasonalKeywords(platform) {
       autumn: ["ブーツ レディース","コート ブランド","ハロウィン 仮装","ゲーム 機器","秋 古着","鬼滅 グッズ","スニーカー Nike","マフラー ブランド"],
       winter: ["ダウンジャケット","クリスマス 限定","福袋 2025","ブランド 財布","コート メンズ","ゲーム 新品","ぬいぐるみ 大型","ポケモン カード"],
     },
-    creema: {
-      spring: ["桜 アクセサリー","春 リース","刺繍 ブローチ","陶器 マグカップ","レザー 名刺入れ","入学 プレゼント 名入れ","花柄 ポーチ","新生活 インテリア"],
-      summer: ["夏 ピアス シェル","麻 バッグ","ドライフラワー","海 モチーフ アクセ","ガラス 箸置き","キャンドル バニラ","浴衣 帯留め","竹 インテリア"],
-      autumn: ["紅葉 リース","ハロウィン 飾り 木製","ウール ニット 帽","秋色 アクセサリー","木の実 ブローチ","レザー トートバッグ","陶器 箸置き","キャンドル シナモン"],
-      winter: ["クリスマス リース","冬 ニット アクセ","名入れ ギフト","正月 飾り 手作り","ガラス オーナメント","ウール ブローチ","毛糸 帽子","革 手帳カバー"],
-    },
-    minne: {
-      spring: ["布小物 春色","名入れ 出産祝い","花柄 ランチクロス","刺繍 ハンカチ","入園 バッグ 手作り","桜 ヘアアクセ","レジン 春 ピアス","ベビー スタイ"],
-      summer: ["麻 コースター","夏 布小物","シェル ピアス","帆布 トートバッグ","手ぬぐい モダン","ハーバリウム 夏","リネン ポーチ","藍染 小物"],
-      autumn: ["秋 布小物 どんぐり","ウール フェルト 小物","ニット 秋冬 帽子","リネン バッグ 秋色","木の実 リース 小","ハロウィン ガーランド","刺繍 秋 ブローチ","羊毛 フェルト 人形"],
-      winter: ["クリスマス ガーランド","手作り 正月飾り","ニット小物 冬","毛糸 コースター","フェルト オーナメント","名入れ 出産祝い 冬","レザー キーホルダー","ウール ブランケット"],
-    },
   };
   return base[platform]?.[season] || [];
 }
@@ -850,7 +838,7 @@ async function checkProxy() {
 }
 
 function updateProxyBadges(available) {
-  ["amazon","mercari","creema","minne"].forEach(p => {
+  ["amazon","mercari"].forEach(p => {
     const badge = document.querySelector(`#pc-${p} .platform-badge`);
     if (badge) {
       badge.textContent = available ? "LIVE" : "季節";
@@ -878,7 +866,7 @@ async function loadPlatformByProxy(platform, endpoint) {
 }
 
 function loadCuratedPlatforms() {
-  ["amazon", "mercari", "creema", "minne"].forEach(p => {
+  ["amazon", "mercari"].forEach(p => {
     renderPlatformTags(`pt-${p}`, _seasonalKeywords(p));
   });
 }
@@ -890,8 +878,6 @@ async function loadAllPlatforms() {
   if (proxyOk) {
     loadPlatformByProxy("amazon",  "/api/amazon-keywords");
     loadPlatformByProxy("mercari", "/api/mercari-keywords");
-    loadPlatformByProxy("creema",  "/api/creema-keywords");
-    loadPlatformByProxy("minne",   "/api/minne-keywords");
   } else {
     loadCuratedPlatforms();
   }
@@ -2137,7 +2123,7 @@ function renderNiche(items, keyword) {
       })() : ''}
       <div style="display:flex;gap:6px;margin-top:0">
         <button onclick="openMarketPopup()" style="flex:1;padding:8px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#eef3fa;color:#2563eb;border:1px solid #b8cfe8;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:all 0.15s" onmouseover="this.style.background='#dbeafe';this.style.borderColor='#2563eb'" onmouseout="this.style.background='#eef3fa';this.style.borderColor='#b8cfe8'">📊 レポートはコチラ</button>
-        <button onclick="(function(){const kw=document.getElementById('keyword').value.trim();if(kw)window.open('https://jp.mercari.com/search?keyword='+encodeURIComponent(kw)+'&sort=created_time&item_condition_id%5B%5D=1&order=desc&item_types=mercari&item_condition_id=1&status=sold_out%7Ctrading','_blank');})()" style="flex:1;padding:8px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#fff;color:#ff0211;border:1.5px solid #ff0211;border-radius:8px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">メルカリ</button>
+        <button onclick="openMercariSoldOut()" style="flex:1;padding:8px 0;font-size:0.8rem;font-weight:700;font-family:inherit;background:#fff;color:#ff0211;border:1.5px solid #ff0211;border-radius:8px;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">メルカリ</button>
       </div>
       </div>
     </div>
@@ -2895,6 +2881,11 @@ function buildSeasonPane(kw) {
     + (evBadges ? '<div style="margin-bottom:14px"><div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">🎯 関連イベント・季節</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+evBadges+'</div></div>' : '')
     + '<div><div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 仕入れタイミング目安</div>'
     + '<div style="display:flex;flex-direction:column;gap:5px">'+timing+'</div></div>';
+}
+function openMercariSoldOut() {
+  const kw = document.getElementById('keyword').value.trim();
+  if (!kw) return;
+  window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(kw) + '&status=sold_out&sort=created_time&order=desc', '_blank');
 }
 function openMarketPopup() {
   const d = window._marketAnalysis;
