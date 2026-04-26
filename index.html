@@ -96,9 +96,9 @@
       </div>
       <div id="keywordError" style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:0.85rem;font-weight:600;padding:10px 20px;border-radius:24px;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.25)"></div>
       <div class="sp-btn-row">
-        <button id="spFavBtn" style="display:none" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)">★ お気に入り <span id="spFavCount">0</span></button>
+        <button id="spFavBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" style="height:40px;padding:0 14px;font-size:0.85rem;font-weight:700;font-family:inherit;background:#fff7ed;color:#ea580c;border:1.5px solid #ea580c;border-radius:8px;cursor:pointer">★ お気に入り <span id="spFavCount">0</span></button>
       </div>
-      <button id="favBtn" style="display:none" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ">★ お気に入り商品一覧へ</button>
+      <button id="favBtn" onclick="showWelcome();setTimeout(()=>document.getElementById('favGridSection')?.scrollIntoView({behavior:'smooth'}),50)" title="お気に入り商品へ" style="height:40px;padding:0 14px;font-size:0.85rem;font-weight:700;font-family:inherit;background:#fff7ed;color:#ea580c;border:1.5px solid #ea580c;border-radius:8px;cursor:pointer;white-space:nowrap">★ お気に入り商品</button>
       <span id="proxyBadge" class="proxy-badge proxy-checking" title="プロキシサーバー状態"></span>
     </div>
     </div><!-- /.header-top -->
