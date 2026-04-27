@@ -60,7 +60,7 @@
 <body>
 
 <!-- Auth Overlay -->
-<div id="authOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;">
+<div id="authOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:9999;">
   <div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="font-size:48px;margin-bottom:12px;">🔍</div>
     <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;">キーワードなび</h2>
@@ -4430,13 +4430,19 @@ document.getElementById('btnLogin').addEventListener('click', () => {
   signInWithPopup(auth, provider).catch(err => alert('ログインに失敗しました: ' + err.message));
 });
 
+if (!localStorage.getItem('kn_authed')) overlay.style.display = 'flex';
+
 onAuthStateChanged(auth, user => {
   if (user && ALLOWED_EMAILS.includes(user.email)) {
+    localStorage.setItem('kn_authed', '1');
     overlay.style.display = 'none';
   } else if (user) {
+    localStorage.removeItem('kn_authed');
+    overlay.style.display = 'flex';
     overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;"><div style="font-size:48px;">🚫</div><h2>アクセス権限がありません</h2><p style="color:#666;margin:8px 0 20px;">${user.email}</p><button onclick="import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js').then(m=>m.signOut(auth))" style="background:#555;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;">別のアカウントでログイン</button></div>`;
     document.querySelector('#authOverlay button').addEventListener('click', () => signOut(auth));
   } else {
+    localStorage.removeItem('kn_authed');
     overlay.style.display = 'flex';
   }
 });
