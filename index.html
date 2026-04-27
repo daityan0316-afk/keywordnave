@@ -58,6 +58,20 @@
   </script>
 </head>
 <body>
+
+<!-- Auth Overlay -->
+<div id="authOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;min-width:300px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="font-size:48px;margin-bottom:12px;">🔍</div>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px;">キーワードなび</h2>
+    <p style="color:#888;font-size:13px;margin:8px 0 24px;">Googleアカウントでログインしてください</p>
+    <button id="btnLogin" style="display:inline-flex;align-items:center;gap:10px;background:#4285f4;color:#fff;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-family:inherit;font-weight:600;cursor:pointer;">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20">
+      Googleでログイン
+    </button>
+  </div>
+</div>
+
 <div class="container">
   <div class="header-row">
     <div class="header-top">
@@ -4385,6 +4399,47 @@ function renderOtakara(results) {
   }).join("");
 }
 _initPage();
+</script>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBHhvzNn2xDYy00KmwBb-JDsMf4PCOchfg",
+  authDomain: "keywordnavi-bfde7.firebaseapp.com",
+  projectId: "keywordnavi-bfde7",
+  storageBucket: "keywordnavi-bfde7.firebasestorage.app",
+  messagingSenderId: "780400811512",
+  appId: "1:780400811512:web:602fd03cb5df06c06b0a0d"
+};
+
+const ALLOWED_EMAILS = [
+  'qroza_zakka@cebs1980.sakura.ne.jp',
+  'daityan0316@gmail.com',
+  'rina0318318@gmail.com',
+];
+
+const app      = initializeApp(firebaseConfig, 'auth');
+const auth     = getAuth(app);
+const provider = new GoogleAuthProvider();
+const overlay  = document.getElementById('authOverlay');
+
+document.getElementById('btnLogin').addEventListener('click', () => {
+  signInWithPopup(auth, provider).catch(err => alert('ログインに失敗しました: ' + err.message));
+});
+
+onAuthStateChanged(auth, user => {
+  if (user && ALLOWED_EMAILS.includes(user.email)) {
+    overlay.style.display = 'none';
+  } else if (user) {
+    overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;"><div style="font-size:48px;">🚫</div><h2>アクセス権限がありません</h2><p style="color:#666;margin:8px 0 20px;">${user.email}</p><button onclick="import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js').then(m=>m.signOut(auth))" style="background:#555;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;">別のアカウントでログイン</button></div>`;
+    document.querySelector('#authOverlay button').addEventListener('click', () => signOut(auth));
+  } else {
+    overlay.style.display = 'flex';
+  }
+});
 </script>
 </body>
 </html>
