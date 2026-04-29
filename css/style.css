@@ -2688,7 +2688,9 @@ td a:hover { text-decoration: underline; }
   /* 上部の件数・ページネーションを非表示、下部のみ表示 */
   .pg-header-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   .pg-bottom-row { border-top: 1px solid #eef0f4; padding-top: 10px; }
-  .result-title-bottom { font-size: 0.9rem; display: block !important; }
+  .result-title-bottom { font-size: 0.82rem; display: block !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100vw - 100px); }
+  #resultTitle { word-break: normal !important; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block !important; max-width: calc(100vw - 30px); }
+  #resultTitle span { white-space: nowrap !important; }
 
   /* 登録キーワード */
   .sp-only { display: flex !important; }
