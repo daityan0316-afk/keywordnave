@@ -2091,12 +2091,28 @@ function renderNiche(items, keyword) {
             const _allRange = _allPrices.length ? `¥${Math.min(..._allPrices).toLocaleString()}〜¥${Math.max(..._allPrices).toLocaleString()}` : '';
             const _allBase = (_sortedItems&&_sortedItems.length) ? _sortedItems : allItems;
             const _allShopCnt = new Set(_allBase.filter(i=>i.shopName).map(i=>i.shopName)).size;
+            const _allShopCntFull = new Set(((_sortedItems&&_sortedItems.length)?_sortedItems:allItems).filter(i=>i.shopName).map(i=>i.shopName)).size;
+            const _allTopShare = _totalMonthly > 0 ? (()=>{ const sm={}; ((_sortedItems&&_sortedItems.length)?_sortedItems:allItems).forEach(i=>{if(i.shopName)sm[i.shopName]=(sm[i.shopName]||0)+(i.reviewCount&&i.price?(i.reviewCount/(i.price<1000?0.08:i.price<5000?0.06:i.price<20000?0.05:0.04)/(i.reviewCount>1000?48:i.reviewCount>300?36:i.reviewCount>100?24:i.reviewCount>30?18:12))*i.price:0);}); return Math.max(...Object.values(sm))/_totalMonthly; })() : 0;
+            const _allMj = (()=>{
+              const big = _totalMonthly >= 150000, few = _allShopCntFull <= 5;
+              if(_totalMonthly<10000) return {text:'❌砂漠',color:'#bbb',bg:'#f5f5f5'};
+              if(_totalMonthly<30000) return {text:'⚠️薄い',color:'#999',bg:'#f5f5f5'};
+              if(big&&_allShopCntFull>=15) return {text:'🔴激戦',color:'#c0392b',bg:'#fef2f2'};
+              if(big&&_allShopCntFull>=8)  return {text:'🟡競合多',color:'#d97706',bg:'#fffbeb'};
+              if(big&&few)                 return {text:'🏆大×少！',color:'#1a5276',bg:'#eaf4fb'};
+              if(!big&&few)                return {text:'✅ニッチ',color:'#16a34a',bg:'#f0fdf4'};
+              if(!big&&_allShopCntFull>=10)return {text:'⚠️競合多',color:'#d97706',bg:'#fffbeb'};
+              return {text:'✅狙い目',color:'#16a34a',bg:'#f0fdf4'};
+            })();
             const allRows = `<div data-price-row="-1" onclick="resetPriceBand()" style="display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid #e2e8f0;cursor:pointer;transition:background 0.12s;border-left:5px solid #2563eb;background:#dbeafe;box-shadow:inset 0 0 0 1px #2563eb30" onmouseover="this.style.background='#bfdbfe'" onmouseout="this.style.background='#dbeafe'">
               <div style="flex:1;min-width:0">
-                <div style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">全価格帯</div>
-                <div style="font-size:0.76rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${_allRange}</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+                  <span style="font-size:0.95rem;font-weight:700;color:#1e293b;white-space:nowrap">全価格帯</span>
+                  <span style="font-size:0.75rem;font-weight:700;color:${_allMj.color};background:${_allMj.bg};padding:1px 5px;border-radius:3px;white-space:nowrap">${_allMj.text}</span>
+                </div>
+                <div style="font-size:0.8rem;color:#445870;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_allRange}&nbsp;·&nbsp;競合${_allShopCntFull}店</div>
               </div>
-              <div style="font-size:1.25rem;font-weight:900;color:#334e68;white-space:nowrap">${fmtM(Math.round(_totalMonthly))}</div>
+              <div style="font-size:1.25rem;font-weight:900;color:#334e68;white-space:nowrap;padding-left:8px">${fmtM(Math.round(_totalMonthly))}</div>
             </div>`;
             return allRows + rows.map((r,i)=>{
               const pMin = r.b.min===0?0:Math.round(r.b.min);
