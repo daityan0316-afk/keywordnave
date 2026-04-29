@@ -1841,12 +1841,15 @@ async function doSearch(searchGenreId) {
       return pa - pb;
     });
     document.getElementById("filterCount").textContent = `(${_sortedItems.length}件)`;
-    const _rtitle = keyword
-      ? `検索結果「${keyword}」${_sortedItems.length}件`
-      : `カテゴリ検索結果 ${_sortedItems.length}件`;
-    document.getElementById("resultTitle").textContent = _rtitle;
+    const _initShopCnt = new Set((_sortedItems||[]).filter(i=>i.shopName).map(i=>i.shopName)).size;
+    const _rTitleEl = document.getElementById("resultTitle");
+    if (_rTitleEl) {
+      _rTitleEl.innerHTML = keyword
+        ? `検索結果「${keyword}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`
+        : `カテゴリ検索結果 ${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`;
+    }
     const _rtBot = document.getElementById("resultTitleBottom");
-    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${keyword}」<br><span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>`; }
+    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${keyword}」<br><span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>`; }
     renderTable(_sortedItems, _orderMap);
 
 
@@ -3666,9 +3669,16 @@ function resetPriceBand() {
   document.getElementById('filterCount').textContent = `(${_sortedItems.length}件)`;
   updateMarketTopGrid(_sortedItems);
   const _kw0 = document.getElementById('keyword')?.value.trim() || _lastSearchKeyword || '';
-  const _t0 = _kw0 ? `検索結果「${_kw0}」 全価格帯 ${_sortedItems.length}件` : `全価格帯 ${_sortedItems.length}件`;
-  const _r0 = document.getElementById('resultTitle'); if (_r0) _r0.textContent = _t0;
-  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) { const _kw0b = document.getElementById('keyword')?.value.trim()||_lastSearchKeyword||''; _rb0.innerHTML = _kw0b ? `検索結果「${_kw0b}」<br><span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>` : `<span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>`; }
+  const _allShopCnt0 = new Set((_sortedItems||[]).filter(i=>i.shopName).map(i=>i.shopName)).size;
+  const _r0 = document.getElementById('resultTitle');
+  if (_r0) {
+    if (_kw0) {
+      _r0.innerHTML = `検索結果「${_kw0}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_allShopCnt0}店</span>`;
+    } else {
+      _r0.innerHTML = `<span style="color:#2563eb">全価格帯</span> ${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_allShopCnt0}店</span>`;
+    }
+  }
+  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) { const _kw0b = document.getElementById('keyword')?.value.trim()||_lastSearchKeyword||''; _rb0.innerHTML = _kw0b ? `検索結果「${_kw0b}」<br><span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>` : `<span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>`; }
 }
 
 function filterByPriceBand(min, max, bandIdx) {
