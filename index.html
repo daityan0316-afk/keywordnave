@@ -1845,11 +1845,11 @@ async function doSearch(searchGenreId) {
     const _rTitleEl = document.getElementById("resultTitle");
     if (_rTitleEl) {
       _rTitleEl.innerHTML = keyword
-        ? `検索結果「${keyword}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`
+        ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600;white-space:nowrap">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">競合${_initShopCnt}店</span>`
         : `カテゴリ検索結果 ${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`;
     }
     const _rtBot = document.getElementById("resultTitleBottom");
-    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${keyword}」<br><span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>`; }
+    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;white-space:nowrap">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>`; }
     renderTable(_sortedItems, _orderMap);
 
 
@@ -2916,6 +2916,9 @@ function buildSeasonPane(kw) {
     + '<div><div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:8px">📦 仕入れタイミング目安</div>'
     + '<div style="display:flex;flex-direction:column;gap:5px">'+timing+'</div></div>';
 }
+function _shortKw(kw, max = 12) {
+  return kw && kw.length > max ? kw.slice(0, max) + '…' : kw;
+}
 function openMercariSoldOut() {
   const kw = document.getElementById('keyword').value.trim();
   if (!kw) return;
@@ -3673,12 +3676,12 @@ function resetPriceBand() {
   const _r0 = document.getElementById('resultTitle');
   if (_r0) {
     if (_kw0) {
-      _r0.innerHTML = `検索結果「${_kw0}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_allShopCnt0}店</span>`;
+      _r0.innerHTML = `検索結果「${_shortKw(_kw0)}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600;white-space:nowrap">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">競合${_allShopCnt0}店</span>`;
     } else {
       _r0.innerHTML = `<span style="color:#2563eb">全価格帯</span> ${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_allShopCnt0}店</span>`;
     }
   }
-  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) { const _kw0b = document.getElementById('keyword')?.value.trim()||_lastSearchKeyword||''; _rb0.innerHTML = _kw0b ? `検索結果「${_kw0b}」<br><span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>` : `<span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>`; }
+  const _rb0 = document.getElementById('resultTitleBottom'); if (_rb0) { const _kw0b = document.getElementById('keyword')?.value.trim()||_lastSearchKeyword||''; _rb0.innerHTML = _kw0b ? `検索結果「${_shortKw(_kw0b)}」&nbsp;<span style="color:#2563eb;white-space:nowrap">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>` : `<span style="color:#2563eb">全価格帯</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_allShopCnt0}店</span>`; }
 }
 
 function filterByPriceBand(min, max, bandIdx) {
@@ -3706,15 +3709,15 @@ function filterByPriceBand(min, max, bandIdx) {
   const _rtEl = document.getElementById('resultTitle');
   if (_rtEl) {
     if (_kw && _bandLabel) {
-      _rtEl.innerHTML = `検索結果「${_kw}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600">${_bandLabel}</span>&nbsp;${filtered.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_bandShopCnt}店</span>`;
+      _rtEl.innerHTML = `検索結果「${_shortKw(_kw)}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600;white-space:nowrap">${_bandLabel}</span>&nbsp;${filtered.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">競合${_bandShopCnt}店</span>`;
     } else if (_kw) {
-      _rtEl.textContent = `検索結果「${_kw}」 ${filtered.length}件`;
+      _rtEl.textContent = `検索結果「${_shortKw(_kw)}」 ${filtered.length}件`;
     } else {
       _rtEl.textContent = `${_bandLabel} ${filtered.length}件`;
     }
   }
   const _rtBot = document.getElementById('resultTitleBottom');
-  if (_rtBot) { _rtBot.innerHTML = _kw ? `検索結果「${_kw}」<br><span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>` : `<span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>`; }
+  if (_rtBot) { _rtBot.innerHTML = _kw ? `検索結果「${_shortKw(_kw)}」&nbsp;<span style="color:#2563eb;white-space:nowrap">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>` : `<span style="color:#2563eb">${_bandLabel}</span><span style="color:#888;font-weight:400;margin-left:6px">${filtered.length}件</span>`; }
   const titleEl = document.getElementById('bestsellerCardTitle');
   if (titleEl && bandIdx !== undefined) titleEl.textContent = `📦 ${bandLabels[bandIdx] ?? ''}売れ筋ランキング`;
   updateMarketTopGrid(bandItems);
