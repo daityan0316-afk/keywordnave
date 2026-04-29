@@ -2236,6 +2236,7 @@ function renderNiche(items, keyword) {
   window._currentBandLabel = '';
   window._currentBandItems = null;
   window._currentBandMonthly = null;
+  setTimeout(restoreCardStates, 0);
 }
 
 function renderSummary(items) {
@@ -2450,6 +2451,7 @@ function renderShopTags(items) {
         </div>
       </div>
     </div>`;
+  restoreCardStates();
   const mob = document.getElementById('shopTagListMobile');
   if (mob) mob.innerHTML = el.innerHTML;
 }
@@ -3546,12 +3548,35 @@ function closeShopModal(e) {
     document.getElementById("shopModal").classList.remove("open");
 }
 
+function _cardKey(header) {
+  const t = header.querySelector("span:not(.collapse-btn)")?.textContent?.trim();
+  return t ? `card_collapsed_${t.slice(0,20)}` : null;
+}
 function toggleCard(header) {
   const card = header.closest(".collapsible-card");
-  const body = card.querySelector(".card-body");
   const btn  = header.querySelector(".collapse-btn");
   const collapsed = card.classList.toggle("collapsed");
   btn.textContent = collapsed ? "▼" : "▲";
+  const key = _cardKey(header);
+  if (key) localStorage.setItem(key, collapsed ? "1" : "0");
+}
+function restoreCardStates() {
+  document.querySelectorAll(".collapsible-card").forEach(card => {
+    const header = card.querySelector(".card-header");
+    if (!header) return;
+    const key = _cardKey(header);
+    if (!key) return;
+    const saved = localStorage.getItem(key);
+    if (saved === null) return;
+    const btn = header.querySelector(".collapse-btn");
+    if (saved === "1") {
+      card.classList.add("collapsed");
+      if (btn) btn.textContent = "▼";
+    } else {
+      card.classList.remove("collapsed");
+      if (btn) btn.textContent = "▲";
+    }
+  });
 }
 
 function copyKw(btn, kw) {
