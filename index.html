@@ -2205,7 +2205,7 @@ function renderNiche(items, keyword) {
       }).join('');
       return cards2 ? `<div class="collapsible-card summary-card" style="flex-direction:column;align-items:flex-start;gap:6px">
         <div class="card-header" onclick="toggleCard(this)" style="width:100%;margin-bottom:0;padding:0 0 8px 0;border-bottom:1px solid #e8edf4">
-          <span id="bestsellerCardTitle" style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📦 全価格帯売れ筋商品</span>
+          <span id="bestsellerCardTitle" style="font-size:0.85rem;font-weight:800;color:#1e3a8a;letter-spacing:0.03em">📦 価格帯別売れ筋商品</span>
           <span class="collapse-btn">▲</span>
         </div>
         <div class="card-body" style="width:100%">
@@ -3626,7 +3626,7 @@ function resetPriceBand() {
   window._currentBandMonthly = null;
   window._currentBandColor = null;
   const titleEl = document.getElementById('bestsellerCardTitle');
-  if (titleEl) titleEl.textContent = '📦 全価格帯売れ筋商品';
+  if (titleEl) titleEl.textContent = '📦 価格帯別売れ筋商品';
   clearFilter();
   renderShopTags(_sortedItems);
   document.querySelectorAll('[data-band-idx]').forEach(el => el.style.display = '');
