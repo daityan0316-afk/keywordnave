@@ -760,6 +760,7 @@ td a:hover { text-decoration: underline; }
   .page-layout, .result-layout {
     flex-direction: column;
   }
+  #nicheBar .fav-btn { display: none !important; }
   .result-sidebar {
     width: 100%;
   }
