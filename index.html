@@ -2924,7 +2924,7 @@ function _shortKw(kw, max = 12) {
 function openMercariSoldOut() {
   const kw = document.getElementById('keyword').value.trim();
   if (!kw) return;
-  window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(kw) + '&status=sold_out&sort=created_time&order=desc', '_blank');
+  window.open('https://jp.mercari.com/search?keyword=' + encodeURIComponent(kw) + '&status=sold_out&item_condition_id=1&item_types=mercari&sort=created_time&order=desc', '_blank');
 }
 function openMarketPopup() {
   const d = window._marketAnalysis;
