@@ -440,7 +440,7 @@ function renderResultHeader(keyword, bandLabel, sampleCount, shopCount) {
   if (_totalCount > 0) parts.push(badge('楽天総数', `${_totalCount.toLocaleString()}件`, C.total));
   if (shopCount != null) parts.push(badge('競合', `${shopCount}店`, C.shop));
   const title = keyword
-    ? `<span style="font-size:1rem;font-weight:700;color:#2563eb">${typeof _shortKw === 'function' ? _shortKw(keyword) : keyword}</span>`
+    ? `<span style="font-size:1rem;font-weight:700;color:#2563eb;word-break:break-all">${keyword}</span>`
     : `<span style="font-size:1rem;font-weight:700;color:#0f1f3d">カテゴリ検索結果</span>`;
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;row-gap:6px">${title}${parts.join('')}</div>`;
 }
