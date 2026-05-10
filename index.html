@@ -437,7 +437,6 @@ function renderResultHeader(keyword, bandLabel, sampleCount, shopCount) {
   const badge = (label, value, c) => `<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;background:${c.bg};border:1px solid ${c.bd};border-radius:6px;padding:2px 8px;white-space:nowrap;line-height:1.4"><span style="color:${c.label};font-weight:500">${label}</span><span style="color:${c.value};font-weight:700">${value}</span></span>`;
   const parts = [];
   if (bandLabel) parts.push(badge('価格帯', bandLabel, C.band));
-  if (sampleCount != null) parts.push(badge('表示', `${sampleCount}件`, C.sample));
   if (_totalCount > 0) parts.push(badge('楽天総数', `${_totalCount.toLocaleString()}件`, C.total));
   if (shopCount != null) parts.push(badge('競合', `${shopCount}店`, C.shop));
   const title = keyword
