@@ -1,0 +1,6 @@
+@echo off
+echo ライブラリ確認中...
+pip install flask pytrends pandas numpy matplotlib requests >nul 2>&1
+echo サーバー起動中...
+python "%~dp0py\app.py"
+pause

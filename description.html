@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商品説明文 プロンプト生成ツール</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .app { max-width: 800px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0f1f3d, #2563eb);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .header-text h1 { font-size: 18px; font-weight: 700; color: #0f1f3d; }
+    .header-text p { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 14px; font-weight: 700; color: #374151;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .card h2::before {
+      content: ''; display: block;
+      width: 3px; height: 14px;
+      background: #2563eb; border-radius: 2px;
+    }
+
+    label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: #374151; margin-bottom: 6px; margin-top: 16px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1a202c;
+      background: #f8fafc;
+      transition: border-color .2s;
+      resize: vertical;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      outline: none; border-color: #2563eb; background: #fff;
+    }
+
+    textarea { min-height: 80px; }
+
+    .hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+    .btn-generate {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-top: 20px;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-generate:hover { opacity: .9; }
+    .btn-generate:active { transform: scale(.98); }
+
+    .result-card {
+      background: #fff; border-radius: 14px;
+      padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      display: none;
+    }
+
+    .result-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 12px;
+    }
+
+    .result-header h2 {
+      font-size: 14px; font-weight: 700; color: #374151;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .result-header h2::before {
+      content: ''; display: block;
+      width: 3px; height: 14px;
+      background: #10b981; border-radius: 2px;
+    }
+
+    .btn-copy {
+      padding: 8px 18px;
+      background: #2563eb;
+      border: none;
+      border-radius: 7px; font-size: 13px; font-weight: 700;
+      color: #fff; cursor: pointer; font-family: inherit;
+      transition: opacity .15s;
+    }
+    .btn-copy:hover { opacity: .85; }
+    .btn-copy.copied { background: #10b981; }
+
+    .step-note {
+      font-size: 12px; color: #64748b;
+      background: #f8fafc; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 14px;
+      line-height: 1.7;
+    }
+
+    .step-note a {
+      color: #2563eb; font-weight: 700; text-decoration: none;
+    }
+    .step-note a:hover { text-decoration: underline; }
+
+    .result-text {
+      font-size: 13px; line-height: 1.85;
+      color: #374151; white-space: pre-wrap; word-break: break-word;
+      background: #f8fafc; border-radius: 8px;
+      padding: 14px; border: 1.5px solid #e2e8f0;
+      max-height: 500px; overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo-icon">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M4 17L11 5L18 17H4Z" fill="white" fill-opacity=".9"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>商品説明文 プロンプト生成ツール</h1>
+      <p>プロンプトを生成 → Claude.aiに貼り付けて説明文を作成</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>入力情報</h2>
+
+    <label>キーワード <span style="color:#ef4444">*</span></label>
+    <textarea id="keywords" placeholder="例: ステンレス水筒 保温 おしゃれ 子供 軽量&#10;（スペースや改行で区切って入力）"></textarea>
+    <p class="hint">SEOで狙いたいキーワードを入力してください</p>
+
+    <label>商品名</label>
+    <input type="text" id="product_name" placeholder="例: ステンレス保温ボトル 500ml マットブラック">
+
+    <label>補足情報（任意）</label>
+    <textarea id="extra" placeholder="例: 対象は小学生の子ども。飲み口が広く洗いやすい。カラーは5色展開。価格帯2,500円前後。"></textarea>
+    <p class="hint">ターゲット・特徴・価格帯など、説明文に活かしたい情報があれば記入してください</p>
+
+    <button class="btn-generate" onclick="generate()">📋 プロンプトを生成してコピー</button>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="result-header">
+      <h2>生成されたプロンプト</h2>
+      <button class="btn-copy" id="btn-copy" onclick="copyText()">コピー</button>
+    </div>
+    <div class="step-note">
+      ① 上の「コピー」を押す　②
+      <a href="https://claude.ai" target="_blank">claude.ai</a>
+      を開く　③ チャット欄に貼り付けてEnter
+    </div>
+    <div class="result-text" id="result-text"></div>
+  </div>
+
+</div>
+
+<script>
+  function generate() {
+    const keywords = document.getElementById('keywords').value.trim();
+    if (!keywords) {
+      alert('キーワードを入力してください。');
+      return;
+    }
+
+    const productName = document.getElementById('product_name').value.trim();
+    const extra = document.getElementById('extra').value.trim();
+
+    const prompt = `あなたは楽天・Amazon向けの商品説明文を書くプロのコピーライターです。
+
+以下の情報をもとに、SEOに強く独自性の高い商品説明文を作成してください。
+
+【商品名】
+${productName || '（未指定）'}
+
+【キーワード】
+${keywords}
+
+【補足情報】
+${extra || '（なし）'}
+
+---
+
+【ライティングルール】
+・全体の文字数は900文字程度
+・一般論・ありきたりな表現を避け、独自の視点・切り口で書く
+・冒頭は「結論から言うと」などの定型句を使わず、読者を引き込む書き出しにする
+・親しみやすく熱意が伝わる文体（かっこつけすぎない）
+・キーワードを自然に本文中に組み込む
+・文末に必ず【ご注意点】を設け、デメリットと注意点を「＊」から始まる箇条書きで3〜4項目記載する
+・【ご注意点】は誠実さが伝わるよう、デメリットを正直に書いたうえで対策も添えること`;
+
+    document.getElementById('result-text').textContent = prompt;
+    document.getElementById('result-card').style.display = 'block';
+    document.getElementById('btn-copy').classList.remove('copied');
+    document.getElementById('btn-copy').textContent = 'コピー';
+
+    copyText();
+
+    document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyText() {
+    const text = document.getElementById('result-text').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-copy');
+      btn.textContent = 'コピーしました！';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'コピー';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) generate();
+  });
+</script>
+</body>
+</html>

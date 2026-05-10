@@ -1844,12 +1844,13 @@ async function doSearch(searchGenreId) {
     const _initShopCnt = new Set((_sortedItems||[]).filter(i=>i.shopName).map(i=>i.shopName)).size;
     const _rTitleEl = document.getElementById("resultTitle");
     if (_rTitleEl) {
+      const _totalBadge = _totalCount > 0 ? `&nbsp;<span style="font-size:0.78rem;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 7px;font-weight:700;white-space:nowrap">楽天総数 ${_totalCount.toLocaleString()}件</span>` : '';
       _rTitleEl.innerHTML = keyword
-        ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600;white-space:nowrap">全価格帯</span>&nbsp;${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">競合${_initShopCnt}店</span>`
-        : `カテゴリ検索結果 ${_sortedItems.length}件&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`;
+        ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;border:1px solid #2563eb;border-radius:4px;padding:1px 7px;font-size:0.78rem;font-weight:600;white-space:nowrap">全価格帯</span>&nbsp;${_sortedItems.length}件${_totalBadge}&nbsp;<span style="font-size:0.78rem;color:#94a3b8;white-space:nowrap">競合${_initShopCnt}店</span>`
+        : `カテゴリ検索結果 ${_sortedItems.length}件${_totalBadge}&nbsp;<span style="font-size:0.78rem;color:#94a3b8">競合${_initShopCnt}店</span>`;
     }
     const _rtBot = document.getElementById("resultTitleBottom");
-    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; _rtBot.innerHTML = keyword ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;white-space:nowrap">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span><span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>`; }
+    if (_rtBot) { const _bd2 = window._currentBandLabel||'全価格帯'; const _tb = _totalCount > 0 ? `<span style="font-size:0.78rem;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:1px 7px;font-weight:700;margin-left:6px">楽天総数 ${_totalCount.toLocaleString()}件</span>` : ''; _rtBot.innerHTML = keyword ? `検索結果「${_shortKw(keyword)}」&nbsp;<span style="color:#2563eb;white-space:nowrap">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>${_tb}<span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>` : `<span style="color:#2563eb">${_bd2}</span><span style="color:#888;font-weight:400;margin-left:6px">${_sortedItems.length}件</span>${_tb}<span style="font-size:0.78rem;color:#94a3b8;margin-left:6px">競合${_initShopCnt}店</span>`; }
     renderTable(_sortedItems, _orderMap);
 
 
