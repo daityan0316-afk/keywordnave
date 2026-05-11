@@ -3387,9 +3387,12 @@ async function runDifferentiationAnalysis() {
   const btn = document.getElementById('aiDiffRunBtn');
   const out = document.getElementById('aiDiffResult');
   if (!btn || !out) return;
-  const items = (window._sortedItems || []).filter(i => i.itemCode).slice(0, 5);
+  const src = (typeof _sortedItems !== 'undefined' && _sortedItems.length) ? _sortedItems
+            : (typeof _allItems !== 'undefined' && _allItems.length) ? _allItems
+            : [];
+  const items = src.filter(i => i && i.itemCode).slice(0, 5);
   if (!items.length) {
-    out.innerHTML = '<div style="color:#c0392b;font-size:0.82rem">分析対象となる商品が見つかりません。先に検索を実行してください。</div>';
+    out.innerHTML = `<div style="color:#c0392b;font-size:0.82rem">分析対象となる商品が見つかりません（候補:${src.length}件, itemCode付き:0件）。先に検索を実行してください。</div>`;
     return;
   }
   const keyword = document.getElementById('keyword')?.value.trim() || '';
