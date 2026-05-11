@@ -852,9 +852,9 @@ function _seasonalKeywords(platform) {
   return base[platform]?.[season] || [];
 }
 
-const PROXY_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ? "http://localhost:3737"
-  : "";
+const PROXY_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith("onrender.com"))
+  ? ""
+  : "https://keywordnave.onrender.com";
 let _proxyAvailable = null; // null=未確認 true/false
 
 async function checkProxy() {
