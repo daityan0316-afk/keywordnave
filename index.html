@@ -3160,6 +3160,7 @@ function openMarketPopup() {
       <button class="mp-tab" onclick="mpTab(this,1)">🔍 SEO戦略</button>
       <button class="mp-tab" onclick="mpTab(this,2)">💡 おすすめ戦略</button>
       <button class="mp-tab" onclick="mpTab(this,3)">🗓 季節・需要</button>
+      <button class="mp-tab" onclick="mpTab(this,4)">🤖 AI差別化分析</button>
     </div>
     <div class="mp-panes">
 
@@ -3346,6 +3347,19 @@ function openMarketPopup() {
       <!-- タブ3: 季節・需要 -->
       <div class="mp-pane" id="seasonPane"></div>
 
+      <!-- タブ4: AI差別化分析 -->
+      <div class="mp-pane" id="aiDiffPane">
+        <div style="padding:14px;background:#f8fafc;border-radius:10px;border:1px solid #e0e8f0">
+          <div style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin-bottom:6px">🤖 上位商品のレビューを読み込み、AIが差別化案を提案します</div>
+          <div style="font-size:0.75rem;color:#666;line-height:1.6;margin-bottom:10px">
+            上位5商品の楽天レビュー本文を収集し、Claude AIが「顧客の不満点」と「具体的な差別化アイデア」を提案します。<br>
+            <span style="color:#e67e22">所要時間：30〜60秒（レビュー収集＋AI分析）</span>
+          </div>
+          <button id="aiDiffRunBtn" onclick="runDifferentiationAnalysis()" style="padding:10px 20px;font-size:0.85rem;font-weight:700;font-family:inherit;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;letter-spacing:0.03em;transition:all 0.15s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">分析を開始</button>
+          <div id="aiDiffResult" style="margin-top:14px"></div>
+        </div>
+      </div>
+
     </div>
   `;
   document.getElementById("marketPopup").classList.add("open");
@@ -3369,6 +3383,83 @@ function mpTab(btn, idx) {
   btn.closest(".mp-tabs").querySelectorAll(".mp-tab").forEach((t,i) => t.classList.toggle("active", i===idx));
   btn.closest(".market-popup-body").querySelectorAll(".mp-pane").forEach((p,i) => p.classList.toggle("active", i===idx));
 }
+async function runDifferentiationAnalysis() {
+  const btn = document.getElementById('aiDiffRunBtn');
+  const out = document.getElementById('aiDiffResult');
+  if (!btn || !out) return;
+  const items = (window._sortedItems || []).filter(i => i.itemCode).slice(0, 5);
+  if (!items.length) {
+    out.innerHTML = '<div style="color:#c0392b;font-size:0.82rem">分析対象となる商品が見つかりません。先に検索を実行してください。</div>';
+    return;
+  }
+  const keyword = document.getElementById('keyword')?.value.trim() || '';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.style.cursor = 'not-allowed';
+  btn.textContent = '分析中…（30〜60秒）';
+  out.innerHTML = `<div style="padding:14px;background:#fff;border-radius:8px;border:1px dashed #cbd5e1;font-size:0.8rem;color:#666">
+    <div>🔍 上位${items.length}商品のレビューを収集中…</div>
+    <div style="margin-top:6px;color:#999;font-size:0.72rem">Renderの無料プランは初回のみスリープ復帰に追加で30秒程度かかることがあります。</div>
+  </div>`;
+  try {
+    const r = await fetch(`${PROXY_BASE}/api/differentiation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: items.map(i => ({ itemCode: i.itemCode, name: i.name })),
+        keyword,
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const data = await r.json();
+    if (!data.ok) {
+      out.innerHTML = `<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#c0392b;font-size:0.82rem">⚠️ ${data.error || '分析に失敗しました'}</div>`;
+      return;
+    }
+    const html = renderMarkdownBasic(data.analysis);
+    out.innerHTML = `<div style="background:#fff;border:1px solid #e0e8f0;border-radius:10px;padding:16px;font-size:0.82rem;line-height:1.75;color:#1a3a5c">
+      <div style="font-size:0.7rem;color:#888;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0f4f8">${data.review_count}件のレビュー（${data.items_scraped}商品）を分析</div>
+      ${html}
+    </div>`;
+  } catch (e) {
+    out.innerHTML = `<div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#c0392b;font-size:0.82rem">⚠️ 通信エラー: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.textContent = '再分析する';
+  }
+}
+
+function renderMarkdownBasic(md) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lines = md.split(/\r?\n/);
+  let html = '', inUl = false;
+  const flushUl = () => { if (inUl) { html += '</ul>'; inUl = false; } };
+  for (let line of lines) {
+    if (/^##\s+/.test(line)) {
+      flushUl();
+      html += `<h3 style="font-size:0.95rem;font-weight:800;color:#1a3a5c;margin:14px 0 8px;padding-bottom:4px;border-bottom:2px solid #2563eb">${esc(line.replace(/^##\s+/,''))}</h3>`;
+    } else if (/^###\s+/.test(line)) {
+      flushUl();
+      html += `<h4 style="font-size:0.85rem;font-weight:700;color:#1a3a5c;margin:10px 0 6px">${esc(line.replace(/^###\s+/,''))}</h4>`;
+    } else if (/^\s*[-*]\s+/.test(line)) {
+      if (!inUl) { html += '<ul style="margin:4px 0 8px 18px;padding:0">'; inUl = true; }
+      let item = esc(line.replace(/^\s*[-*]\s+/,''));
+      item = item.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#1a3a5c">$1</strong>');
+      html += `<li style="margin-bottom:3px;line-height:1.7">${item}</li>`;
+    } else if (line.trim() === '') {
+      flushUl();
+    } else {
+      flushUl();
+      let p = esc(line).replace(/\*\*(.+?)\*\*/g, '<strong style="color:#1a3a5c">$1</strong>');
+      html += `<p style="margin:4px 0;line-height:1.75">${p}</p>`;
+    }
+  }
+  flushUl();
+  return html;
+}
+
 function mpSubTab(btn, idx) {
   const container = btn.closest("#bandSubTabs");
   const rows = window._priceBandRows || [];

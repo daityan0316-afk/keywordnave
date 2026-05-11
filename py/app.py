@@ -429,6 +429,129 @@ def api_reviews():
         "errors": errors,
     })
 
+def _scrape_review_texts(items, max_items=5, max_reviews_per_item=20):
+    """上位商品の楽天レビュー本文を収集。各テキストに (item_name, star, text) を保持。"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "ja-JP,ja;q=0.9",
+    }
+    TEXT_SELECTORS = [
+        ".revRvwUserFreetext", ".review-text",
+        "[class*='freetext']", "[class*='review-body']", "[class*='reviewBody']",
+        "p.txt",
+    ]
+    collected = []
+    for item in items[:max_items]:
+        item_code = item.get("itemCode", "")
+        if not item_code:
+            continue
+        item_name = (item.get("name") or "")[:60]
+        url = f"https://review.rakuten.co.jp/item/1/{item_code}/1.1/"
+        try:
+            r = requests.get(url, headers=headers, timeout=15)
+            r.encoding = "utf-8"
+            soup = BeautifulSoup(r.text, "html.parser")
+            els = []
+            for sel in TEXT_SELECTORS:
+                els = soup.select(sel)
+                if els:
+                    break
+            if not els:
+                els = [p for p in soup.find_all("p") if len(p.get_text(strip=True)) > 20]
+            count = 0
+            for el in els:
+                text = el.get_text(strip=True)
+                if len(text) < 10:
+                    continue
+                collected.append({"item": item_name, "text": text[:400]})
+                count += 1
+                if count >= max_reviews_per_item:
+                    break
+            time.sleep(0.6)
+        except Exception:
+            continue
+    return collected
+
+@app.route("/api/differentiation", methods=["POST"])
+def api_differentiation():
+    """上位商品のレビューを収集し、Claude APIで差別化アイデアを生成"""
+    if not BS4_OK:
+        return jsonify({"ok": False, "error": "beautifulsoup4 が未インストールです"}), 500
+    try:
+        import os
+        import anthropic
+    except ImportError:
+        return jsonify({"ok": False, "error": "anthropic ライブラリが未インストールです"}), 500
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"ok": False, "error": "ANTHROPIC_API_KEY が設定されていません（Render環境変数を確認してください）"}), 500
+
+    body = request.json or {}
+    items = body.get("items", [])
+    keyword = body.get("keyword", "")
+
+    reviews = _scrape_review_texts(items, max_items=5, max_reviews_per_item=15)
+    if not reviews:
+        return jsonify({"ok": False, "error": "レビュー本文を取得できませんでした（商品ページの構造が変わった可能性があります）"}), 200
+
+    # ネガ語を含むレビューを優先的にピックアップ
+    def neg_score(t):
+        return sum(1 for w in NEGATIVE_WORDS_PY if w in t)
+    sorted_reviews = sorted(reviews, key=lambda r: -neg_score(r["text"]))
+    sample = sorted_reviews[:40]
+    review_block = "\n".join(f"[{r['item']}] {r['text']}" for r in sample)
+
+    system_prompt = """あなたは楽天市場のEC出品コンサルタントです。実際の顧客レビューから不満点を抽出し、新規参入する出品者向けに具体的な差別化アイデアを提案します。
+
+【出力方針】
+- 抽象論ではなく、レビュー本文を根拠に「具体的にどう作る・どう売るか」を書く
+- 「品質を上げる」のような一般論は禁止。必ず「○○という不満→このようにする」と対応関係を示す
+- マークダウン形式で構造化"""
+
+    user_message = f"""以下は楽天市場で「{keyword}」と検索したときの上位商品に投稿された顧客レビュー本文です。
+
+【レビュー本文（{len(sample)}件）】
+{review_block}
+
+---
+
+これらのレビューを分析し、以下の構成で出力してください。
+
+## 😟 顧客の不満点 TOP3
+各項目を以下の形式で。
+- **不満点：** 一文で
+- **根拠レビュー：** 短く引用（複数あれば箇条書き）
+- **発生頻度の体感：** （頻出/散見/少数）
+
+## ✨ 差別化アイデア 3つ
+各項目を以下の形式で。
+- **アイデア：** タイトル
+- **対応する不満点：** 上記のどれに対応するか
+- **具体的な実装：** 商品仕様・タイトル文言・写真・梱包・同梱物・説明文のいずれかで具体化（2〜4文）
+- **想定コスト感：** 低/中/高
+
+## 💡 タイトル・説明文に入れるべきキーワード
+レビューで「これが嬉しかった」「これがあって良かった」と書かれている要素を、検索ニーズに変換して5〜8語。
+"""
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-opus-4-7",
+            max_tokens=2500,
+            system=[{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}],
+            messages=[{"role": "user", "content": user_message}],
+        )
+        result_text = message.content[0].text
+        return jsonify({
+            "ok": True,
+            "analysis": result_text,
+            "review_count": len(sample),
+            "items_scraped": len(set(r["item"] for r in sample)),
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Claude API エラー: {str(e)}"}), 500
+
 @app.route("/chart/<key>")
 def chart(key):
     with _lock:
