@@ -23,6 +23,17 @@ warnings.filterwarnings("ignore")
 
 app = Flask(__name__, static_folder="..", static_url_path="")
 
+@app.after_request
+def _add_cors(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
+
+@app.route("/api/<path:_p>", methods=["OPTIONS"])
+def _cors_preflight(_p):
+    return ("", 204)
+
 # ── レビュー感情キーワード ─────────────────────────────────
 POSITIVE_WORDS_PY = [
     "良い","良かった","いい","よかった","綺麗","きれい","可愛い","かわいい","素敵","すてき",
