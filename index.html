@@ -2207,8 +2207,8 @@ function renderNiche(items, keyword) {
         { label: '高価格帯', min: priceHi2 * 0.6,  max: Infinity },
       ];
       const cards2 = tiers2.map(t => {
-        const grp = its2.filter(i => i.price >= t.min && i.price < t.max && (i.reviewCount||0) > 0)
-                        .sort((a,b) => (b.reviewCount||0) - (a.reviewCount||0))
+        const grp = its2.filter(i => i.price >= t.min && i.price < t.max)
+                        .sort((a,b) => ((_orderMap||{})[a.itemCode] || 9999) - ((_orderMap||{})[b.itemCode] || 9999))
                         .slice(0, 5);
         if (!grp.length) return `<div data-band-idx="${tiers2.indexOf(t)}" style="border:1px solid #e8edf4;border-radius:10px;overflow:hidden;margin-bottom:10px">
           <div style="background:#f4f6fb;padding:5px 12px;font-size:0.82rem;font-weight:700;color:#445;display:flex;justify-content:space-between;align-items:center">
@@ -3838,7 +3838,7 @@ function filterByPriceBand(min, max, bandIdx) {
   document.getElementById('shopTagAll')?.classList.add('active');
   const base = _selectedGenre ? _sortedItems.filter(it => it.genreId == _selectedGenre) : _sortedItems;
   const filtered = base.filter(it => it.price >= min && it.price <= (max === 9999999 ? Infinity : max))
-                       .sort((a,b) => b.reviewCount - a.reviewCount);
+                       .sort((a,b) => ((_orderMap||{})[a.itemCode] || 9999) - ((_orderMap||{})[b.itemCode] || 9999));
   renderTable(filtered, _orderMap);
   document.getElementById('filterCount').textContent = `(${filtered.length}件)`;
   // 価格帯フィルタ状態を即時保存（openMarketPopupが参照する）
