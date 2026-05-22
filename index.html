@@ -26,13 +26,29 @@
     const _favsRef = _db.ref('favItems');
     let _favsCache = [];
     let _favsLoaded = false;
-    _favsRef.on('value', snapshot => {
-      _favsCache = snapshot.val() || [];
+    const _markFavsLoaded = () => {
+      if (_favsLoaded) return;
       _favsLoaded = true;
       if (typeof updateFavCount === 'function') updateFavCount();
       if (typeof renderFavGrid === 'function') renderFavGrid();
       if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
+    };
+    _favsRef.on('value', snapshot => {
+      _favsCache = snapshot.val() || [];
+      _markFavsLoaded();
+    }, err => {
+      console.error('[favItems] Firebase load failed:', err);
+      _favsCache = [];
+      _markFavsLoaded();
     });
+    // Firebaseが5秒以内に応答しない場合はローカル空配列で読み込み完了扱い
+    setTimeout(() => {
+      if (!_favsLoaded) {
+        console.warn('[favItems] Firebase timeout (5s) — falling back to empty list');
+        _favsCache = [];
+        _markFavsLoaded();
+      }
+    }, 5000);
 
     const _trashRef = _db.ref('favTrash');
     const _kwUrlRef = _db.ref('favKwUrls');
@@ -491,7 +507,8 @@ kwInput.addEventListener("input", () => {
   if (!q) { closeSuggest(); return; }
   _suggestTimer = setTimeout(() => fetchSuggest(q), 200);
 });
-kwInput.addEventListener("blur", () => { setTimeout(closeSuggest, 150); });
+// blur では閉じない（pointerdown の外側クリック検知のみで充分）
+// blur 経由だと候補にマウスオーバーした瞬間や IME 変換中に閉じてしまう
 document.addEventListener("pointerdown", e => {
   if (!e.target.closest(".suggest-wrap") && !e.target.closest(".suggest-dropdown")) {
     closeSuggest();
@@ -852,7 +869,7 @@ function _seasonalKeywords(platform) {
   return base[platform]?.[season] || [];
 }
 
-const PROXY_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith("onrender.com"))
+const PROXY_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname.endsWith("onrender.com") || window.location.hostname.endsWith("trycloudflare.com"))
   ? ""
   : "https://keywordnave.onrender.com";
 let _proxyAvailable = null; // null=未確認 true/false
