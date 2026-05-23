@@ -1769,16 +1769,16 @@ function _initPage() {
 function showWelcome() {
   history.replaceState(null, "", location.pathname);
   document.getElementById("marketSideBtn")?.classList.add("hidden");
-  document.getElementById("result").classList.add("hidden");
+  document.getElementById("result")?.classList.add("hidden");
   const _ffb = document.getElementById("fixedFavBtn");
   if (_ffb) _ffb.style.display = "none";
   const tc = document.getElementById("topContent");
   if (tc) tc.classList.remove("hidden");
-  document.getElementById("nicheBar").innerHTML = "";
-  document.getElementById("shopTagList").innerHTML = "";
-  document.getElementById("priceFilterBox").classList.add("hidden");
+  const _nb = document.getElementById("nicheBar"); if (_nb) _nb.innerHTML = "";
+  const _stl = document.getElementById("shopTagList"); if (_stl) _stl.innerHTML = "";
+  document.getElementById("priceFilterBox")?.classList.add("hidden");
   const _pfi = document.getElementById("priceFilterInline"); if (_pfi) _pfi.innerHTML = '';
-  document.getElementById("tableContent").classList.add("hidden");
+  document.getElementById("tableContent")?.classList.add("hidden");
   // ジャンル・プラットフォームのactiveボタンを復元
   document.querySelectorAll(".sns-genre-btn").forEach(b => {
     const match = b.getAttribute("onclick") && b.getAttribute("onclick").includes(`'${_snsGenre}'`);
@@ -4616,7 +4616,8 @@ _initPage();
     auth.signInWithPopup(provider).catch(err => alert('ログインに失敗しました: ' + err.message));
   });
 
-  if (!localStorage.getItem('kn_authed')) overlay.style.display = 'flex';
+  // 認証完了するまで一旦オーバーレイ表示（onAuthStateChangedで隠す）
+  overlay.style.display = 'flex';
 
   auth.onAuthStateChanged(user => {
     if (user && ALLOWED_EMAILS.includes(user.email)) {
