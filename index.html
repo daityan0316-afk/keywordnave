@@ -4612,8 +4612,16 @@ _initPage();
   const provider = new firebase.auth.GoogleAuthProvider();
   const overlay  = document.getElementById('authOverlay');
 
-  document.getElementById('btnLogin').addEventListener('click', () => {
-    auth.signInWithPopup(provider).catch(err => alert('ログインに失敗しました: ' + err.message));
+  let _loggingIn = false;
+  document.getElementById('btnLogin').addEventListener('click', (e) => {
+    if (_loggingIn) return;
+    _loggingIn = true;
+    e.target.disabled = true;
+    auth.signInWithPopup(provider)
+      .catch(err => {
+        if (err.code !== 'auth/cancelled-popup-request') alert('ログインに失敗しました: ' + err.message);
+      })
+      .finally(() => { _loggingIn = false; e.target.disabled = false; });
   });
 
   // 認証完了するまで一旦オーバーレイ表示（onAuthStateChangedで隠す）
