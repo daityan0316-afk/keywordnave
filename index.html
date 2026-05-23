@@ -4110,7 +4110,9 @@ function renderFavGrid() {
   const makeCards = items => items.map(f => {
     const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
     const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+    const checked = _selectedFavs.has(f.itemCode) ? 'checked' : '';
     return `<div style="background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;position:relative;width:100%;box-sizing:border-box;overflow:hidden">
+      <input type="checkbox" class="fav-sel-cb" ${checked} onchange="toggleFavSelect('${codeEsc}',this.checked)" style="margin-top:4px;width:18px;height:18px;cursor:pointer;flex-shrink:0">
       ${f.image ? `<img src="${f.image}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:56px;height:56px;background:#f0f0f0;border-radius:8px;flex-shrink:0"></div>'}
       <div style="flex:1;min-width:0">
         <a href="${f.url||'#'}" target="_blank" style="font-size:0.83rem;color:#1a3a5c;text-decoration:none;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">${f.name}</a>
@@ -4146,6 +4148,7 @@ function renderFavGrid() {
   const makeTable = items => `<div style="overflow-x:auto">
     <table class="fav-mgmt-table">
       <thead><tr>
+        <th style="width:32px;text-align:center"></th>
         <th style="width:52px"></th>
         ${_th('商品名','name')}
         ${_th('価格','price','80px')}
@@ -4162,7 +4165,11 @@ function renderFavGrid() {
         ${items.map(f => {
           const codeEsc = (f.itemCode||'').replace(/'/g,"\\'");
           const codeAttr = (f.itemCode||'').replace(/"/g,'&quot;');
+          const checked = _selectedFavs.has(f.itemCode) ? 'checked' : '';
           return `<tr>
+            <td style="padding:3px 6px;text-align:center">
+              <input type="checkbox" class="fav-sel-cb" ${checked} onchange="toggleFavSelect('${codeEsc}',this.checked)" style="width:18px;height:18px;cursor:pointer">
+            </td>
             <td style="padding:3px 6px;text-align:center">
               ${f.image ? `<img src="${f.image}" style="width:36px;height:36px;object-fit:cover;border-radius:5px;display:block;cursor:zoom-in" onmouseenter="openImgZoom(this.src,this)" onmouseleave="closeImgZoom()">` : '<div style="width:36px;height:36px;background:#f0f0f0;border-radius:5px"></div>'}
             </td>
@@ -4218,7 +4225,18 @@ function renderFavGrid() {
 
   el.style.overflowX = 'hidden';
   el._kwGroups = groups;
+  const _selAllChecked = list.length > 0 && list.every(f => _selectedFavs.has(f.itemCode)) ? 'checked' : '';
+  const _selCnt = list.filter(f => _selectedFavs.has(f.itemCode)).length;
   el.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border:1px solid #e4e8f0;border-radius:8px">
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#555;cursor:pointer">
+        <input type="checkbox" id="favSelectAll" ${_selAllChecked} onchange="toggleFavSelectAll(this.checked)" style="width:18px;height:18px;cursor:pointer">
+        全選択
+      </label>
+      <span id="favSelectedCount" style="font-size:0.78rem;color:#666;font-weight:600">${_selCnt}件選択中</span>
+      <button id="favBulkDelBtn" onclick="deleteSelectedFavs()" ${_selCnt ? '' : 'disabled'}
+        style="margin-left:auto;padding:5px 14px;font-size:0.78rem;font-weight:700;border-radius:6px;border:1px solid #dc2626;background:${_selCnt ? '#dc2626' : '#fca5a5'};color:#fff;cursor:${_selCnt ? 'pointer' : 'not-allowed'};font-family:inherit">🗑 選択削除</button>
+    </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:10px;border-bottom:2px solid #e8edf4;padding-bottom:8px">
       <button onclick="favKwTab(this,0)"
         style="padding:4px 10px;font-size:0.78rem;font-weight:600;border-radius:20px;border:1px solid #93b4e0;background:#dbeafe;color:#1a3a5c;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px">
@@ -4285,6 +4303,46 @@ let _undoFavItem = null;
 let _undoFavIdx = null;
 let _undoTimer = null; // 未使用・互換のため残す
 let _favDeletePending = null;
+let _selectedFavs = new Set();
+function toggleFavSelect(code, checked) {
+  if (checked) _selectedFavs.add(code); else _selectedFavs.delete(code);
+  _updateBulkBar();
+}
+function toggleFavSelectAll(checked) {
+  const list = loadFavs();
+  if (checked) list.forEach(f => _selectedFavs.add(f.itemCode));
+  else _selectedFavs.clear();
+  renderFavGrid();
+}
+function _updateBulkBar() {
+  const cnt = _selectedFavs.size;
+  const c = document.getElementById('favSelectedCount');
+  if (c) c.textContent = cnt + '件選択中';
+  const btn = document.getElementById('favBulkDelBtn');
+  if (btn) {
+    btn.disabled = cnt === 0;
+    btn.style.background = cnt ? '#dc2626' : '#fca5a5';
+    btn.style.cursor = cnt ? 'pointer' : 'not-allowed';
+  }
+  const list = loadFavs();
+  const sa = document.getElementById('favSelectAll');
+  if (sa) sa.checked = list.length > 0 && list.every(f => _selectedFavs.has(f.itemCode));
+}
+function deleteSelectedFavs() {
+  const cnt = _selectedFavs.size;
+  if (!cnt) return;
+  if (!confirm(`選択中の${cnt}件をお気に入りから削除しますか？\n（ゴミ箱に移動します）`)) return;
+  const list = loadFavs();
+  const toDelete = new Set(_selectedFavs);
+  const deleted = list.filter(f => toDelete.has(f.itemCode));
+  const remaining = list.filter(f => !toDelete.has(f.itemCode));
+  const today = new Date().toLocaleDateString('ja-JP');
+  const trashItems = deleted.map(f => ({ ...f, deletedAt: today }));
+  const trash = [...trashItems, ...(_trashCache || [])].slice(0, 50);
+  _trashRef.set(trash);
+  saveFavs(remaining);
+  _selectedFavs.clear();
+}
 function confirmFavDelete(itemCode, btn) {
   if (!confirm('この商品をお気に入りから削除しますか？')) return;
   _favDeletePending = null;
