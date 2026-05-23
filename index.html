@@ -59,18 +59,35 @@
 
     const _kwRef = _db.ref('savedKeywords');
     let _kwCache = null;
+    let _kwLoaded = false;
     _kwRef.on('value', snapshot => {
       const fbData = snapshot.val();
       if (!fbData) {
         // Firebaseが空ならlocalStorageから移行
         try {
           const local = JSON.parse(localStorage.getItem("savedKeywords") || "[]");
-          if (local.length) { _kwRef.set(local); return; }
+          if (local.length) { _kwRef.set(local); _kwLoaded = true; return; }
         } catch {}
       }
       _kwCache = fbData || [];
+      _kwLoaded = true;
+      try { localStorage.setItem("savedKeywords", JSON.stringify(_kwCache)); } catch {}
+      if (typeof renderSavedKeywords === 'function') renderSavedKeywords();
+    }, err => {
+      console.warn('[savedKeywords] Firebase load failed:', err);
+      try { _kwCache = JSON.parse(localStorage.getItem("savedKeywords") || "[]"); } catch { _kwCache = []; }
+      _kwLoaded = true;
       if (typeof renderSavedKeywords === 'function') renderSavedKeywords();
     });
+    // Firebaseが5秒以内に応答しない場合はlocalStorageから読み込み
+    setTimeout(() => {
+      if (!_kwLoaded) {
+        console.warn('[savedKeywords] Firebase timeout (5s) — using localStorage');
+        try { _kwCache = JSON.parse(localStorage.getItem("savedKeywords") || "[]"); } catch { _kwCache = []; }
+        _kwLoaded = true;
+        if (typeof renderSavedKeywords === 'function') renderSavedKeywords();
+      }
+    }, 5000);
   </script>
 </head>
 <body>
@@ -686,7 +703,9 @@ function loadSaved() {
 }
 function _saveKwList(list) {
   _kwCache = list;
-  _kwRef.set(list.length ? list : null);
+  try { localStorage.setItem("savedKeywords", JSON.stringify(list)); } catch {}
+  try { _kwRef.set(list.length ? list : null); } catch (e) { console.warn('[savedKeywords] Firebase write failed:', e); }
+  renderSavedKeywords();
 }
 function saveKeyword() {
   const kw = document.getElementById("keyword").value.trim();
