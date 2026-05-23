@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/style.css">
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script>
     const firebaseConfig = {
@@ -23,6 +24,12 @@
     };
     firebase.initializeApp(firebaseConfig);
     const _db = firebase.database();
+    // 認証完了を待つPromise（DBアクセスはこれが解決してから）
+    let _authReadyResolve;
+    const _authReady = new Promise(r => { _authReadyResolve = r; });
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) _authReadyResolve(user);
+    });
     const _favsRef = _db.ref('favItems');
     let _favsCache = [];
     let _favsLoaded = false;
@@ -33,13 +40,15 @@
       if (typeof renderFavGrid === 'function') renderFavGrid();
       if (document.getElementById('favModal')?.classList.contains('open') && typeof renderFavModal === 'function') renderFavModal();
     };
-    _favsRef.on('value', snapshot => {
-      _favsCache = snapshot.val() || [];
-      _markFavsLoaded();
-    }, err => {
-      console.error('[favItems] Firebase load failed:', err);
-      _favsCache = [];
-      _markFavsLoaded();
+    _authReady.then(() => {
+      _favsRef.on('value', snapshot => {
+        _favsCache = snapshot.val() || [];
+        _markFavsLoaded();
+      }, err => {
+        console.error('[favItems] Firebase load failed:', err);
+        _favsCache = [];
+        _markFavsLoaded();
+      });
     });
     // Firebaseが5秒以内に応答しない場合はローカル空配列で読み込み完了扱い
     setTimeout(() => {
@@ -53,13 +62,16 @@
     const _trashRef = _db.ref('favTrash');
     const _kwUrlRef = _db.ref('favKwUrls');
     let _kwUrlCache = {};
-    _kwUrlRef.on('value', snap => { _kwUrlCache = snap.val() || {}; });
     let _trashCache = [];
-    _trashRef.on('value', snapshot => { _trashCache = snapshot.val() || []; });
+    _authReady.then(() => {
+      _kwUrlRef.on('value', snap => { _kwUrlCache = snap.val() || {}; });
+      _trashRef.on('value', snapshot => { _trashCache = snapshot.val() || []; });
+    });
 
     const _kwRef = _db.ref('savedKeywords');
     let _kwCache = null;
     let _kwLoaded = false;
+    _authReady.then(() => {
     _kwRef.on('value', snapshot => {
       const fbData = snapshot.val();
       if (!fbData) {
@@ -79,6 +91,7 @@
       _kwLoaded = true;
       if (typeof renderSavedKeywords === 'function') renderSavedKeywords();
     });
+    }); // _authReady.then
     // Firebaseが5秒以内に応答しない場合はlocalStorageから読み込み
     setTimeout(() => {
       if (!_kwLoaded) {
@@ -4588,51 +4601,38 @@ function renderOtakara(results) {
 _initPage();
 </script>
 
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+<script>
+(function() {
+  const ALLOWED_EMAILS = [
+    'qroza_zakka@cebs1980.sakura.ne.jp',
+    'daityan0316@gmail.com',
+    'rina0318318@gmail.com',
+  ];
+  const auth     = firebase.auth();
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const overlay  = document.getElementById('authOverlay');
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBHhvzNn2xDYy00KmwBb-JDsMf4PCOchfg",
-  authDomain: "keywordnavi-bfde7.firebaseapp.com",
-  projectId: "keywordnavi-bfde7",
-  storageBucket: "keywordnavi-bfde7.firebasestorage.app",
-  messagingSenderId: "780400811512",
-  appId: "1:780400811512:web:602fd03cb5df06c06b0a0d"
-};
+  document.getElementById('btnLogin').addEventListener('click', () => {
+    auth.signInWithPopup(provider).catch(err => alert('ログインに失敗しました: ' + err.message));
+  });
 
-const ALLOWED_EMAILS = [
-  'qroza_zakka@cebs1980.sakura.ne.jp',
-  'daityan0316@gmail.com',
-  'rina0318318@gmail.com',
-];
+  if (!localStorage.getItem('kn_authed')) overlay.style.display = 'flex';
 
-const app      = initializeApp(firebaseConfig, 'auth');
-const auth     = getAuth(app);
-const provider = new GoogleAuthProvider();
-const overlay  = document.getElementById('authOverlay');
-
-document.getElementById('btnLogin').addEventListener('click', () => {
-  signInWithPopup(auth, provider).catch(err => alert('ログインに失敗しました: ' + err.message));
-});
-
-if (!localStorage.getItem('kn_authed')) overlay.style.display = 'flex';
-
-onAuthStateChanged(auth, user => {
-  if (user && ALLOWED_EMAILS.includes(user.email)) {
-    localStorage.setItem('kn_authed', '1');
-    overlay.style.display = 'none';
-  } else if (user) {
-    localStorage.removeItem('kn_authed');
-    overlay.style.display = 'flex';
-    overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;"><div style="font-size:48px;">🚫</div><h2>アクセス権限がありません</h2><p style="color:#666;margin:8px 0 20px;">${user.email}</p><button onclick="import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js').then(m=>m.signOut(auth))" style="background:#555;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;">別のアカウントでログイン</button></div>`;
-    document.querySelector('#authOverlay button').addEventListener('click', () => signOut(auth));
-  } else {
-    localStorage.removeItem('kn_authed');
-    overlay.style.display = 'flex';
-  }
-});
+  auth.onAuthStateChanged(user => {
+    if (user && ALLOWED_EMAILS.includes(user.email)) {
+      localStorage.setItem('kn_authed', '1');
+      overlay.style.display = 'none';
+    } else if (user) {
+      localStorage.removeItem('kn_authed');
+      overlay.style.display = 'flex';
+      overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:40px 36px;text-align:center;"><div style="font-size:48px;">🚫</div><h2>アクセス権限がありません</h2><p style="color:#666;margin:8px 0 20px;">${user.email}</p><button id="btnSignOut" style="background:#555;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;">別のアカウントでログイン</button></div>`;
+      document.getElementById('btnSignOut').addEventListener('click', () => auth.signOut());
+    } else {
+      localStorage.removeItem('kn_authed');
+      overlay.style.display = 'flex';
+    }
+  });
+})();
 </script>
 </body>
 </html>
