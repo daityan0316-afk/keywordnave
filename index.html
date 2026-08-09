@@ -1811,7 +1811,13 @@ function loadRanking() {
   window[cb] = d => {
     delete window[cb]; s.remove();
     btn.disabled = false; btn.textContent = "調査する";
-    if (d.error) { setStatus("error", "ランキング取得エラー: " + d.error_description); return; }
+    if (d.error) {
+      const raw = `${d.error_description || ''} ${d.error || ''}`.toLowerCase();
+      setStatus("error", (raw.includes('maintenance') || raw.includes('service_unavailable'))
+        ? '楽天APIがメンテナンス中です。復旧までお待ちください（アプリの不具合ではありません）'
+        : "ランキング取得エラー: " + d.error_description);
+      return;
+    }
     const items = (d.Items || []).map((i, idx) => ({
       name: i.itemName || "",
       price: i.itemPrice || 0,
@@ -1950,8 +1956,12 @@ function fetchRakuten(keyword, genreId) {
       window[cb] = d => {
         delete window[cb]; s.remove();
         if (d.error) {
-          const raw = (d.error_description || d.error || '').toLowerCase();
-          const msg = raw.includes('exceeded')
+          // error_description と error の両方を見る。メンテナンス中は
+          // JSONPでも HTTP 200 で error が返ってくるのでここに入る。
+          const raw = `${d.error_description || ''} ${d.error || ''}`.toLowerCase();
+          const msg = (raw.includes('maintenance') || raw.includes('service_unavailable'))
+            ? '楽天APIがメンテナンス中です。復旧までお待ちください（アプリの不具合ではありません）'
+            : raw.includes('exceeded')
             ? 'アクセスが混雑しています。少し間を置いて再試行してください'
             : raw.includes('invalid')
             ? 'APIキーが無効です。管理者にお問い合わせください'
@@ -3948,9 +3958,10 @@ function setStatus(type, msg) {
   const el = document.getElementById("status");
   el.className = `status ${type}`;
   if (type === "error") {
-    const isOverload = msg.includes('混雑') || msg.includes('exceeded');
+    const isMaintenance = msg.includes('メンテナンス');
+    const isOverload = !isMaintenance && (msg.includes('混雑') || msg.includes('exceeded'));
     el.innerHTML = `
-      <span style="font-size:1.1rem;margin-right:6px">${isOverload ? '⏳' : '⚠️'}</span>
+      <span style="font-size:1.1rem;margin-right:6px">${isMaintenance ? '🛠️' : isOverload ? '⏳' : '⚠️'}</span>
       <span>${msg}</span>
       ${isOverload ? `<button onclick="doSearch()" style="margin-left:12px;padding:4px 14px;background:#fff;border:1.5px solid #e05555;color:#c0392b;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">再試行</button>` : ''}
     `;
